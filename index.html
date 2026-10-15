@@ -116,6 +116,14 @@ body {
 #toast { left: 140px; top: 410px; width: 800px; padding: 22px 30px; box-sizing: border-box; text-align: center; font: 800 36px/1.25 var(--font); color: var(--navy);
   transition: opacity .25s; display: flex; align-items: center; justify-content: center; gap: 22px; }
 #toast img { width: 110px; height: 110px; object-fit: contain; flex: none; }
+#picker { display: flex; gap: 14px; padding: 14px; border-radius: 36px; pointer-events: none; z-index: 5; }
+#picker[hidden] { display: none; }
+.pk { width: 150px; height: 190px; border-radius: 26px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .7); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 0 10px; box-sizing: border-box; pointer-events: auto; }
+.pk img { width: 130px; height: 112px; object-fit: contain; }
+.pk b { font: 900 30px/1 var(--font); color: var(--navy); margin-top: 6px; }
+.pk i { font: 800 22px/1 var(--font); font-style: normal; color: var(--blue); }
+.pk.on { border-color: var(--gold-1); background: linear-gradient(#fffbe0, #ffe9a8); transform: scale(1.06); }
+#fps { position: fixed; left: 8px; top: 8px; z-index: 9; padding: 4px 8px; border-radius: 8px; background: rgba(0, 0, 0, .6); color: #fff; font: 600 12px/1.3 ui-monospace, monospace; pointer-events: none; }
 .title { font: 900 76px/1 var(--font); color: #fff; text-shadow: 0 5px 0 #1d64b8, 0 0 18px rgba(20, 90, 180, .4); }
 @media (prefers-reduced-motion: reduce) { .rays { animation: none; } .gel { transition: none; } .bump { animation: none; } }
 
@@ -257,6 +265,7 @@ body {
     </div>
 
     <div class="glass" id="toast" style="opacity:0;pointer-events:none" role="status"></div>
+    <div class="glass" id="picker" hidden aria-label="Choose a building"></div>
   </div>
 </div>
 
@@ -311,6 +320,8 @@ const DEMO = {   // demo links start a game from a fixed board: #combo #lv17 #st
   night: [[14, 14, 0, 12], [3, 0, 1, 0], [0, 2, 0, 1], [1, 0, 3, 0]],
 };
 const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 2];
+// v0.4 §2.1: island, board, buildings, bubbles and effects are one "world" drawn 1.1x around the board centre; the HUD is not scaled
+const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 const artSrc = lv => `assets/b${String(lv).padStart(2, '0')}.webp`;
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
@@ -369,7 +380,7 @@ function prepareImages() {
 
 /* ---------- audio ---------- */
 let AC = null, musicNodes = null;
-function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); loadAudio(AC); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
 function tone(f, d = .12, type = 'sine', g = .08, f2 = null, delay = 0) {
   if (!U.settings.sfx) return; const a = ac(); if (!a) return;
   const t = a.currentTime + delay, o = a.createOscillator(), gn = a.createGain();
@@ -386,7 +397,7 @@ function noise(d, g, f0, f1, q = 1, delay = 0) {   // filtered noise burst: whoo
   gn.gain.setValueAtTime(.0001, t); gn.gain.exponentialRampToValueAtTime(g, t + d * .25); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
   src.connect(bp).connect(gn).connect(a.destination); src.start(t, Math.random()); src.stop(t + d + .02);
 }
-const SFX = {
+const SYN = {   // synthesized fallbacks; a recorded file with the same key replaces each one (AUDIO_KEYS.md)
   whoosh: (delay = 0) => noise(.34, .07, 3200, 380, .9, delay),
   land: () => { tone(190, .14, 'sine', .09, 85); noise(.16, .05, 1900, 700, 1.4); },
   cloud: () => { noise(.5, .03, 600, 1400, .6); [1047, 1319, 1568].forEach((f, i) => tone(f, .3, 'sine', .03, null, .1 + i * .06)); },
@@ -399,10 +410,26 @@ const SFX = {
   rewind: () => { tone(900, .45, 'triangle', .05, 220); [1568, 1319, 1047, 880].forEach((f, i) => tone(f, .1, 'sine', .025, null, i * .08)); },
   shimmer: () => [784, 1175, 1568, 2093].forEach((f, i) => tone(f, .5, 'sine', .03, null, i * .05)),
   grand: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .55, 'triangle', .06, null, i * .1)); tone(131, 1.2, 'sine', .07); tone(196, 1.2, 'sine', .04, null, .1); },
-  bloom: () => { SFX.grand(); [2093, 2637, 3136].forEach((f, i) => tone(f, .7, 'sine', .025, null, .55 + i * .08)); noise(1.2, .04, 800, 3000, .5, .3); },
+  bloom: () => { SYN.grand(); [2093, 2637, 3136].forEach((f, i) => tone(f, .7, 'sine', .025, null, .55 + i * .08)); noise(1.2, .04, 800, 3000, .5, .3); },
   gift: () => [784, 988, 1175].forEach((f, i) => tone(f, .18, 'sine', .05, null, i * .07)),
   fanfare: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .35, 'triangle', .06, null, i * .09))
 };
+/* Recorded sounds: list the keys you provide in assets/audio/manifest.json (e.g. ["merge","bubble","music_loop"]),
+   and put assets/audio/<key>.mp3 next to it. Missing keys keep the synthesized sound. */
+const SND = {};
+let audioLoaded = false;
+function loadAudio(a) {
+  if (audioLoaded) return; audioLoaded = true;
+  fetch('assets/audio/manifest.json').then(r => r.ok ? r.json() : []).then(keys => keys.forEach(k =>
+    fetch(`assets/audio/${k}.mp3`).then(r => r.arrayBuffer()).then(b => a.decodeAudioData(b)).then(buf => { SND[k] = buf; if (k === 'music_loop' || k === 'ambience_water') { if (musicNodes) { music(false); setTimeout(() => U.settings.music && music(true), 800); } } }).catch(() => {}))).catch(() => {});
+}
+function sample(key, rate = 1, delay = 0, gain = .9) {   // true when a recorded file handled the sound
+  const buf = SND[key]; if (!buf) return false; if (!U.settings.sfx) return true;
+  const a = ac(); if (!a) return true; const src = a.createBufferSource(), g = a.createGain();
+  src.buffer = buf; src.playbackRate.value = rate; g.gain.value = gain; src.connect(g).connect(a.destination); src.start(a.currentTime + delay); return true;
+}
+const SFX = Object.fromEntries(Object.keys(SYN).map(k => [k, (...a) =>
+  sample(k, k === 'merge' ? 2 ** (Math.min((a[0] || 1) - 1, 24) / 12) : 1, k === 'whoosh' ? a[0] || 0 : 0) || SYN[k](...a)]));   // merge rises a semitone per combo
 function vib(ms) {
   if (!U.settings.vib || !navigator.vibrate || (navigator.userActivation && !navigator.userActivation.hasBeenActive)) return;
   try { navigator.vibrate(ms); } catch {}
@@ -411,6 +438,11 @@ function music(on) {
   const a = ac(); if (!a) return;
   if (on && !musicNodes) {
     const g = a.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(.025, a.currentTime + 2); g.connect(a.destination);
+    const loop = (k, vol) => { const src = a.createBufferSource(), lg = a.createGain(); src.buffer = SND[k]; src.loop = true; lg.gain.value = vol; src.connect(lg).connect(a.destination); src.start(); return [src]; };
+    if (SND.music_loop || SND.ambience_water) {   // recorded music / ambience replace the synthesized ones
+      const os = [SND.music_loop && loop('music_loop', .5), SND.ambience_water && loop('ambience_water', .4)].filter(Boolean);
+      musicNodes = { g, os }; return;
+    }
     const os = [261.6, 329.6, 392, 493.9].map((f, i) => { const o = a.createOscillator(); o.type = 'sine'; o.frequency.value = f;
       const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = .07 + i * .03; lg.gain.value = 2; lfo.connect(lg).connect(o.frequency); lfo.start();
       o.connect(g); o.start(); return [o, lfo]; });
@@ -594,21 +626,21 @@ function select(rc) {
 const isTarget = rc => U.sel && rc && L.targets(G.board, U.sel[0], U.sel[1]).some(t => same(t, rc));
 
 function onTap(cands) {
-  const tile = cands.tile, list = cands.list;    // list: buildings under the finger, front to back
+  const tile = cands.tile, list = cands.list, primary = cands.primary;
   if (U.target) {
-    const rc = U.target === 'pop' ? list[0] : (tile && !G.board[tile[0]][tile[1]] ? tile : null);
+    const rc = U.target === 'pop' ? primary : (tile && !G.board[tile[0]][tile[1]] ? tile : null);
     if (U.target === 'pop' && rc) { const e = L.pop(G, rc); if (e.ok) { U.target = null; wrapFx(rc[0], rc[1], e.lv); vib(20); hud(); checkStuck(); } }
     else if (U.target === 'drop' && rc) { U.target = null; doPlace(rc); }
     else toast(U.target === 'pop' ? 'Pick a tile with a building.' : 'Pick an empty tile.');
     return;
   }
-  const tgt = list.find(isTarget);                 // a glowing neighbor anywhere under the finger wins
+  if (!primary) { U.sel = null; return; }
+  // a precise pick (badge / floor) is taken as meant; a tap on building art merges with any glowing neighbour under the finger
+  const tgt = cands.how === 'sprite' ? list.find(isTarget) : isTarget(primary) ? primary : null;
   if (tgt) { doMerge(U.sel, tgt); return; }
-  if (!list.length) { U.sel = null; return; }
-  // tapping the same spot again walks to the building behind (front ones fade so it shows)
-  const i = list.findIndex(rc => same(rc, U.sel));
-  if (i >= 0) { if (i + 1 < list.length) select(list[i + 1]); else U.sel = null; return; }
-  select(list[0]);
+  // tapping the selected building again walks to the next one under the finger
+  if (same(primary, U.sel)) { const nx = list[list.findIndex(rc => same(rc, U.sel)) + 1]; if (!nx) U.sel = null; else if (isTarget(nx)) doMerge(U.sel, nx); else select(nx); return; }
+  select(primary);
 }
 
 /* ---------- treasures ---------- */
@@ -794,7 +826,7 @@ function updateInst(I, t, dt, s, still) {
       }
       case 'flow': {
         if (!still) P.off += (p.speed || 60) / s * dt;
-        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: 0xcff4ff, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
+        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: 0x6f9dff, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
         break;
       }
       case 'sparkle': P.stars.forEach((st, i) => { const a = Math.max(0, Math.sin(t * 1.9 + i * 2.1 + ph)) ** 6 * .9; st.alpha = still ? .35 : a; st.visible = st.alpha > .02; st.scale.set((.25 + .35 * st.alpha) / s * .7); st.rotation = t * .4; }); break;
@@ -825,11 +857,22 @@ function clipRect(poly, x0, y0, x1, y1) {
   }
   return poly;
 }
-/** Grout channels: textured lines along the tile seams, the texture offset scrolls with the flow (§6.2). */
-function drawGrout(g, k, sc, ox, oy, color, alpha) {
-  const t = waterTex(k), m = new PIXI.Matrix().scale(sc, sc).translate(ox % (t.width * sc), oy % (t.height * sc));
-  g.clear().lineTextureStyle({ width: 11, texture: t, matrix: m, color, alpha, cap: PIXI.LINE_CAP.ROUND });
-  for (let i = 1; i <= 4; i++) { g.moveTo(...center(i - .5, -.5)).lineTo(...center(i - .5, 3.5)); g.moveTo(...center(-.5, i - .5)).lineTo(...center(3.5, i - .5)); }
+/* Grout channels (§6.2, v0.4 §2.3): the seams are cut into short segments; each segment's water level follows the tilt,
+   so water pools toward the low side (wide, deep blue), the high side runs dry, and the low edge overflows. */
+const GROUT = [];
+for (let i = 1; i <= 4; i++) GROUT.push([center(i - .5, -.5), center(i - .5, 3.5)], [center(-.5, i - .5), center(3.5, i - .5)]);
+const GSEG = GROUT.flatMap(([a, b]) => Array.from({ length: 16 }, (_, k) => [[a[0] + (b[0] - a[0]) * k / 16, a[1] + (b[1] - a[1]) * k / 16], [a[0] + (b[0] - a[0]) * (k + 1) / 16, a[1] + (b[1] - a[1]) * (k + 1) / 16]]));
+const RIM = [[540, 760], [1020, 1000], [540, 1240], [60, 1000]].flatMap((p, i, A) => { const q = A[(i + 1) % 4]; return Array.from({ length: 10 }, (_, k) => [p[0] + (q[0] - p[0]) * (k + .5) / 10, p[1] + (q[1] - p[1]) * (k + .5) / 10]); });
+const WTL = { x: 0, y: 0, vx: 0, vy: 0 };   // water's own tilt: a damped spring behind the device tilt, so it sloshes
+const level = (x, y) => Math.max(0, Math.min(1, .5 + .9 * ((x - CX) / 480 * WTL.x + (y - CY) / 240 * WTL.y)));
+const WATER = { base: [0x3f76e4, 0x6f80e0, 0x4a74e8], deep: 0x2e5bc9, hi: 0x7db2ff };   // Minecraft-style water (#3F76E4)
+function drawWater(g, k, sc, ox, oy, color, hi) {
+  const t = waterTex(k), m = new PIXI.Matrix().scale(sc, sc).translate(ox % (t.width * sc), oy % (t.height * sc)); g.clear();
+  for (const [a, b] of GSEG) {
+    const L = level((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); if (hi && L < .35) continue;
+    g.lineTextureStyle({ width: 3 + 13 * L, texture: t, matrix: m, color: hi ? WATER.hi : lerpColor(color, WATER.deep, Math.max(0, L - .5) * 2), alpha: hi ? (L - .35) * .9 : .35 + .6 * L, cap: PIXI.LINE_CAP.BUTT });   // butt caps: segments join without overlap (and ~35x fewer vertices)
+    g.moveTo(...a).lineTo(...b);
+  }
 }
 
 let app = null, R = null;
@@ -837,12 +880,12 @@ function initRenderer() {
   app = new PIXI.Application({ view: $('cv'), width: 1080, height: 1920, backgroundAlpha: 0, antialias: true, resolution: 1 });
   if (app.renderer.events) app.renderer.events.autoPreventDefault = false;
   const T = genTextures(), S = app.stage;
-  const world = new PIXI.Container(); S.addChild(world);
+  const world = new PIXI.Container(); world.pivot.set(CX, CY); world.position.set(CX, CY); world.scale.set(WS); S.addChild(world);
   // sky: three time-of-day backgrounds cross-fade
   const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; world.addChild(s); return s; });
   const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
-  const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1080, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
+  const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
   const clouds = [cloud('cloudFar', -90, .9, .7), cloud('cloudMid', 120, .9, .8)];
   // bubbles live behind the island (hole mask) and behind every building
   const bubbleLayer = new PIXI.Container(), hole = new PIXI.Graphics();
@@ -850,7 +893,7 @@ function initRenderer() {
   world.addChild(bubbleLayer, hole); bubbleLayer.mask = hole;
   // board water spilling over the front edges + mist
   const falls = new PIXI.Container(); world.addChild(falls);
-  const fallStrips = FALLS.map(([x, y]) => [0, 1, 2].map(i => { const s = new PIXI.TilingSprite(tex('flow'), 26 - i * 4, 48); s.tileScale.set(.12); s.position.set(x - 13 + i * 2, y - 6 + i * 48); s.alpha = [.95, .7, .35][i]; falls.addChild(s); return s; }));
+  const fallStrips = FALLS.map(([x, y]) => [0, 1, 2].map(i => { const s = new PIXI.TilingSprite(tex('flow'), 26 - i * 4, 48); s.tileScale.set(.12); s.base = [x, y - 6 + i * 48, 26 - i * 4, [.95, .7, .35][i]]; falls.addChild(s); return s; }));
   const mist = new PIXI.ParticleContainer(80, { position: true, alpha: true, scale: true });
   mist.blendMode = ADD(); falls.addChild(mist);
   // board (colour graded by time of day)
@@ -858,19 +901,22 @@ function initRenderer() {
   const tw = TW * .95, tiles = [];
   for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const [x, y] = center(r, c), s = new PIXI.Sprite(tex('tile')); s.width = tw; s.height = tex('tile').height * tw / tex('tile').width; s.position.set(x - tw / 2, y - TH * .95 / 2); boardF.addChild(s); tiles.push(s); }
   // grout = shallow water channels on the tile seams, running to the two front edges where they spill as falls (§6.2)
-  const water = new PIXI.Graphics(), waterHi = new PIXI.Graphics(); waterHi.blendMode = ADD(); boardF.addChild(water, waterHi);
+  const dry = new PIXI.Graphics(); dry.lineStyle({ width: 3, color: 0xc4d2e4, alpha: .9, cap: PIXI.LINE_CAP.ROUND });   // grout bed that shows where water runs dry
+  for (const [a, b] of GROUT) dry.moveTo(...a).lineTo(...b);
+  const water = new PIXI.Graphics(), waterHi = new PIXI.Graphics(); waterHi.blendMode = ADD(); boardF.addChild(dry, water, waterHi);
   const floorG = new PIXI.Graphics(); boardF.addChild(floorG);
   const pieces = new PIXI.Container(); pieces.sortableChildren = true; boardF.addChild(pieces);
   const CM = PIXI.ColorMatrixFilter || PIXI.filters.ColorMatrixFilter, cm = new CM();
+  const spill = new PIXI.ParticleContainer(120, { position: true, alpha: true, scale: true }); world.addChild(spill);   // water tipping over the low edge
   const arrows = new PIXI.Graphics(), badges = new PIXI.Container(); world.addChild(arrows, badges);
   const badgePool = Array.from({ length: 16 }, () => { const s = new PIXI.Sprite(T.badge[1]); s.anchor.set(.5); s.width = s.height = 56; s.visible = false; badges.addChild(s); return s; });
   clouds.push(cloud('cloudNear', 1330, .9, .85));   // near clouds pass in front of the island's foot
   // night fireflies, effects, floating text
   const fireflies = Array.from({ length: 26 }, (_, i) => { const s = new PIXI.Sprite(T.dot); s.anchor.set(.5); s.tint = 0xfff3a0; s.blendMode = ADD(); s.alpha = 0; s.scale.set(.35 + (i % 3) * .1); world.addChild(s); return { s, a: Math.random() * 7, r: 220 + Math.random() * 430, y: 820 + Math.random() * 520 }; });
-  const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); S.addChild(fxG, fxTop);
+  const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   floatText = (text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -884,9 +930,13 @@ let TM = 0, TP = 0;   // TM: ambient clock, TP: building-part clock (frozen unde
 const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0-1)
   [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
   [1.08, .04, 0, 0, .02, 0, .96, 0, 0, 0, 0, 0, .84, 0, 0, 0, 0, 0, 1, 0],
-  [.6, 0, 0, 0, 0, 0, .68, .02, 0, .02, 0, .04, .9, 0, .06, 0, 0, 0, 1, 0]];
+  [.82, 0, 0, 0, 0, 0, .86, .02, 0, .01, 0, .03, 1, 0, .04, 0, 0, 0, 1, 0]];   // v0.4: night board and buildings brighter (sky stays dark)
+const FPS = location.search.includes('fps') ? { el: Object.assign(document.createElement('div'), { id: 'fps' }), ms: [], t: 0 } : null;   // ?fps: phone frame meter
+if (FPS) document.body.append(FPS.el);
 function frame() {
   const dt = Math.min(app.ticker.deltaMS, 50) / 1000, now = performance.now(), still = reduce();
+  if (FPS) { FPS.ms.push(app.ticker.deltaMS); if (now - FPS.t > 500) { const a = FPS.ms.slice().sort((x, y) => x - y), avg = a.reduce((x, y) => x + y, 0) / a.length;
+    FPS.el.textContent = `${(1000 / avg).toFixed(0)} fps · p95 ${a[Math.floor(a.length * .95)].toFixed(1)} ms`; FPS.ms = []; FPS.t = now; } }
   TM += dt; if (!still) TP += dt;
   updatePhase(dt); updateTilt(dt);
   updateSky(dt, still);
@@ -909,20 +959,39 @@ function updateSky(dt, still) {
   const tint = mix3(w, 0xffffff, 0xffc4b0, 0x6878b0);
   R.clouds.forEach((c, i) => {   // far / mid / near cross the screen in 140 / 90 / 60 s
     if (!still) c.tilePosition.x -= 1080 / [140, 90, 60][i] * dt / c.tileScale.x;
-    c.x = -T.x * 12 * (i + 1) / 3; c.tint = tint;
+    c.x = -80 - T.x * [16, 32, 48][i]; c.tint = tint;   // v0.4: stronger parallax
   });
   // fireflies at night
   R.fireflies.forEach((f, i) => { f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(TM * 2 + i))); });
-  // board water: grout flows toward the front edges and tilts with the device
-  const fx = T.x * 40, fy = 24 + T.y * 30, k = still ? .3 : 1;
+  // water sloshes after the tilt (spring), then flows toward the low side
+  const tx = still ? 0 : T.x, ty = still ? 0 : T.y;
+  WTL.vx += ((tx - WTL.x) * 36 - WTL.vx * 6) * dt; WTL.vy += ((ty - WTL.y) * 36 - WTL.vy * 6) * dt; WTL.x += WTL.vx * dt; WTL.y += WTL.vy * dt;
+  const mag = Math.hypot(WTL.x, WTL.y), fx = WTL.x * 70, fy = 24 + WTL.y * 60, k = (still ? .3 : 1) * (1 + mag * 1.5);
   const wo = R.waterOff; wo[0] += fx * dt * k; wo[1] += fy * dt * k; wo[2] += fx * 1.6 * dt * k; wo[3] += fy * 2.2 * dt * k;
-  drawGrout(R.water, 'caustic', .3, wo[0], wo[1], mix3(w, 0x8adcff, 0xffb888, 0x7c9ce0), .78);
-  drawGrout(R.waterHi, 'flow', .2, wo[2], wo[3], 0xffffff, .5 + .15 * w[2]);
-  for (const strips of R.fallStrips) for (const s of strips) { s.tilePosition.y += (110 + T.y * 40) * dt * k / .12; s.tint = mix3(w, 0xffffff, 0xffd9b8, 0xb8d4ff); }
+  const wc = mix3(w, ...WATER.base);
+  drawWater(R.water, 'caustic', .3, wo[0], wo[1], wc, false);
+  drawWater(R.waterHi, 'flow', .2, wo[2], wo[3], wc, true); R.waterHi.alpha = .8 + .2 * w[2];
+  // the six board falls: thick and fast on the low side, thin then dry on the high side
+  const fallW = FALLS.map(([x, y]) => Math.min(1.8, level(x, y) / .5));
+  R.fallStrips.forEach((strips, j) => strips.forEach(s => {
+    const [x, y, wd, a] = s.base, st = fallW[j]; s.visible = st > .2; s.width = wd * Math.max(.3, st); s.position.set(x - s.width / 2, y);
+    s.alpha = a * Math.min(1, st); s.tilePosition.y += (110 + 60 * st) * dt * k / .12; s.tint = mix3(w, 0x9cc2ff, 0xffd0b0, 0xa8c4ff);
+  }));
+  // overflow: droplets tip over whichever rim is lowest
+  if (!still && mag > .2 && R.spill.children.length < 110) for (const [x, y] of RIM) {
+    const L = level(x, y); if (L < .9 || Math.random() > dt * 14 * mag) continue;
+    const d = new PIXI.Sprite(genTextures().dot); d.anchor.set(.5); d.tint = WATER.hi; d.position.set(x, y); d.scale.set(.25 + Math.random() * .3); d.alpha = .9;
+    d.vx = WTL.x * 160 + (Math.random() - .5) * 60; d.vy = WTL.y * 80 - 60 - Math.random() * 60; R.spill.addChild(d);
+  }
+  for (const d of [...R.spill.children]) { d.x += d.vx * dt; d.y += d.vy * dt; d.vy += 700 * dt; d.alpha -= dt * 1.1; if (d.alpha <= 0) { R.spill.removeChild(d); d.destroy(); } }
   if (!still && R.mist.children.length < 60 && Math.random() < dt * 30) {
-    const [x, y] = FALLS[Math.floor(Math.random() * FALLS.length)], m = new PIXI.Sprite(genTextures().dot);
+    const j = Math.floor(Math.random() * FALLS.length); if (fallW[j] < .3) return finishSky(w);
+    const [x, y] = FALLS[j], m = new PIXI.Sprite(genTextures().dot);
     m.anchor.set(.5); m.position.set(x + (Math.random() - .5) * 20, y + 140); m.scale.set(.6 + Math.random() * .6); m.alpha = .5; m.vy = -10 - Math.random() * 15; m.vx = (Math.random() - .5) * 16; R.mist.addChild(m);
   }
+  finishSky(w, dt);
+}
+function finishSky(w, dt = 0) {
   for (const m of [...R.mist.children]) { m.x += m.vx * dt; m.y += m.vy * dt; m.alpha -= dt * .35; m.scale.x = m.scale.y += dt * .5; if (m.alpha <= 0) { R.mist.removeChild(m); m.destroy(); } }
   // board colour grading only while not plain Day (one filter pass)
   if (w[0] > .999) R.boardF.filters = null;
@@ -971,7 +1040,7 @@ function updateBoard(dt, now, still) {
   const inGame = U.screen === 'game', board = inGame ? G.board : SHOW, w = U.phaseW;
   let ox = 0, oy = 0;
   if (U.shake && now - U.shake < 300) { const t = (now - U.shake) / 300; ox = Math.sin(t * 40) * U.shakeAmp * (1 - t); oy = Math.cos(t * 33) * U.shakeAmp * .5 * (1 - t); }
-  R.world.position.set(ox, oy);
+  R.world.position.set(CX + ox, CY + oy);
   const pulse = .55 + .45 * Math.sin(now / 170), g = R.floorG; g.clear();
   if (inGame && U.target) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
     if (U.target === 'pop' ? !board[r][c] : board[r][c]) continue;
@@ -979,6 +1048,8 @@ function updateBoard(dt, now, still) {
   }
   const sel = inGame && !U.anim ? (U.drag && U.drag.active ? U.drag.from : U.sel) : null;
   const tg = sel ? L.targets(board, sel[0], sel[1]) : [];
+  const press = inGame && !U.anim && U.press && board[U.press[0]][U.press[1]] ? U.press : null;   // finger is down: show what it will pick
+  if (press && !same(press, sel)) { const [x, y] = center(...press); g.lineStyle(7, 0xffffff, .95).beginFill(0xffffff, .18); diamond(g, x, y, .9); g.endFill(); }
   if (sel) {
     const [x, y] = center(...sel);
     g.lineStyle(9, 0xffffff, .7 + .3 * pulse).beginFill(0x78e6ff, .25 + .2 * pulse); diamond(g, x, y, .92); g.endFill();
@@ -1005,7 +1076,7 @@ function updateBoard(dt, now, still) {
   const draggingNow = inGame && U.drag && U.drag.active;
   if (draggingNow) { const [px, py] = U.drag.pt; pieces.push({ lv: board[U.drag.from[0]][U.drag.from[1]], x: px, y: py + 20, k: 1.06, alpha: .9, key: 'drag', z: 99 }); }
   const rectOf = p => { const sp = sprite(p.lv); if (!sp) return null; const [x, y] = center(p.r, p.c); return [x - sp.w / 2 + sp.ox, y + .4 * TH - sp.h + sp.oy, sp.w, sp.h]; };
-  const selRect = sel ? rectOf({ lv: board[sel[0]][sel[1]], r: sel[0], c: sel[1] }) : null;
+  const focus = press || sel, selRect = focus ? rectOf({ lv: board[focus[0]][focus[1]], r: focus[0], c: focus[1] }) : null;
   const seen = new Set(); drawn = [];
   for (const p of pieces) {
     const sp = sprite(p.lv); if (!sp) continue;
@@ -1030,12 +1101,12 @@ function updateBoard(dt, now, still) {
       if (U.nope && U.nope.r === p.r && U.nope.c === p.c) { const t = (now - U.nope.t0) / 300; if (t >= 1) U.nope = null; else if (!still) dx = Math.sin(t * 30) * 7 * (1 - t); }
       if (sel && same([p.r, p.c], sel)) { if (draggingNow) { I.c.visible = false; continue; } dy -= 8 + 3 * Math.sin(now / 220); }
       if (sel && tg.some(t => same(t, [p.r, p.c])) && U.settings.hints) dy -= 3 * (.5 + .5 * Math.sin(now / 140));
-      if (selRect && (p.r + p.c) > (sel[0] + sel[1]) && overlap(rectOf(p), selRect)) alpha = Math.min(alpha, .35);
+      if (selRect && (p.r + p.c) > (focus[0] + focus[1]) && overlap(rectOf(p), selRect)) alpha = Math.min(alpha, .35);
     }
     const s = sp.w / I.W;
     I.c.visible = true; I.c.alpha = alpha; I.c.zIndex = p.z ?? (p.r + p.c + (p.moving ? .5 : 0));
     I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
-    I.glow.alpha = gardenPulse(x, y - 60) * .38 + w[2] * .1; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
+    I.glow.alpha = gardenPulse(x, y - 60) * .38 + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
     updateInst(I, TP, dt, s * k, still);
     if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
   }
@@ -1054,7 +1125,7 @@ function updateBoard(dt, now, still) {
   if (inGame && !A) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c]) {
     if (draggingNow && same([r, c], U.drag.from)) continue;
     if (D && !D.landed && D.r === r && D.c === c) continue;   // badge appears when the building lands
-    const [x, y] = center(r, c), b = R.badgePool[bi++]; b.texture = genTextures().badge[board[r][c]]; b.position.set(x + TW * .24, y + TH * .14); b.visible = true;
+    const b = R.badgePool[bi++]; b.texture = genTextures().badge[board[r][c]]; b.position.set(...badgePos(r, c, board[r][c])); b.visible = true;
   }
   for (; bi < 16; bi++) R.badgePool[bi].visible = false;
 }
@@ -1065,9 +1136,10 @@ const inIsland = (x, y) => { let inside = false; for (let i = 0, j = ISLAND.leng
 const rollFor = b => L.rollBubble(Math.random, U.screen === 'game' && L.bubbleCanItem(G));
 function spawnBubble(content = null) {
   const side = Math.random(), r = 56 + Math.random() * 18, b = { r, ph: Math.random() * 6, amp: 20 + Math.random() * 20, vy: -(40 + Math.random() * 30), t: 0 };
-  if (side < .35) Object.assign(b, { x: -r, y: 1000 + Math.random() * 800, vx: 30 + Math.random() * 30 });
-  else if (side < .7) Object.assign(b, { x: 1080 + r, y: 1000 + Math.random() * 800, vx: -(30 + Math.random() * 30) });
-  else Object.assign(b, { x: 80 + Math.random() * 920, y: 1920 + r, vx: (Math.random() - .5) * 20 });
+  const [x0, y0] = toWorld([0, 0]), [x1, y1] = toWorld([1080, 1920]);   // screen edges in world units
+  if (side < .35) Object.assign(b, { x: x0 - r, y: 1000 + Math.random() * (y1 - 1000), vx: 30 + Math.random() * 30 });
+  else if (side < .7) Object.assign(b, { x: x1 + r, y: 1000 + Math.random() * (y1 - 1000), vx: -(30 + Math.random() * 30) });
+  else Object.assign(b, { x: x0 + 70 + Math.random() * (x1 - x0 - 140), y: y1 + r, vx: (Math.random() - .5) * 20 });
   b.content = content || rollFor(b);
   const c = new PIXI.Container(), shell = new PIXI.Sprite(tex('bubble')), glow = new PIXI.Sprite(tex('bubble'));
   shell.anchor.set(.5); glow.anchor.set(.5); glow.blendMode = ADD(); glow.alpha = 0; shell.width = shell.height = glow.width = glow.height = r * 2;
@@ -1087,12 +1159,14 @@ function updateBubbles(dt, now, still) {
   if ((now >= U.nextBubble || U.perf) && U.bubbles.length < max) { spawnBubble(); U.nextBubble = now + (BC.everySec[0] + Math.random() * (BC.everySec[1] - BC.everySec[0])) * 1000; }
   const T = U.tilt, w = U.phaseW, tint = mix3(w, 0xffffff, 0xffd8bc, 0xc8d6ff);
   for (const b of [...U.bubbles]) {
-    b.t += dt; b.x += (b.vx + T.x * 45) * dt; b.vx *= Math.pow(.92, dt); b.y += (b.vy + T.y * 18) * dt;
+    b.t += dt; b.x += (b.vx + T.x * 110) * dt; b.vx *= Math.pow(.92, dt); b.y += (b.vy + T.y * 45) * dt;   // v0.4: tilt pushes harder
+    if (Math.hypot(T.x, T.y) > .35) for (const o of U.bubbles) if (o !== b) {   // jostle apart when the garden is tipped
+      const dx = b.x - o.x, dy = b.y - o.y, d = Math.hypot(dx, dy) || 1, min = b.r + o.r; if (d < min) { b.x += dx / d * (min - d) * .5; b.y += dy / d * (min - d) * .5; } }
     const sway = still ? 0 : Math.sin(b.t * 1.3 + b.ph) * b.amp;
     b.sx = b.x + sway; b.c.position.set(b.sx, b.y);
     const wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * .025; b.shell.scale.set(b.r * 2 / b.shell.texture.width * (1 + wob), b.r * 2 / b.shell.texture.width * (1 - wob));
     b.shell.tint = tint; b.glow.alpha = w[2] * .5;
-    if (b.y < -160 || b.sx < -220 || b.sx > 1300) removeBubble(b);
+    if (b.y < toWorld([0, 0])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
   }
 }
 function removeBubble(b) { U.bubbles = U.bubbles.filter(x => x !== b); b.c.destroy({ children: true }); }
@@ -1117,7 +1191,7 @@ function popBubbleAt(b) {
   const e = L.popBubble(G, c);
   if (e.item) {   // icon flies to its item button, then the count bumps
     const s = new PIXI.Sprite(iconTex); s.anchor.set(.5); s.scale.set(iconScale); s.position.set(b.sx, b.y); R.fxTop.addChild(s);
-    U.flies.push({ s, from: [b.sx, b.y], to: itemXY(e.item), t0: performance.now(), item: e.item });
+    U.flies.push({ s, from: [b.sx, b.y], to: toWorld(itemXY(e.item)), t0: performance.now(), item: e.item });
   } else floatText(`+${e.gained}`, b.sx, b.y - 20, false);
   hud();
 }
@@ -1230,6 +1304,8 @@ addEventListener('pointermove', e => {   // desktop fallback: the mouse position
 
 /* ---------- input ---------- */
 function stagePoint(e) { const r = $('stage').getBoundingClientRect(); return [(e.clientX - r.left) / scale, (e.clientY - r.top) / scale]; }
+const worldPoint = e => toWorld(stagePoint(e));
+function badgePos(r, c, lv) { const [x, y] = center(r, c); return [x + TW * .24, y + TH * .14 + (lv >= 13 ? 6 : 0)]; }   // Lv13+ badges sit a little further forward
 function tileAt(x, y) {
   for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const [cx, cy] = center(r, c); if (Math.abs(x - cx) / (TW / 2) + Math.abs(y - cy) / (TH / 2) <= 1) return [r, c]; }
   return null;
@@ -1240,19 +1316,39 @@ function opaqueAt(d, x, y) {
   const px = Math.floor((x - d.x) / d.w * m.w), py = Math.floor((y - d.y) / d.h * m.h);
   return m.a[(py * m.w + px) * 4 + 3] > 40;
 }
-/** Everything under the finger: buildings whose visible pixels are hit (front first), plus the floor tile's building. */
+/** What the finger picks (v0.4 §2.2): 1) a level badge (44px reach), 2) the floor diamond under the finger,
+    3) the front-most building whose visible pixels are hit. `list` holds every building under the finger for walking/picking. */
 function candidates(x, y) {
-  const list = [];
-  for (const d of [...drawn].sort((a, b) => (b.r + b.c) - (a.r + a.c))) if (opaqueAt(d, x, y)) list.push([d.r, d.c]);
+  const B = G.board, sprites = [];
+  for (const d of [...drawn].sort((a, b) => (b.r + b.c) - (a.r + a.c))) if (opaqueAt(d, x, y)) sprites.push([d.r, d.c]);
   const tile = tileAt(x, y);
-  if (tile && G.board[tile[0]][tile[1]] && !list.some(rc => same(rc, tile))) list.push(tile);
-  return { list, tile };
+  let badge = null, best = 44;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (B[r][c]) { const [bx, by] = badgePos(r, c, B[r][c]), d = Math.hypot(x - bx, y - by); if (d < best) { best = d; badge = [r, c]; } }
+  const floor = tile && B[tile[0]][tile[1]] ? tile : null;
+  const list = []; for (const rc of [badge, floor, ...sprites]) if (rc && !list.some(q => same(q, rc))) list.push(rc);
+  return { list, tile, primary: badge || floor || sprites[0] || null, how: badge ? 'badge' : floor ? 'floor' : sprites.length ? 'sprite' : null };
 }
 let down = null;
 const cv = $('cv');
+/* long press (0.4 s) on overlapping buildings: a row of cards appears above the finger; slide onto one and lift to pick it */
+function openPicker() {
+  if (!down || !down.cands || down.cands.list.length < 2 || (U.drag && U.drag.active)) return;
+  U.drag = null; U.press = null; vib(8); SFX.select();
+  const pk = $('picker'), [sx, sy] = down.screen, list = down.cands.list;
+  const depth = list.map(([r, c]) => r + c), hi = Math.max(...depth), lo = Math.min(...depth);   // cards say which one is in front
+  const where = d => d === hi ? 'Front' : d === lo ? 'Back' : 'Middle';
+  pk.innerHTML = list.map(([r, c], i) => { const lv = G.board[r][c]; return `<div class="pk" data-i="${i}"><i>${where(depth[i])}</i><img src="${artSrc(lv)}" alt=""><b>Lv ${lv}</b></div>`; }).join('');
+  pk.style.left = Math.max(20, Math.min(1060 - list.length * 170, sx - list.length * 85)) + 'px'; pk.style.top = Math.max(20, sy - 300) + 'px';
+  pk.hidden = false; down.picker = true;
+}
+function pickerHit(e) {   // highlight the card under the finger and light up its building on the board
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('.pk'); document.querySelectorAll('.pk').forEach(p => p.classList.toggle('on', p === el));
+  const i = el ? +el.dataset.i : -1; U.press = i >= 0 && down ? down.cands.list[i] : null; return i;
+}
+function closePicker() { $('picker').hidden = true; }
 cv.addEventListener('pointerdown', e => {
   ac(); if (busy()) return;
-  const pt = stagePoint(e), inGame = U.screen === 'game', cands = inGame ? candidates(...pt) : { list: [], tile: null };
+  const sp = stagePoint(e), pt = toWorld(sp), inGame = U.screen === 'game', cands = inGame ? candidates(...pt) : { list: [], tile: null, primary: null };
   // buildings always win over bubbles (bubbles float behind the garden)
   if (!cands.list.length && !(inGame && cands.tile && U.target)) { const b = bubbleAt(...pt); if (b) { popBubbleAt(b); down = null; return; } }
   if (!inGame || (!cands.list.length && !cands.tile)) {   // empty sky: touch-drag stands in for tilt
@@ -1261,29 +1357,40 @@ cv.addEventListener('pointerdown', e => {
     if (down) try { cv.setPointerCapture(e.pointerId); } catch {}
     return;
   }
-  down = { pt, cands };
-  // a drag can start on any building that has a matching neighbor
-  const from = !U.target && cands.list.find(rc => L.targets(G.board, rc[0], rc[1]).length && !isTarget(rc));
+  down = { pt, cands, screen: sp };
+  U.press = cands.primary;
+  if (!U.target && cands.list.length > 1) down.lp = setTimeout(openPicker, 400);
+  // a drag can start on the picked building (or any under the finger) when it has a matching neighbor
+  const canDrag = rc => L.targets(G.board, rc[0], rc[1]).length && !isTarget(rc);
+  const from = !U.target && (cands.primary && canDrag(cands.primary) ? cands.primary : cands.list.find(canDrag));
   U.drag = from ? { from, start: pt, pt, active: false } : null;
   try { cv.setPointerCapture(e.pointerId); } catch {}
 });
 cv.addEventListener('pointermove', e => {
-  if (down && down.tiltDrag) { const p = stagePoint(e), T = U.tilt; T.src = 'drag'; T.at = performance.now(); T.tx = clamp1((p[0] - down.pt[0]) / 300); T.ty = clamp1((p[1] - down.pt[1]) / 300); return; }
+  if (down && down.tiltDrag) { const p = worldPoint(e), T = U.tilt; T.src = 'drag'; T.at = performance.now(); T.tx = clamp1((p[0] - down.pt[0]) / 300); T.ty = clamp1((p[1] - down.pt[1]) / 300); return; }
+  if (down && down.picker) { pickerHit(e); return; }
+  if (down && down.lp && Math.hypot(...stagePoint(e).map((v, i) => v - down.screen[i])) > 18) { clearTimeout(down.lp); down.lp = 0; U.press = null; }
   if (!U.drag) return;
-  U.drag.pt = stagePoint(e);
-  if (!U.drag.active && Math.hypot(U.drag.pt[0] - U.drag.start[0], U.drag.pt[1] - U.drag.start[1]) > 18) { U.drag.active = true; U.sel = U.drag.from; SFX.select(); }
+  U.drag.pt = worldPoint(e);
+  if (!U.drag.active && Math.hypot(U.drag.pt[0] - U.drag.start[0], U.drag.pt[1] - U.drag.start[1]) > 18) { U.drag.active = true; U.sel = U.drag.from; U.press = null; SFX.select(); }
 });
 cv.addEventListener('pointerup', e => {
+  U.press = null; if (down && down.lp) clearTimeout(down.lp);
   if (down && down.tiltDrag) { const T = U.tilt; T.src = 'none'; T.tx = T.ty = 0; down = null; if (U.screen === 'game') U.sel = null; return; }
   if (U.screen !== 'game' || !down) { down = null; U.drag = null; return; }
+  if (down.picker) {   // lift on a card: pick that building (merging if it glows)
+    const i = pickerHit(e), rc = down.cands.list[i]; closePicker(); down = null;
+    if (rc) { if (isTarget(rc)) doMerge(U.sel, rc); else select(rc); }
+    hud(); return;
+  }
   if (U.drag && U.drag.active) {
-    const t = tileAt(...stagePoint(e)), from = U.drag.from; U.drag = null;
+    const t = tileAt(...worldPoint(e)), from = U.drag.from; U.drag = null;
     if (t && L.targets(G.board, from[0], from[1]).some(x => same(x, t))) doMerge(from, t);
     else U.sel = from;
   } else { U.drag = null; onTap(down.cands); }
   down = null; hud();
 });
-cv.addEventListener('pointercancel', () => { U.drag = null; down = null; U.tilt.tx = U.tilt.ty = 0; });
+cv.addEventListener('pointercancel', () => { if (down && down.lp) clearTimeout(down.lp); closePicker(); U.drag = null; U.press = null; down = null; U.tilt.tx = U.tilt.ty = 0; });
 addEventListener('keydown', e => {
   if (EDITOR || U.screen !== 'game' || busy()) return;
   if (e.key === ' ' || e.key === 'Enter') { if (document.activeElement && document.activeElement.tagName === 'BUTTON') return; e.preventDefault(); doPlace(); }
@@ -1429,7 +1536,7 @@ function startEditor() {
 
 // local QA only: ?debug exposes state, a merge log and a frame-time probe (query strings never reach the shared page)
 if (location.search.includes('debug')) {
-  window.__sky = { get G() { return G; }, get app() { return app; }, get R() { return R; }, hud, U, log: [], candidates, spawnBubble, popBubbleAt, inIsland,
+  window.__sky = { get G() { return G; }, get app() { return app; }, get R() { return R; }, hud, toScreen, toWorld, badgePos, WTL, get sounds() { return Object.keys(SND); }, U, log: [], candidates, spawnBubble, popBubbleAt, inIsland,
     /** Show a stage region full-window (for screenshots); call again with no args to close. */
     peek(x, y, w, h) {
       document.getElementById('peek')?.remove(); if (x == null) return;
