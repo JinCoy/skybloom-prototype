@@ -1,15 +1,24 @@
-/* Skybloom rules v0.3 (spec 00_Spec/Skybloom_Spec_v0.3.md §1-2).
+/* Skybloom rules v0.4 (00_Spec/Skybloom_Spec_v0.3.md §1-2, Skybloom_Spec_v0.4.md §3-5).
    Tap-merge: a building moves into an orthogonal neighbour of the same level and becomes Lv+1 there.
    Pure game state + actions, no DOM. Actions mutate the state and return an event for the UI. */
 (function (root) {
   const CONFIG = {
     board: 4, maxLevel: 17,
     spawnLadder: { gap: 4, odds: [0.6, 0.3, 0.1] },     // next level = max(1, top - gap) + 0/1/2
-    startItems: { rewind: 5, pop: 8, drop: 10 },
-    // spec §4: bubbles float in from the left/right/bottom edges; contents are rolled when a bubble spawns
-    // tuned with sim.js so start items 5/8/10 + bubbles give Lv12 reach 30-39% across play speeds (spec §1.1)
-    bubbles: { everySec: [3, 8], max: 5, maxReduced: 2, odds: { item: 0.4, treasure: 0.2 }, maxItemsPerGame: 24,
-               emptyScore: 50, dupScore: 200, rarity: { C: 0.7, R: 0.25, L: 0.05 } },
+    // v0.4 §4.2 optional spawn helpers (0 = off). pairAware: boost levels already on the board.
+    // mercy: when 2 or fewer tiles are empty, boost levels that sit next to an empty tile (an instant merge is possible).
+    spawn: { pairAware: 0, mercy: 0 },
+    startItems: { rewind: 3, pop: 5, drop: 6 },          // v0.4 §4.1: fewer, refilled by bubbles, ads and gold
+    // v0.4 §3: bubbles every 5-10 s. Green item bubbles have a quota per level band of this game's best building,
+    // and appear more often early in each band. Bubbles never give score; yellow ones give gold.
+    bubbles: { everySec: [5, 10], max: 5, maxReduced: 2,
+               bands: [[5, 5], [8, 4], [12, 3], [15, 2], [17, 1]],   // [highest level in band, item quota] = 15 per game
+               odds: { item: 0.6, treasure: 0.2, gold: 0.15 },        // while the band still has items (item odds x share left)
+               oddsNoItem: { treasure: 0.25, gold: 0.2 },             // once the band's items are gone
+               goldAmount: [5, 15], goldCapPerGame: 100, dupTreasureGold: 10,
+               rarity: { C: 0.7, R: 0.25, L: 0.05 } },
+    ads: { refillPerItem: 2, maxPerGame: 5 },              // v0.4 §4.3: rewarded ad when no item can help any more
+    gold: { endBase: 10, endPerLevel: 5, firstBuildPerLevel: 10 },
     combo: { bonusPerStep: 0.1, maxMult: 2.0, itemEvery: 5 },
     milestoneLevels: [5, 7, 9, 10, 12],
     phases: { sunsetAt: 12, nightAt: 15 },
@@ -43,23 +52,35 @@
     const lo = Math.max(1, top - CONFIG.spawnLadder.gap);
     return [lo, Math.min(MAXL, lo + CONFIG.spawnLadder.odds.length - 1)];
   }
-  function rollNext(top, rand = Math.random) {
-    const [lo] = spawnRange(top), x = rand(); let acc = 0;
-    for (let i = 0; i < CONFIG.spawnLadder.odds.length; i++) { acc += CONFIG.spawnLadder.odds[i]; if (x < acc) return Math.min(MAXL, lo + i); }
-    return Math.min(MAXL, lo + CONFIG.spawnLadder.odds.length - 1);
+  /** Next building. With a board, the optional pair-aware / mercy helpers re-weight the ladder's choices. */
+  function rollNext(top, rand = Math.random, board = null) {
+    const [lo] = spawnRange(top), sp = CONFIG.spawn;
+    const lvs = CONFIG.spawnLadder.odds.map((_, i) => Math.min(MAXL, lo + i));
+    const w = CONFIG.spawnLadder.odds.slice();
+    if (board && (sp.pairAware || sp.mercy)) {
+      const on = new Set(board.flat()), e = empties(board), nearEmpty = new Set();
+      if (sp.mercy && e.length <= 2) for (const [r, c] of e) for (const [dr, dc] of D4) if (inside(r + dr, c + dc) && board[r + dr][c + dc]) nearEmpty.add(board[r + dr][c + dc]);
+      lvs.forEach((lv, i) => { if (on.has(lv)) w[i] *= 1 + sp.pairAware; if (nearEmpty.has(lv)) w[i] *= 1 + sp.mercy; });
+    }
+    let x = rand() * w.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return lvs[i]; }
+    return lvs[lvs.length - 1];
   }
   const comboMult = combo => Math.min(CONFIG.combo.maxMult, 1 + CONFIG.combo.bonusPerStep * (combo - 1));
   const randItem = rand => ITEM_KEYS[Math.floor(rand() * ITEM_KEYS.length)];
+  const bandOf = top => { const i = CONFIG.bubbles.bands.findIndex(([hi]) => top <= hi); return i < 0 ? CONFIG.bubbles.bands.length - 1 : i; };
 
   function newState(rand = Math.random, board = null) {
-    const s = { board: board ? clone(board) : empty(), score: 0, items: { ...CONFIG.startItems }, combo: 0, top: 1, got: [], history: [], next: 1, bubbleItems: 0, stats: { merges: 0, places: 0 } };
+    const s = { board: board ? clone(board) : empty(), score: 0, items: { ...CONFIG.startItems }, combo: 0, top: 1, got: [], history: [], next: 1,
+                bandLeft: CONFIG.bubbles.bands.map(b => b[1]), bubbleItems: 0, goldBubbles: 0, gold: 0, adsUsed: 0, acted: false,
+                stats: { merges: 0, places: 0 } };
     if (!board) for (let i = 0; i < 2; i++) { const e = empties(s.board); const [r, c] = e[Math.floor(rand() * e.length)]; s.board[r][c] = 1; }
     for (const row of s.board) for (const v of row) s.top = Math.max(s.top, v);
-    s.next = rollNext(s.top, rand);
+    s.next = rollNext(s.top, rand, s.board);
     return s;
   }
   const snap = s => ({ board: clone(s.board), score: s.score, items: { ...s.items }, combo: s.combo, top: s.top, got: s.got.slice(), next: s.next });
-  function pushHistory(s) { s.history.push(snap(s)); if (s.history.length > CONFIG.historyLimit) s.history.shift(); }
+  function pushHistory(s) { s.history.push(snap(s)); if (s.history.length > CONFIG.historyLimit) s.history.shift(); s.acted = true; }
 
   /** Place the next building: random empty tile, or `at` when using Cloud Drop. */
   function place(s, rand = Math.random, at = null) {
@@ -74,7 +95,7 @@
     if (at) s.items.drop--;
     const lv = s.next;
     s.board[r][c] = lv; s.score += pts(lv); s.combo = 0; s.top = Math.max(s.top, lv); s.stats.places++;
-    s.next = rollNext(s.top, rand);
+    s.next = rollNext(s.top, rand, s.board);
     return { ok: true, type: 'place', at: [r, c], lv, viaDrop: !!at };
   }
 
@@ -114,34 +135,63 @@
     if (s.items.rewind <= 0) return { ok: false, reason: 'no-item' };
     if (!s.history.length) return { ok: false, reason: 'nothing' };
     const left = s.items.rewind - 1, h = s.history.pop();
-    Object.assign(s, { board: h.board, score: h.score, items: { ...h.items, rewind: left }, combo: h.combo, top: h.top, got: h.got, next: h.next });
+    Object.assign(s, { board: h.board, score: h.score, items: { ...h.items, rewind: left }, combo: h.combo, top: h.top, got: h.got, next: h.next, acted: true });
     return { ok: true, type: 'rewind' };
   }
 
-  /** Contents of a new bubble. canItem=false outside a game (login/main) or once the per-game item cap is reached. */
-  function rollBubble(rand = Math.random, canItem = true) {
-    const o = CONFIG.bubbles.odds, x = rand();
-    if (x < o.treasure) {
-      const y = rand(), R = CONFIG.bubbles.rarity, tier = y < R.L ? 'L' : y < R.L + R.R ? 'R' : 'C';
-      const ids = TREASURE_RARITY.map((t, i) => t === tier ? i + 1 : 0).filter(Boolean);
-      return { kind: 'treasure', id: ids[Math.floor(rand() * ids.length)], rarity: tier };
+  /* ---------- bubbles (v0.4 §3) ---------- */
+  function rollTreasure(rand) {
+    const y = rand(), R = CONFIG.bubbles.rarity, tier = y < R.L ? 'L' : y < R.L + R.R ? 'R' : 'C';
+    const ids = TREASURE_RARITY.map((t, i) => t === tier ? i + 1 : 0).filter(Boolean);
+    return { kind: 'treasure', id: ids[Math.floor(rand() * ids.length)], rarity: tier };
+  }
+  /** Contents of a new bubble: item (green) / treasure (pink) / gold (yellow) / empty (clear).
+      s = the running game, or null on the login/main screens (no items there).
+      acted = the player did something since the last reward bubble; otherwise only empty bubbles appear (no idle farming). */
+  function rollBubble(rand = Math.random, s = null, acted = s ? s.acted : true) {
+    if (!acted) return { kind: 'empty' };
+    const B = CONFIG.bubbles, band = s ? bandOf(s.top) : -1, left = s ? s.bandLeft[band] : 0;
+    const pItem = left > 0 ? B.odds.item * left / B.bands[band][1] : 0;
+    const o = left > 0 ? B.odds : B.oddsNoItem, x = rand();
+    if (x < pItem) return { kind: 'item', item: randItem(rand) };
+    if (x < pItem + o.treasure) return rollTreasure(rand);
+    if (x < pItem + o.treasure + o.gold && (!s || s.goldBubbles < B.goldCapPerGame)) {
+      const [a, b] = B.goldAmount; return { kind: 'gold', amount: a + Math.floor(rand() * (b - a + 1)) };
     }
-    if (x < o.treasure + o.item && canItem) return { kind: 'item', item: randItem(rand) };
     return { kind: 'empty' };
   }
-  const bubbleCanItem = s => s.bubbleItems < CONFIG.bubbles.maxItemsPerGame;
-  /** Apply a popped bubble to a game. Grants happen outside the action history, so Rewind never takes them back. */
+  const isReward = b => b.kind !== 'empty';
+  /** Apply a popped bubble to a game. Grants happen outside the action history, so Rewind never takes them back.
+      An item bubble whose band quota was used up meanwhile turns empty; gold stops at the per-game cap. */
   function popBubble(s, b, owned = false) {
-    let item = null, gained = 0;
-    if (b.kind === 'item' && bubbleCanItem(s)) item = b.item;
-    else if (b.kind === 'treasure') gained = owned ? CONFIG.bubbles.dupScore : 0;
-    else gained = CONFIG.bubbles.emptyScore;
-    for (const t of [s, ...s.history]) { if (item) t.items[item]++; t.score += gained; }
-    if (item) s.bubbleItems++;
-    return { kind: item ? 'item' : b.kind === 'treasure' ? 'treasure' : 'empty', item, id: b.id, gained, dup: b.kind === 'treasure' && owned };
+    const B = CONFIG.bubbles; let item = null, gold = 0, kind = b.kind;
+    if (kind === 'item') { const band = bandOf(s.top); if (s.bandLeft[band] > 0) { s.bandLeft[band]--; item = b.item; } else kind = 'empty'; }
+    else if (kind === 'treasure') gold = owned ? B.dupTreasureGold : 0;
+    else if (kind === 'gold') { gold = Math.max(0, Math.min(b.amount, B.goldCapPerGame - s.goldBubbles)); s.goldBubbles += gold; if (!gold) kind = 'empty'; }
+    if (item) { for (const t of [s, ...s.history]) t.items[item]++; s.bubbleItems++; }
+    s.gold += gold;
+    if (kind !== 'empty') s.acted = false;   // the next reward waits for another board action
+    return { kind, item, id: b.id, rarity: b.rarity, gold, dup: kind === 'treasure' && owned };
   }
+  const bubbleCanItem = s => s.bandLeft[bandOf(s.top)] > 0;
 
-  const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, bubbleCanItem, popBubble, pts, empty, clone, empties, targets, canMerge, isStuck, spawnRange, rollNext, comboMult,
-                newState, place, merge, pop, rewind };
+  /* ---------- rewarded-ad refill (v0.4 §4.3) and gold (§5.1) ---------- */
+  /** No item can help any more: none left, or the only ones left are useless now (Cloud Drop on a full board, Rewind with nothing to undo). */
+  const outOfItems = s => !(s.items.pop > 0 || (s.items.rewind > 0 && s.history.length > 0) || (s.items.drop > 0 && empties(s.board).length > 0));
+  const canAdRefill = s => outOfItems(s) && s.adsUsed < CONFIG.ads.maxPerGame;
+  /** Call only after the ad finished. Like bubble grants, the refill survives Rewind. */
+  function adRefill(s) {
+    if (!outOfItems(s)) return { ok: false, reason: 'has-items' };
+    if (s.adsUsed >= CONFIG.ads.maxPerGame) return { ok: false, reason: 'limit' };
+    for (const t of [s, ...s.history]) for (const k of ITEM_KEYS) t.items[k] += CONFIG.ads.refillPerItem;
+    s.adsUsed++;
+    return { ok: true, each: CONFIG.ads.refillPerItem, left: CONFIG.ads.maxPerGame - s.adsUsed };
+  }
+  const endGold = s => CONFIG.gold.endBase + s.top * CONFIG.gold.endPerLevel;
+  const firstBuildGold = lv => lv * CONFIG.gold.firstBuildPerLevel;
+
+  const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, isReward, bubbleCanItem, popBubble, bandOf,
+                outOfItems, canAdRefill, adRefill, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
+                spawnRange, rollNext, comboMult, newState, place, merge, pop, rewind };
   if (typeof module !== 'undefined') module.exports = api; else root.SkyLogic = api;
 })(this);
