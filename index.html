@@ -1,0 +1,1469 @@
+<meta charset="utf-8">
+<title>Skybloom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: one fixed 1080x1920 portrait stage, scaled to fit; a PixiJS (WebGL) canvas draws sky, island, board and motion,
+   HTML draws the glossy HUD. Single visual world (bright Frutiger Aero sky) on purpose, so colors are set once, not per theme. */
+:root {
+  color-scheme: light;
+  --sky-top: #5fc4f6;
+  --sky-low: #bfe8ff;
+  --navy: #12326e;
+  --blue: #2c74c4;
+  --aqua-1: #8fe0ff; --aqua-2: #1e8fe6;
+  --leaf-1: #a6ef6a; --leaf-2: #2fa52f; --leaf-ink: #17681a;
+  --gold-1: #ffe878; --gold-2: #f2a91d; --gold-ink: #6a3c00;
+  --rare-c: #3c8ce6; --rare-r: #8c50e1; --rare-l: #f0a51e;
+  --glass: rgba(255, 255, 255, .5);
+  --rim: rgba(255, 255, 255, .92);
+  --font: "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; box-sizing: border-box; padding-inline: 16px; padding-block: 0; overflow: hidden;
+  background: linear-gradient(var(--sky-top), var(--sky-low)); color: var(--navy); font-family: var(--font);
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.wrap { position: relative; height: 100%; }
+.stage { position: absolute; left: 50%; top: 50%; width: 1080px; height: 1920px; transform-origin: 50% 50%; overflow: hidden;
+  border-radius: 48px; box-shadow: 0 30px 80px rgba(10, 60, 130, .25); background: var(--sky-low); }
+#cv { position: absolute; inset: 0; width: 1080px; height: 1920px; touch-action: none; }
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.layer > * { pointer-events: auto; }
+.abs { position: absolute; }
+
+/* glossy gel */
+.gel { position: absolute; display: flex; align-items: center; justify-content: center; gap: 18px; border: 4px solid var(--rim);
+  border-radius: 999px; font: 900 64px/1 var(--font); color: #fff; cursor: pointer; overflow: hidden;
+  box-shadow: inset 0 -6px 14px rgba(0, 40, 90, .18), 0 10px 22px rgba(10, 70, 150, .28); transition: transform .08s; }
+.gel::before { content: ""; position: absolute; left: 5%; right: 5%; top: 5%; height: 46%; border-radius: 999px;
+  background: linear-gradient(rgba(255, 255, 255, .8), rgba(255, 255, 255, .12)); pointer-events: none; }
+.gel:active { transform: scale(.96); }
+.gel:focus-visible, .tog:focus-visible, .tab:focus-visible, .card:focus-visible { outline: 6px solid var(--gold-1); outline-offset: 4px; }
+.green { background: linear-gradient(var(--leaf-1), var(--leaf-2)); text-shadow: 0 4px 0 var(--leaf-ink); }
+.aqua { background: linear-gradient(var(--aqua-1), var(--aqua-2)); text-shadow: 0 4px 0 #165aa6; }
+.gold { background: linear-gradient(var(--gold-1), var(--gold-2)); color: #fff; text-shadow: 0 4px 0 #b8640a; }
+.ghost { background: linear-gradient(rgba(255, 255, 255, .85), rgba(205, 235, 255, .8)); color: var(--blue); text-shadow: none; }
+.sq { border-radius: 36px; }
+.glass { position: absolute; background: var(--glass); border: 4px solid var(--rim); border-radius: 44px;
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgba(10, 70, 150, .18); }
+.lbl { font: 800 26px/1 var(--font); color: #fff; text-shadow: 0 3px 0 rgba(10, 70, 150, .55); text-align: center; }
+.cap { font: 800 28px/1 var(--font); letter-spacing: .08em; color: var(--blue); }
+.num { font: 900 54px/1 var(--font); color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badge { position: absolute; width: 52px; height: 52px; border-radius: 50%; border: 4px solid #fff; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #fff6b8, var(--gold-1) 35%, var(--gold-2)); font: 900 28px/1 var(--font); color: var(--gold-ink);
+  box-shadow: 0 4px 8px rgba(120, 70, 0, .3); }
+.bump { animation: bump .45s ease-out; }
+@keyframes bump { 30% { transform: scale(1.45); } 100% { transform: scale(1); } }
+.dis { filter: grayscale(.85); opacity: .5; }
+.dim { position: absolute; inset: 0; background: rgba(10, 50, 110, .55); }
+
+/* screens */
+#topbar .glass { display: flex; align-items: center; justify-content: space-around; }
+.stat { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 250px; overflow: hidden; }
+.item { width: 144px; height: 144px; border-radius: 50%; overflow: visible; }
+.item img { width: 100px; height: 100px; object-fit: contain; position: relative; }
+.item .badge { right: -6px; top: -10px; }
+.itemlbl { width: 220px; }
+#place { left: 80px; top: 1545px; width: 920px; height: 220px; border-radius: 80px; font-size: 100px; justify-content: flex-end; padding-right: 210px; }
+#nextbox { position: absolute; left: 24px; top: 20px; width: 186px; height: 172px; border-radius: 36px; border: 5px solid var(--gold-1);
+  background: linear-gradient(#fff, #dff2ff); display: flex; flex-direction: column; align-items: center; padding-top: 14px; box-sizing: border-box; }
+#nextbox .cap { font-size: 26px; }
+#nextbox img { height: 96px; width: 130px; object-fit: contain; margin-top: 6px; }
+#nextbox .badge { right: -8px; bottom: -8px; width: 46px; height: 46px; font-size: 26px; }
+#banner { left: 140px; top: 300px; width: 800px; min-height: 96px; display: flex; align-items: center; justify-content: center; gap: 20px;
+  font: 800 36px/1.2 var(--font); color: var(--navy); text-align: center; padding: 14px 24px; box-sizing: border-box; }
+#banner button { position: static; height: 68px; padding: 0 28px; font-size: 32px; }
+
+.panel { left: 110px; top: 300px; width: 860px; padding: 56px 50px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+.panel h2 { margin: 0; font: 900 72px/1.05 var(--font); color: var(--navy); text-wrap: balance; }
+.panel .big { font: 900 124px/1 var(--font); color: var(--navy); font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 12px; border-radius: 999px; padding: 10px 30px; font: 900 38px/1 var(--font); color: #fff; border: 4px solid #fff; }
+.rays { position: absolute; left: 540px; top: 860px; width: 1800px; height: 1800px; margin: -900px 0 0 -900px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 255, 220, .3) 0 9deg, transparent 9deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 62%); mask: radial-gradient(circle, #000 20%, transparent 62%); animation: spin 18s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; width: 100%; }
+.card { position: relative; height: 236px; border-radius: 30px; background: rgba(255, 255, 255, .6); border: 4px solid var(--rim); padding: 0 6px 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; box-sizing: border-box; font: inherit; color: inherit; }
+.card img { height: 140px; width: 190px; object-fit: contain; }
+.card .badge { left: 10px; top: 10px; width: 46px; height: 46px; font-size: 24px; }
+.card .nm { font: 800 24px/1.1 var(--font); color: var(--navy); margin-top: 8px; min-height: 28px; text-align: center; }
+.card.tr { cursor: pointer; border-width: 6px; }
+.card.tr.C { border-color: var(--rare-c); } .card.tr.R { border-color: var(--rare-r); } .card.tr.L { border-color: var(--rare-l); }
+.card .cnt { position: absolute; right: 10px; top: 10px; font: 900 26px/1 var(--font); color: #fff; background: var(--blue); border-radius: 999px; padding: 6px 12px; }
+.locked img { filter: brightness(0) !important; opacity: .28; }
+.bar { width: 600px; height: 56px; border-radius: 28px; background: rgba(255, 255, 255, .55); border: 4px solid var(--rim); position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(var(--leaf-1), var(--leaf-2)); }
+.bar b { position: absolute; inset: 0; display: grid; place-items: center; font: 900 32px/1 var(--font); color: #fff; text-shadow: 0 3px 0 var(--leaf-ink); }
+.tabs { display: flex; gap: 16px; }
+.tab { width: 300px; height: 92px; border-radius: 46px; border: 4px solid var(--rim); font: 900 40px/1 var(--font); cursor: pointer;
+  background: rgba(255, 255, 255, .55); color: var(--blue); }
+.tab[aria-selected="true"] { background: linear-gradient(var(--aqua-1), var(--aqua-2)); color: #fff; text-shadow: 0 3px 0 #165aa6; }
+.rar { display: inline-block; border-radius: 999px; padding: 8px 22px; font: 900 30px/1 var(--font); color: #fff; }
+.rar.C { background: var(--rare-c); } .rar.R { background: var(--rare-r); } .rar.L { background: var(--rare-l); }
+.row { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 22px 36px; box-sizing: border-box;
+  border-radius: 36px; background: rgba(255, 255, 255, .55); border: 4px solid var(--rim); font: 800 44px/1 var(--font); color: var(--navy); }
+.tog { width: 150px; height: 78px; border-radius: 39px; border: 4px solid #fff; position: relative; cursor: pointer; padding: 0;
+  background: linear-gradient(#dde5ee, #aab8c8); transition: background .15s; }
+.tog::after { content: ""; position: absolute; top: 5px; left: 6px; width: 60px; height: 60px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .2); transition: left .15s; }
+.tog[aria-checked="true"] { background: linear-gradient(var(--leaf-1), var(--leaf-2)); }
+.tog[aria-checked="true"]::after { left: 80px; }
+#toast { left: 140px; top: 410px; width: 800px; padding: 22px 30px; box-sizing: border-box; text-align: center; font: 800 36px/1.25 var(--font); color: var(--navy);
+  transition: opacity .25s; display: flex; align-items: center; justify-content: center; gap: 22px; }
+#toast img { width: 110px; height: 110px; object-fit: contain; flex: none; }
+.title { font: 900 76px/1 var(--font); color: #fff; text-shadow: 0 5px 0 #1d64b8, 0 0 18px rgba(20, 90, 180, .4); }
+@media (prefers-reduced-motion: reduce) { .rays { animation: none; } .gel { transition: none; } .bump { animation: none; } }
+
+/* ?editor: dev-only motion map editor (outside the game stage) */
+#editor { position: fixed; inset: 0; overflow: auto; background: #eef4fa; color: #12326e; font: 600 15px/1.4 system-ui, sans-serif; padding: 16px; box-sizing: border-box;
+  display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; -webkit-user-select: text; user-select: text; }
+#editor[hidden] { display: none; }
+#ed-cv { width: min(720px, 100%); aspect-ratio: 1; border-radius: 12px; background: #fff; cursor: crosshair; touch-action: none; }
+.ed-side { flex: 1 1 320px; max-width: 560px; display: flex; flex-direction: column; gap: 10px; }
+.ed-side h1 { margin: 0; font-size: 22px; }
+.ed-side button, .ed-side select, .ed-side input { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid #9fb6cf; background: #fff; color: inherit; }
+.ed-side button { cursor: pointer; }
+.ed-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#ed-parts label { display: block; padding: 4px 8px; border-radius: 6px; }
+#ed-parts label:has(input:checked) { background: #d6ebff; }
+#ed-json { width: 100%; height: 220px; font: 12px/1.35 ui-monospace, monospace; border-radius: 8px; border: 1px solid #9fb6cf; padding: 8px; box-sizing: border-box; }
+.ed-note { color: #4a6a90; margin: 0; }
+</style>
+
+<div class="wrap" id="wrap">
+  <div class="stage" id="stage">
+    <canvas id="cv" width="1080" height="1920" aria-label="Skybloom garden board"></canvas>
+
+    <!-- LOGIN -->
+    <div class="layer" id="scr-login">
+      <img class="abs" src="assets/logo.webp" alt="Skybloom" style="left:130px;top:300px;width:820px">
+      <div class="abs lbl" style="left:0;right:0;top:640px;font-size:40px">Sky Garden Merge Puzzle</div>
+      <button class="gel green" id="btn-guest" style="left:120px;top:1560px;width:840px;height:160px;font-size:62px">Continue as Guest</button>
+      <button class="gel ghost" id="btn-signin" style="left:300px;top:1750px;width:480px;height:92px;font-size:42px">Sign In</button>
+    </div>
+
+    <!-- MAIN -->
+    <div class="layer" id="scr-main" hidden>
+      <button class="gel aqua sq" data-open="collection" aria-label="Collection" style="left:50px;top:135px;width:120px;height:120px"><img src="assets/book.webp" alt="" style="width:84px;position:relative"></button>
+      <div class="abs lbl" style="left:20px;top:270px;width:180px">Collection</div>
+      <button class="gel aqua sq" data-open="settings" aria-label="Settings" style="left:910px;top:135px;width:120px;height:120px"><svg viewBox="0 0 24 24" width="64" height="64" style="position:relative"><path fill="#fff" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3.4h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
+      <div class="abs lbl" style="left:880px;top:270px;width:180px">Settings</div>
+      <img class="abs" src="assets/logo.webp" alt="Skybloom" style="left:160px;top:300px;width:760px">
+      <div class="glass stat" style="left:340px;top:1360px;width:400px;height:140px;justify-content:center"><span class="cap">BEST</span><span class="num" id="main-best">0</span></div>
+      <button class="gel green" id="btn-play" style="left:140px;top:1560px;width:800px;height:200px;font-size:104px">Play</button>
+    </div>
+
+    <!-- GAME HUD -->
+    <div class="layer" id="scr-game" hidden>
+      <div id="topbar">
+        <button class="gel aqua sq" data-open="collection" aria-label="Collection" style="left:50px;top:135px;width:120px;height:120px"><img src="assets/book.webp" alt="" style="width:84px;position:relative"></button>
+        <div class="abs lbl" style="left:20px;top:270px;width:180px">Collection</div>
+        <div class="glass" style="left:250px;top:130px;width:580px;height:130px">
+          <div class="stat"><span class="cap">SCORE</span><span class="num" id="score">0</span></div>
+          <div class="stat"><span class="cap">BEST</span><span class="num" id="best">0</span></div>
+        </div>
+        <button class="gel aqua sq" data-open="settings" aria-label="Pause and settings" style="left:910px;top:135px;width:120px;height:120px"><svg viewBox="0 0 24 24" width="56" height="56" style="position:relative"><rect x="5" y="4" width="5" height="16" rx="2" fill="#fff"/><rect x="14" y="4" width="5" height="16" rx="2" fill="#fff"/></svg></button>
+      </div>
+      <div id="items"></div>
+      <button class="gel green" id="place" aria-label="Place next building">
+        <span id="nextbox"><span class="cap">NEXT</span><img id="next-img" alt=""><span class="badge" id="next-lv">1</span></span>Place
+      </button>
+      <div class="glass" id="banner" hidden></div>
+    </div>
+
+    <!-- OVERLAYS -->
+    <div class="layer" id="ov-celebrate" hidden>
+      <div class="dim"></div><div class="rays"></div>
+      <button class="gel gold" style="left:190px;top:300px;width:700px;height:130px;font-size:66px;cursor:default" tabindex="-1">New Building!</button>
+      <img class="abs" id="cel-img" alt="" style="left:290px;top:520px;width:500px;height:540px;object-fit:contain;object-position:bottom">
+      <div class="glass panel" style="top:1110px;padding:40px 40px;gap:16px">
+        <h2 id="cel-name" style="font-size:66px">Name</h2>
+        <div class="cap" id="cel-sub" style="letter-spacing:.02em;font-size:34px"></div>
+      </div>
+      <button class="gel green" id="cel-ok" style="left:200px;top:1580px;width:680px;height:160px;font-size:70px">Continue</button>
+    </div>
+
+    <div class="layer" id="ov-stuck" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" style="top:520px">
+        <h2>No Moves Left</h2>
+        <div class="cap" style="letter-spacing:.02em;font-size:36px;line-height:1.3">Use an item to keep your garden growing, or end this game.</div>
+        <div style="display:flex;gap:30px;margin-top:20px;flex-wrap:wrap;justify-content:center">
+          <button class="gel aqua" id="stuck-pop" style="position:relative;width:340px;height:120px;font-size:44px">Bubble Pop</button>
+          <button class="gel aqua" id="stuck-rewind" style="position:relative;width:340px;height:120px;font-size:44px">Rewind</button>
+        </div>
+      </div>
+      <button class="gel ghost" id="stuck-end" style="left:300px;top:1600px;width:480px;height:110px;font-size:46px">End Game</button>
+    </div>
+
+    <div class="layer" id="ov-result" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" style="top:280px;gap:18px">
+        <h2>No More Moves</h2>
+        <div class="cap">SCORE</div>
+        <div class="big" id="res-score">0</div>
+        <span class="chip gold" id="res-new" hidden>New Best!</span>
+        <div class="cap" id="res-best"></div>
+        <div class="cap" style="margin-top:14px">TOP BUILDING</div>
+        <img id="res-img" alt="" style="height:320px;width:420px;object-fit:contain">
+        <div style="font:900 52px/1 var(--font);color:var(--navy)" id="res-name"></div>
+      </div>
+      <button class="gel green" id="res-retry" style="left:140px;top:1580px;width:800px;height:160px;font-size:76px">Retry</button>
+      <button class="gel ghost" id="res-home" style="left:330px;top:1770px;width:420px;height:96px;font-size:46px">Home</button>
+    </div>
+
+    <div class="layer" id="ov-collection" hidden>
+      <div class="dim" style="background:rgba(70,150,220,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)"></div>
+      <div class="abs title" style="left:0;right:0;top:150px;text-align:center">Collection</div>
+      <button class="gel aqua sq" data-close aria-label="Close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
+      <div class="abs tabs" role="tablist" style="left:224px;top:260px">
+        <button class="tab" role="tab" id="tab-garden" aria-selected="true">Garden</button>
+        <button class="tab" role="tab" id="tab-treasures" aria-selected="false">Treasures</button>
+      </div>
+      <div class="abs" style="left:240px;top:380px"><div class="bar"><i id="col-fill"></i><b id="col-count">0 / 17</b></div></div>
+      <div class="abs grid" id="col-grid" role="tabpanel" style="left:60px;top:470px;width:960px"></div>
+      <div class="layer" id="tr-detail" hidden>
+        <div class="dim" data-detail-close></div>
+        <div class="glass panel" style="top:330px;gap:20px">
+          <img id="td-img" alt="" style="width:420px;height:420px;object-fit:contain">
+          <h2 id="td-name"></h2>
+          <span class="rar" id="td-rar"></span>
+          <div class="cap" id="td-desc" style="letter-spacing:.02em;font-size:36px;line-height:1.3;color:var(--navy)"></div>
+          <div class="cap" id="td-meta" style="letter-spacing:.02em;font-size:30px"></div>
+        </div>
+        <button class="gel aqua" data-detail-close style="left:300px;top:1600px;width:480px;height:120px;font-size:52px">Back</button>
+      </div>
+    </div>
+
+    <div class="layer" id="ov-settings" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" style="top:230px;gap:22px">
+        <h2>Settings</h2>
+        <div class="row">Music<button class="tog" role="switch" id="set-music" aria-label="Music"></button></div>
+        <div class="row">Sound Effects<button class="tog" role="switch" id="set-sfx" aria-label="Sound Effects"></button></div>
+        <div class="row">Vibration<button class="tog" role="switch" id="set-vib" aria-label="Vibration"></button></div>
+        <div class="row">Merge Hints<button class="tog" role="switch" id="set-hints" aria-label="Merge Hints"></button></div>
+        <div class="row">Tilt Effects<button class="tog" role="switch" id="set-tilt" aria-label="Tilt Effects"></button></div>
+        <div class="row">Reduce Motion<button class="tog" role="switch" id="set-reduce" aria-label="Reduce Motion"></button></div>
+        <div class="cap" id="tilt-note" style="letter-spacing:.02em;font-size:28px;line-height:1.35;color:var(--blue)"></div>
+      </div>
+      <button class="gel aqua" data-close style="left:200px;top:1600px;width:680px;height:140px;font-size:64px">Close</button>
+      <button class="gel ghost" id="set-home" style="left:330px;top:1770px;width:420px;height:96px;font-size:44px" hidden>Quit to Home</button>
+    </div>
+
+    <div class="glass" id="toast" style="opacity:0;pointer-events:none" role="status"></div>
+  </div>
+</div>
+
+<div id="editor" hidden>
+  <canvas id="ed-cv" width="720" height="720" aria-label="Building preview: click to add points"></canvas>
+  <div class="ed-side">
+    <h1>Skybloom motion map editor</h1>
+    <p class="ed-note">Pick a building and a part, then click the preview. Polygon mode adds corners; Pivot/Point mode sets the pivot or a single point (sparkle adds points, petals sets the box from two clicks). Export copies the whole map into motion_map.json.</p>
+    <div class="ed-row"><label>Building <select id="ed-lv"></select></label>
+      <label><input type="checkbox" id="ed-over" checked> Show regions</label></div>
+    <div id="ed-parts"></div>
+    <div class="ed-row"><select id="ed-type"></select><button id="ed-add">Add part</button><button id="ed-del">Delete part</button><button id="ed-clear">Clear points</button></div>
+    <div class="ed-row">Click sets:
+      <label><input type="radio" name="ed-mode" value="poly" checked> polygon corner</label>
+      <label><input type="radio" name="ed-mode" value="point"> pivot / point</label></div>
+    <div class="ed-row" id="ed-params"></div>
+    <div class="ed-row"><button id="ed-export">Export JSON</button><button id="ed-copy">Copy</button><span id="ed-status" class="ed-note"></span></div>
+    <textarea id="ed-json" spellcheck="false" aria-label="Motion map JSON"></textarea>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
+<script src="logic.js"></script>
+<script>
+(() => {
+'use strict';
+const L = window.SkyLogic;
+const $ = id => document.getElementById(id);
+const EDITOR = location.search.includes('editor') || location.hash === '#editor';
+const NAMES = ['', 'Dew Drop', 'Sprout', 'Lily Bloom', 'Glass Planter', 'Bubble Fountain', 'Breeze Windmill', 'Glass Greenhouse', 'Aqua Pavilion',
+  'Solar Dome', 'Waterfall Garden', 'Crystal Tower', 'Sky Dome', 'Rainbow Bridge', 'Cloud Harbor', 'Star Observatory', 'Aurora Palace', 'Skybloom Tree'];
+const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.25, 2.3, 2.35, 2.4, 2.45];
+const CAL = [0, 1.35, 1.25, 1.15, 1.15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+const TW = 240, TH = 120, CX = 540, CY = 1000;
+const ITEMS = [['rewind', 'Rewind', 'assets/item1.webp'], ['pop', 'Bubble Pop', 'assets/item2.webp'], ['drop', 'Cloud Drop', 'assets/item3.webp']];
+const ITEM_NAME = Object.fromEntries(ITEMS.map(([k, n]) => [k, n]));
+const TREASURES = [   // spec §4.3, ids 1-12 (rarity lives in logic.js)
+  ['Glass Marble', 'A glass marble holding a little piece of sky.'], ['Paper Boat', 'A paper boat that drifted down the water paths.'],
+  ['Dandelion Puff', 'A dandelion puff, ready for a wish.'], ['Seashell Charm', 'A tiny seashell charm from a faraway shore.'],
+  ['Cloud Pillow', 'A palm-sized pillow made of cloud.'], ['Raindrop Pendant', 'A pendant shaped like a single raindrop.'],
+  ['Glass Butterfly', 'A glass butterfly that catches the light.'], ['Sun Catcher', 'A sun catcher that scatters little rainbows.'],
+  ['Bubble Wand', 'A rainbow wand for blowing bubbles.'], ['Mini Balloon', 'A tiny hot-air balloon.'],
+  ['Rainbow Feather', 'A feather painted in every colour of the rainbow.'], ['Crystal Koi', 'A crystal koi that swims through the sky.']];
+const RARITY_NAME = { C: 'Common', R: 'Rare', L: 'Legendary' };
+const accSrc = id => `assets/acc${String(id).padStart(2, '0')}.webp`;
+const SHOW = [[0, 0, 6, 0], [0, 4, 0, 2], [3, 0, 5, 0], [0, 1, 0, 0]];
+const DEMO = {   // demo links start a game from a fixed board: #combo #lv17 #stuck, #sunset (merge the Lv11 pair), #night (merge the Lv14 pair)
+  combo: [[1, 1, 2, 2], [3, 3, 4, 4], [1, 1, 2, 2], [3, 3, 0, 0]],
+  lv17: [[16, 16, 0, 2], [3, 0, 1, 0], [0, 2, 0, 1], [1, 0, 3, 0]],
+  stuck: [[1, 2, 1, 2], [2, 1, 2, 3], [1, 2, 3, 2], [2, 3, 2, 1]],
+  sunset: [[11, 11, 0, 2], [3, 0, 1, 0], [0, 2, 0, 1], [1, 0, 3, 0]],
+  night: [[14, 14, 0, 12], [3, 0, 1, 0], [0, 2, 0, 1], [1, 0, 3, 0]],
+};
+const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 2];
+const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
+const artSrc = lv => `assets/b${String(lv).padStart(2, '0')}.webp`;
+// Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
+const GUIDE = { 13: [220, 0, 828, 996], 14: [85, 28, 957, 992], 15: [110, 119, 937, 945], 16: [87, 24, 938, 991], 17: [99, 73, 929, 977] };
+// island silhouette in the backgrounds (flat top + rock underside): bubbles pass behind it and cannot be tapped there
+const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935];
+// board outline (outer tile corners) and the grout outlets where board water falls over the front edges
+const BOARD = [540, 760, 1020, 1000, 540, 1240, 60, 1000];
+const FALLS = [[180, 1060], [300, 1120], [420, 1180], [660, 1180], [780, 1120], [900, 1060]];
+
+/* ---------- storage (optional) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('skybloom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('skybloom.' + k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- state: G = rules (logic.js), U = view-only ---------- */
+let G = L.newState();
+const U = {
+  screen: 'login', best: store.get('best', 0),
+  discovered: new Set(store.get('discovered', [])),
+  treasures: store.get('treasures', {}),          // id -> { n, first }
+  // iOS only grants motion access from a tap, so there Tilt starts off and the first switch-on asks for permission
+  settings: Object.assign({ music: false, sfx: true, vib: true, hints: true, tilt: typeof window.DeviceOrientationEvent?.requestPermission !== 'function', reduce: false }, store.get('settings', {})),
+  sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, fx: [], floats: [], flies: [], shake: 0, shakeAmp: 0, nope: null,
+  celebQueue: [], toldNoPair: false, phaseTop: 0, phaseW: [1, 0, 0], bubbles: [], nextBubble: 0, tilt: { x: 0, y: 0, tx: 0, ty: 0, src: 'none', at: 0 },
+};
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && store.get('settings', null) == null) U.settings.reduce = true;
+const reduce = () => U.settings.reduce;
+
+/* ---------- images ---------- */
+const IMG = {}, MASK = {};
+const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = res; i.src = src; });
+const ASSETS = { bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near',
+  caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
+const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
+for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
+for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
+let MOTION = {};
+loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
+
+function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const a = x.getImageData(0, 0, c.width, c.height).data; let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) if (a[(y * c.width + xx) * 4 + 3] > 40) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(c, -x0, -y0); return o;
+}
+function prepareImages() {
+  if (IMG.body && IMG.sails) IMG.b6 = trimCanvas(IMG.body);   // Lv6 = sail-less body + a spinning sails layer
+  for (let lv = 1; lv <= 17; lv++) {   // alpha masks so taps hit what is actually drawn, not the transparent box
+    const im = IMG['b' + lv]; if (!im) continue;
+    try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+      MASK[lv] = { w: im.width, h: im.height, a: x.getImageData(0, 0, im.width, im.height).data }; } catch { /* box hit fallback */ }
+  }
+}
+
+/* ---------- audio ---------- */
+let AC = null, musicNodes = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, d = .12, type = 'sine', g = .08, f2 = null, delay = 0) {
+  if (!U.settings.sfx) return; const a = ac(); if (!a) return;
+  const t = a.currentTime + delay, o = a.createOscillator(), gn = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(gn).connect(a.destination); o.start(t); o.stop(t + d + .02);
+}
+let NOISE = null;   // 2 s of white noise, shared by whooshes, pops and the water ambience
+function noiseBuf(a) { if (!NOISE) { NOISE = a.createBuffer(1, a.sampleRate * 2, a.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return NOISE; }
+function noise(d, g, f0, f1, q = 1, delay = 0) {   // filtered noise burst: whoosh, splash, pop
+  if (!U.settings.sfx) return; const a = ac(); if (!a) return;
+  const t = a.currentTime + delay, src = a.createBufferSource(), bp = a.createBiquadFilter(), gn = a.createGain();
+  src.buffer = noiseBuf(a); bp.type = 'bandpass'; bp.Q.value = q; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + d);
+  gn.gain.setValueAtTime(.0001, t); gn.gain.exponentialRampToValueAtTime(g, t + d * .25); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+  src.connect(bp).connect(gn).connect(a.destination); src.start(t, Math.random()); src.stop(t + d + .02);
+}
+const SFX = {
+  whoosh: (delay = 0) => noise(.34, .07, 3200, 380, .9, delay),
+  land: () => { tone(190, .14, 'sine', .09, 85); noise(.16, .05, 1900, 700, 1.4); },
+  cloud: () => { noise(.5, .03, 600, 1400, .6); [1047, 1319, 1568].forEach((f, i) => tone(f, .3, 'sine', .03, null, .1 + i * .06)); },
+  inflate: () => tone(260, .4, 'sine', .045, 820),
+  select: () => tone(880, .06, 'sine', .04),
+  merge: combo => { const base = 392 * 2 ** (Math.min(combo - 1, 24) / 12); tone(base, .22, 'sine', .08); tone(base * 1.5, .3, 'sine', .05, null, .06); },
+  bad: () => tone(170, .14, 'square', .03, 140),
+  pop: () => { noise(.09, .09, 2600, 1200, 1.6); tone(900, .08, 'sine', .06, 1700); tone(1300, .1, 'sine', .035, 600, .05); },
+  bubble: () => { noise(.06, .07, 3400, 1800, 2); tone(1250, .05, 'sine', .05, 2500); },   // a light "pop!"
+  rewind: () => { tone(900, .45, 'triangle', .05, 220); [1568, 1319, 1047, 880].forEach((f, i) => tone(f, .1, 'sine', .025, null, i * .08)); },
+  shimmer: () => [784, 1175, 1568, 2093].forEach((f, i) => tone(f, .5, 'sine', .03, null, i * .05)),
+  grand: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .55, 'triangle', .06, null, i * .1)); tone(131, 1.2, 'sine', .07); tone(196, 1.2, 'sine', .04, null, .1); },
+  bloom: () => { SFX.grand(); [2093, 2637, 3136].forEach((f, i) => tone(f, .7, 'sine', .025, null, .55 + i * .08)); noise(1.2, .04, 800, 3000, .5, .3); },
+  gift: () => [784, 988, 1175].forEach((f, i) => tone(f, .18, 'sine', .05, null, i * .07)),
+  fanfare: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .35, 'triangle', .06, null, i * .09))
+};
+function vib(ms) {
+  if (!U.settings.vib || !navigator.vibrate || (navigator.userActivation && !navigator.userActivation.hasBeenActive)) return;
+  try { navigator.vibrate(ms); } catch {}
+}
+function music(on) {
+  const a = ac(); if (!a) return;
+  if (on && !musicNodes) {
+    const g = a.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(.025, a.currentTime + 2); g.connect(a.destination);
+    const os = [261.6, 329.6, 392, 493.9].map((f, i) => { const o = a.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = .07 + i * .03; lg.gain.value = 2; lfo.connect(lg).connect(o.frequency); lfo.start();
+      o.connect(g); o.start(); return [o, lfo]; });
+    // flowing-water ambience (spec §6.2: part of "Music"): looped noise through two slowly wobbling band filters
+    const water = [[700, .7, .16], [2300, 1.4, .37]].map(([f, q, rate]) => {
+      const src = a.createBufferSource(), bp = a.createBiquadFilter(), wg = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+      src.buffer = noiseBuf(a); src.loop = true; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; wg.gain.value = f < 1000 ? .5 : .22;
+      lfo.frequency.value = rate; lg.gain.value = f * .25; lfo.connect(lg).connect(bp.frequency); lfo.start();
+      src.connect(bp).connect(wg).connect(g); src.start(); return [src, lfo];
+    });
+    musicNodes = { g, os: [...os, ...water] };
+  } else if (!on && musicNodes) { const m = musicNodes; musicNodes = null; m.g.gain.linearRampToValueAtTime(0, a.currentTime + .6); setTimeout(() => m.os.forEach(p => p.forEach(o => o.stop())), 700); }
+}
+
+/* ---------- layout fit ---------- */
+let scale = 1;
+function fit() {
+  const w = $('wrap').clientWidth, h = $('wrap').clientHeight;
+  scale = Math.min(w / 1080, h / 1920);
+  $('stage').style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+addEventListener('resize', fit);
+
+/* ---------- HUD ---------- */
+$('items').innerHTML = ITEMS.map(([k, label, src], i) => {
+  const x = 300 + i * 240;
+  return `<button class="gel aqua item" data-item="${k}" aria-label="${label}" style="left:${x - 72}px;top:1328px"><img src="${src}" alt=""><span class="badge" id="cnt-${k}">0</span></button>
+          <div class="abs lbl itemlbl" style="left:${x - 110}px;top:1488px;font-size:28px">${label}</div>`;
+}).join('');
+const itemXY = k => [300 + ITEMS.findIndex(i => i[0] === k) * 240, 1400];
+
+function fitText(el, max = 54, min = 28) {   // shrink digits until they fit their box
+  let size = max; el.style.fontSize = size + 'px';
+  while (el.scrollWidth > el.parentElement.clientWidth - 16 && size > min) { size -= 2; el.style.fontSize = size + 'px'; }
+}
+function show(screen) {
+  U.screen = screen;
+  for (const s of ['login', 'main', 'game']) $('scr-' + s).hidden = s !== screen;
+  $('main-best').textContent = U.best.toLocaleString('en-US'); fitText($('main-best'), 54);
+}
+function overlay(name, on = true) { $('ov-' + name).hidden = !on; if (name === 'settings') $('set-home').hidden = U.screen !== 'game'; }
+let toastT = 0;
+function toast(msg, ms = 1900, img = null) {
+  const t = $('toast'); t.textContent = '';
+  if (img) { const i = new Image(); i.src = img; i.alt = ''; t.append(i); }
+  const s = document.createElement('span'); s.textContent = msg; t.append(s);
+  t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, ms);
+}
+function bumpBadge(k) { const b = $('cnt-' + k); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
+
+function hud() {
+  $('score').textContent = G.score.toLocaleString('en-US'); fitText($('score'));
+  $('best').textContent = Math.max(U.best, G.score).toLocaleString('en-US'); fitText($('best'));
+  $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next;
+  for (const [k] of ITEMS) {
+    $('cnt-' + k).textContent = G.items[k];
+    const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0);
+    document.querySelector(`[data-item="${k}"]`).classList.toggle('dis', !usable);
+  }
+  const b = $('banner');
+  if (U.target) {
+    b.hidden = false;
+    b.innerHTML = (U.target === 'pop' ? 'Tap a building to pop it' : 'Tap an empty tile for your next building') +
+      ' <button class="gel ghost" id="cancel-target">Cancel</button>';
+    $('cancel-target').onclick = () => { U.target = null; hud(); };
+  } else b.hidden = true;
+}
+
+/* ---------- game flow ---------- */
+function newGame() {
+  const demo = DEMO[location.hash.slice(1)];
+  G = L.newState(Math.random, demo || null);
+  Object.assign(U, { sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, celebQueue: [], nope: null, phaseTop: 0 });
+  for (const row of G.board) for (const v of row) if (v) discover(v);
+  U.celebQueue = [];
+  for (const k of ['celebrate', 'result', 'stuck']) overlay(k, false);
+  show('game'); hud();
+  for (const b of U.bubbles) { b.content = rollFor(b); setIcon(b); }   // bubbles already on screen may now carry items
+  if (location.hash !== '#stuck') toast(location.hash === '#sunset' ? 'Merge the two Lv 11s to reach Sky Dome and watch the sunset.' :
+    location.hash === '#night' ? 'Merge the two Lv 14s to reach Star Observatory and watch night fall.' :
+    'Tap a building, then tap a glowing neighbor to merge.', 2600);
+  checkStuck();
+}
+function discover(lv) {
+  if (U.discovered.has(lv)) return;
+  U.discovered.add(lv); store.set('discovered', [...U.discovered]);
+  if (lv >= 4) U.celebQueue.push(lv);
+}
+function runCelebrations() {
+  if (!U.celebQueue.length) return false;
+  const lv = Math.max(...U.celebQueue); U.celebQueue = [];
+  $('cel-img').src = artSrc(lv);
+  $('cel-name').textContent = NAMES[lv];
+  $('cel-sub').textContent = `Level ${lv} · Added to Collection`;
+  U.afterCel = $('toast').style.opacity === '1' ? $('toast').textContent : null;   // e.g. "+1 item" message: show it again after Continue
+  $('toast').style.opacity = 0;
+  overlay('celebrate'); SFX.fanfare(); vib([20, 40, 20]);
+  return true;
+}
+function announceGrants(grants) {
+  if (!grants.length) return;
+  const why = g => g.why === 'combo' ? `Combo ${g.combo}!` : g.why === 'milestone' ? `Lv ${g.level} reached!` : 'Skybloom Bloom!';
+  toast(grants.map(g => `${why(g)} +1 ${ITEM_NAME[g.item]}`).join('  ·  '), 2400);
+  grants.forEach(g => bumpBadge(g.item)); SFX.gift();
+}
+
+function doPlace(at = null) {
+  if (busy()) return;
+  const e = L.place(G, Math.random, at);
+  if (!e.ok) { toast(e.reason === 'full' ? 'No empty tile. Merge a pair or use Bubble Pop.' : 'Pick an empty tile.'); SFX.bad(); return; }
+  U.sel = null; U.target = null;
+  startDrop(e.at[0], e.at[1], e.lv, e.viaDrop);
+  discover(e.lv); afterAction();
+}
+function doMerge(from, to) {
+  if (busy()) return;
+  const e = L.merge(G, from, to);
+  if (!e.ok) return;
+  U.sel = null; U.drag = null;
+  U.anim = { t0: performance.now(), dur: reduce() ? 0 : 170, e };
+}
+function finishMerge(e) {
+  const [r, c] = e.to, now = performance.now(), tier = tierOf(e.lv);
+  U.pops[r + ',' + c] = { t0: now, amp: [.25, .3, .45, .55][tier], dur: tier >= 2 ? 380 : 260 }; U.boardBounce = now;
+  if (e.bloom) bloomFx(r, c); else mergeFx(r, c, tier);
+  if (e.combo >= 2) { const [x, y] = center(r, c); floatText(`Combo ×${e.combo}`, x, y - 120, e.combo >= 5); }
+  if (e.combo >= 5 && !reduce()) { U.shake = now; U.shakeAmp = Math.min(4 + e.combo, 12); }
+  SFX.merge(e.combo); vib(Math.min(10 + 4 * e.combo, 60));
+  if (e.bloom) { SFX.bloom(); vib([30, 50, 30, 50, 60]); toast('Skybloom Bloom! Two Skybloom Trees burst into light.'); }
+  else if (tier === 3) SFX.grand(); else if (tier === 2) SFX.shimmer();
+  else discover(e.lv);
+  announceGrants(e.grants);
+  U.toldNoPair = true;
+  // keep the result selected when it can merge again, so combos flow
+  if (!e.bloom && L.targets(G.board, r, c).length) U.sel = [r, c];
+  afterAction();
+}
+function afterAction() { hud(); if (runCelebrations()) return; checkStuck(); }
+function checkStuck() {
+  if (!L.isStuck(G.board)) return;
+  const canPop = G.items.pop > 0, canRew = G.items.rewind > 0 && G.history.length > 0;
+  if (canPop || canRew) {
+    $('stuck-pop').classList.toggle('dis', !canPop); $('stuck-rewind').classList.toggle('dis', !canRew);
+    overlay('stuck');
+  } else gameOver();
+}
+function gameOver() {
+  overlay('stuck', false);
+  const isNew = G.score > U.best;
+  if (isNew) { U.best = G.score; store.set('best', U.best); }
+  $('res-score').textContent = G.score.toLocaleString('en-US');
+  $('res-new').hidden = !isNew;
+  $('res-best').textContent = isNew ? '' : `Best ${U.best.toLocaleString('en-US')}`;
+  $('res-img').src = artSrc(G.top);
+  $('res-name').textContent = `${NAMES[G.top]} · Lv ${G.top}`;
+  overlay('result');
+}
+function useItem(k) {
+  if (busy()) return;
+  if (G.items[k] <= 0) { toast(`No ${ITEM_NAME[k]} left.`); SFX.bad(); return; }
+  if (k === 'rewind') {
+    const before = L.clone(G.board), e = L.rewind(G);
+    if (!e.ok) { toast('Nothing to rewind yet.'); SFX.bad(); return; }
+    U.sel = null; U.target = null; rewindFx(before); SFX.rewind(); overlay('stuck', false); hud(); return;
+  }
+  if (k === 'drop' && !L.empties(G.board).length) { toast('No empty tile for Cloud Drop.'); SFX.bad(); return; }
+  U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
+}
+const busy = () => !!U.anim || !$('ov-celebrate').hidden || !$('ov-result').hidden || !$('ov-collection').hidden || !$('ov-settings').hidden;
+
+/* ---------- selection / taps ---------- */
+function select(rc) {
+  if (!rc || !G.board[rc[0]][rc[1]]) { U.sel = null; return; }
+  if (!L.targets(G.board, rc[0], rc[1]).length) {
+    U.sel = null; U.nope = { r: rc[0], c: rc[1], t0: performance.now() }; SFX.bad();
+    if (!U.toldNoPair) { toast('This one has no matching neighbor yet.'); U.toldNoPair = true; }
+    return;
+  }
+  U.sel = rc; SFX.select(); vib(6);
+}
+const isTarget = rc => U.sel && rc && L.targets(G.board, U.sel[0], U.sel[1]).some(t => same(t, rc));
+
+function onTap(cands) {
+  const tile = cands.tile, list = cands.list;    // list: buildings under the finger, front to back
+  if (U.target) {
+    const rc = U.target === 'pop' ? list[0] : (tile && !G.board[tile[0]][tile[1]] ? tile : null);
+    if (U.target === 'pop' && rc) { const e = L.pop(G, rc); if (e.ok) { U.target = null; wrapFx(rc[0], rc[1], e.lv); vib(20); hud(); checkStuck(); } }
+    else if (U.target === 'drop' && rc) { U.target = null; doPlace(rc); }
+    else toast(U.target === 'pop' ? 'Pick a tile with a building.' : 'Pick an empty tile.');
+    return;
+  }
+  const tgt = list.find(isTarget);                 // a glowing neighbor anywhere under the finger wins
+  if (tgt) { doMerge(U.sel, tgt); return; }
+  if (!list.length) { U.sel = null; return; }
+  // tapping the same spot again walks to the building behind (front ones fade so it shows)
+  const i = list.findIndex(rc => same(rc, U.sel));
+  if (i >= 0) { if (i + 1 < list.length) select(list[i + 1]); else U.sel = null; return; }
+  select(list[0]);
+}
+
+/* ---------- treasures ---------- */
+function gainTreasure(id) {
+  const had = !!U.treasures[id];
+  const t = U.treasures[id] || { n: 0, first: new Date().toISOString().slice(0, 10) };
+  t.n++; U.treasures[id] = t; store.set('treasures', U.treasures);
+  return had;
+}
+
+/* ---------- effects data (spec §7). Each fx: { type, x, y, t0, life, tier, parts, spr } ---------- */
+const MAX_PARTS = 300;   // spec §8 particle budget
+let partCount = 0;
+const tierOf = lv => lv >= 15 ? 3 : lv >= 10 ? 2 : lv >= 5 ? 1 : 0;   // merge VFX grades: Lv2-4 / 5-9 / 10-14 / 15-17
+const FX_LIFE = { merge: [600, 800, 1000, 1400], bloom: 2000, rewind: 1000, splash: 520, bubble: 600, clouddrop: 820, wrap: 760, burst: 1100 };
+/** Add particles to an fx. kind: drop (bubble ring), spark (white/gold dot), petal (pink), spray (aqua droplet). */
+function parts(f, n, kind, o = {}) {
+  n = Math.min(n, Math.max(0, MAX_PARTS - partCount)); partCount += n;
+  for (let i = 0; i < n; i++) {
+    const a = o.up ? -Math.PI / 2 + (Math.random() - .5) * (o.cone || 1.2) : Math.random() * Math.PI * 2, sp = (o.speed || 5) * (.4 + Math.random());
+    f.parts.push({ x: f.x + (o.spread ? (Math.random() - .5) * o.spread : 0), y: f.y + (o.dy ?? -30),
+      vx: Math.cos(a) * sp * (o.flat ? 1.4 : 1), vy: Math.sin(a) * sp * (o.flat ? .45 : .7) - (o.lift ?? 2.5), r: (o.r || 6) * (.6 + Math.random() * .8), kind, g: o.g ?? .12, spin: Math.random() * 6 });
+  }
+}
+function addFxXY(type, x, y, tier = 0) {
+  if (reduce() && type !== 'rewind') return null;
+  const f = { type, x, y, t0: performance.now(), life: type === 'merge' ? FX_LIFE.merge[tier] : FX_LIFE[type] || 600, parts: [], spr: [], tier };
+  if (type === 'bubble') parts(f, 14, 'drop', { r: 14, speed: 4 });
+  if (type === 'burst') parts(f, 60, 'spark', { speed: 9 });
+  U.fx.push(f); return f;
+}
+function addFx(type, r, c, lv = 1) { const [x, y] = r == null ? [CX, CY] : center(r, c); return addFxXY(type, x, y, tierOf(lv)); }
+/** Merge result grade VFX: rings, droplets/petals/spray, light pillar, edge glow, flash, rising light, Garden Pulse x3. */
+function mergeFx(r, c, tier) {
+  const f = addFx('merge', r, c, [2, 5, 10, 15][tier]); if (!f) return;
+  parts(f, 10 + tier * 4, 'drop', { r: 9, speed: 4 + tier });
+  parts(f, 8 + tier * 6, 'spark', { r: 7, speed: 5 + tier * 1.5 });
+  if (tier >= 1) parts(f, 10 + tier * 4, 'petal', { r: 9, speed: 4, lift: 4, g: .06 });
+  if (tier >= 2) parts(f, 26, 'spray', { up: true, cone: 1.1, speed: 11, r: 8, g: .35, lift: 0, dy: -20 });
+  const now = performance.now();
+  if (tier >= 2) U.edge = now;                                 // warm glow from the screen edges
+  if (tier === 3) { U.flash = now; U.pulseBoost = now; }       // flash + Garden Pulse x3
+}
+function bloomFx(r, c) {   // Lv17 + Lv17: a flower of light, petal shower over the whole garden, light into the sky
+  const f = addFx('bloom', r, c, 17); if (!f) return;
+  parts(f, 60, 'spark', { speed: 10 });
+  for (let i = 0; i < 70; i++) parts(f, 1, 'petal', { r: 10, speed: 1, lift: -1, g: .03, spread: 900, dy: -700 - Math.random() * 300 });
+  const now = performance.now(); U.edge = now; U.flash = now; U.pulseBoost = now;
+}
+function rewindFx(before) {   // clock swirl + afterimages of the buildings that rewind takes away
+  const f = addFxXY('rewind', CX, CY); if (!f || !R) return;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (before[r][c] && before[r][c] !== G.board[r][c]) {
+    const g = ghostOf(before[r][c], r, c); if (g) { g.alpha = .6; R.fxTop.addChild(g); f.spr.push(g); g.home = [g.x, g.y]; }
+  }
+}
+function wrapFx(r, c, lv) {   // Bubble Pop: a bubble wraps the building, swells, then pops
+  const [x, y] = center(r, c), f = addFxXY('wrap', x, y - 60);
+  if (!f || !R) { SFX.pop(); return; }
+  const g = ghostOf(lv, r, c), b = new PIXI.Sprite(tex('bubble')); b.anchor.set(.5); b.alpha = .95;
+  if (g) { R.fxTop.addChild(g); f.spr.push(g); g.home = [g.x, g.y]; f.size = Math.max(g.width, g.height * .8); } else f.size = 160;
+  R.fxTop.addChild(b); f.spr.push(b); f.bub = b; SFX.inflate();
+}
+let floatText = () => {};   // set by the renderer
+
+/* ======================================================================
+   RENDERER (PixiJS v7)
+   ====================================================================== */
+const ADD = () => PIXI.BLEND_MODES.ADD;
+const TEXC = {};
+const tex = k => TEXC[k] || (TEXC[k] = IMG[k] ? PIXI.Texture.from(IMG[k]) : PIXI.Texture.EMPTY);
+function canvasTex(w, h, paint) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return PIXI.Texture.from(c); }
+let GEN = null;
+function genTextures() {
+  if (GEN) return GEN;
+  const radial = (stops) => (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); };
+  GEN = {
+    glow: canvasTex(256, 256, radial([[0, 'rgba(255,255,255,1)'], [.35, 'rgba(255,255,255,.45)'], [1, 'rgba(255,255,255,0)']])),
+    dot: canvasTex(32, 32, radial([[0, 'rgba(255,255,255,1)'], [.5, 'rgba(255,255,255,.5)'], [1, 'rgba(255,255,255,0)']])),
+    star: canvasTex(64, 64, (x) => { x.translate(32, 32); x.fillStyle = '#fff'; x.shadowColor = '#fff'; x.shadowBlur = 8;
+      x.beginPath(); for (let i = 0; i < 8; i++) { const r = i % 2 ? 6 : 28, a = i * Math.PI / 4; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); x.fill(); }),
+    petal: canvasTex(28, 16, (x) => { x.fillStyle = '#ffd3e6'; x.beginPath(); x.ellipse(14, 8, 13, 7, 0, 0, Math.PI * 2); x.fill(); x.fillStyle = '#ffeef6'; x.beginPath(); x.ellipse(11, 6, 6, 3, 0, 0, Math.PI * 2); x.fill(); }),
+    edge: canvasTex(216, 384, (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, h * .28, w / 2, h / 2, h * .62); g.addColorStop(0, 'rgba(255,240,180,0)'); g.addColorStop(1, 'rgba(255,240,180,1)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }),
+    puff: canvasTex(160, 100, (x) => { for (const [cx, cy, r] of [[50, 62, 34], [82, 46, 40], [116, 62, 30], [80, 70, 34]]) { const g = x.createRadialGradient(cx - r * .3, cy - r * .4, r * .1, cx, cy, r); g.addColorStop(0, '#ffffff'); g.addColorStop(.75, '#eef7ff'); g.addColorStop(1, 'rgba(220,236,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill(); } }),
+    pillar: canvasTex(32, 256, (x, w, h) => {   // light column: fades upward and toward both sides
+      const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,250,210,1)'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      const sd = x.createLinearGradient(0, 0, w, 0); sd.addColorStop(0, 'rgba(0,0,0,0)'); sd.addColorStop(.5, 'rgba(0,0,0,1)'); sd.addColorStop(1, 'rgba(0,0,0,0)');
+      x.globalCompositeOperation = 'destination-in'; x.fillStyle = sd; x.fillRect(0, 0, w, h); }),
+    badge: Array.from({ length: 18 }, (_, n) => n && canvasTex(64, 64, (x) => {
+      const gr = x.createRadialGradient(24, 22, 2, 32, 32, 28); gr.addColorStop(0, '#fff6b8'); gr.addColorStop(.4, '#ffe878'); gr.addColorStop(1, '#f2a91d');
+      x.beginPath(); x.arc(32, 32, 26, 0, Math.PI * 2); x.fillStyle = gr; x.fill(); x.lineWidth = 4; x.strokeStyle = '#fff'; x.stroke();
+      x.fillStyle = '#6a3c00'; x.font = `900 ${n < 10 ? 28 : 24}px Nunito, ui-rounded, system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n, 32, 33); })),
+  };
+  return GEN;
+}
+const hsl = (h, s = .75, l = .7) => { const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); };
+const lerpColor = (a, b, t) => { const c = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255], A = c(a), B = c(b); return A.map((v, i) => Math.round(v + (B[i] - v) * t)).reduce((s, v) => (s << 8) | v, 0); };
+const mix3 = (w, a, b, c) => lerpColor(lerpColor(a, b, w[1] / Math.max(1e-6, w[0] + w[1])), c, w[2]);
+
+/* ---------- building sprite size (shared with taps) ---------- */
+function sprite(lv) {
+  const im = IMG['b' + lv]; if (!im) return null;
+  const gb = GUIDE[lv];
+  if (gb) { const s = .97 * TW / 640;   // ox/oy: offset of the drawn box from the default (centred, bottom at centre+.4TH)
+    return { im, w: (gb[2] - gb[0]) * s, h: (gb[3] - gb[1]) * s, ox: ((gb[0] + gb[2]) / 2 - 512) * s, oy: (gb[3] - 820) * s - .4 * TH }; }
+  const want = (HR[lv] * TH + .4 * TH) * CAL[lv];
+  const s = Math.min(want / im.height, .92 * TW / im.width);
+  return { im, w: im.width * s, h: im.height * s, ox: 0, oy: 0 };
+}
+
+/* ---------- motion map: parts are clipped out of the sprite once, then animated as plain sprites ---------- */
+const BAKE = {};
+function bake(lv) {
+  const img = IMG['b' + lv]; if (!img) return (BAKE[lv] = []);
+  const W = img.width, H = img.height;
+  BAKE[lv] = (MOTION[lv] || []).map(p => {
+    if (!p.poly || p.poly.length < 3) return null;
+    const pts = p.poly.map(([x, y]) => [x * W, y * H]), xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    const x0 = Math.max(0, Math.floor(Math.min(...xs))), y0 = Math.max(0, Math.floor(Math.min(...ys)));
+    const x1 = Math.min(W, Math.ceil(Math.max(...xs))), y1 = Math.min(H, Math.ceil(Math.max(...ys)));
+    const b = { x0, y0, x1, y1, pts };
+    if (p.type !== 'flow') {
+      const c = document.createElement('canvas'); c.width = Math.max(1, x1 - x0); c.height = Math.max(1, y1 - y0);
+      const x = c.getContext('2d'); x.beginPath(); pts.forEach(([a, bb], i) => i ? x.lineTo(a - x0, bb - y0) : x.moveTo(a - x0, bb - y0)); x.closePath(); x.clip(); x.drawImage(img, -x0, -y0);
+      b.tex = PIXI.Texture.from(c);
+    }
+    return b;
+  });
+  return BAKE[lv];
+}
+/** One building on screen: base sprite + additive glow copy (Garden Pulse / night) + its motion parts. Local units = texture px, origin = bottom centre. */
+function makeInst(lv) {
+  const T = genTextures(), base = tex('b' + lv), W = base.width, H = base.height, c = new PIXI.Container();
+  const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
+  const B = BAKE[lv] || bake(lv), L2 = (u, v) => [u - W / 2, v - H];
+  const parts = (MOTION[lv] || []).map((p, i) => {
+    const b = B[i], P = { p, ph: Math.random() * 6 };
+    const at = (nx, ny) => L2(nx * W, ny * H);
+    if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
+      P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g); P.b = b; P.bw = (b.x1 - b.x0) * .28;
+      P.m = new PIXI.Matrix().translate(...L2(b.x0, b.y0));
+    } else if (['sway', 'bob', 'squish', 'glow'].includes(p.type) && b) {
+      const s = new PIXI.Sprite(b.tex); P.s = s; c.addChild(s);
+      if (p.type === 'sway' || p.type === 'squish') { const pv = p.pivot || [(b.x0 + b.x1) / 2 / W, b.y1 / H]; s.pivot.set(pv[0] * W - b.x0, pv[1] * H - b.y0); s.position.set(...at(...pv)); }
+      else s.position.set(...L2(b.x0, b.y0));
+      P.y0 = s.y;
+      if (p.type === 'glow') { s.blendMode = ADD(); s.alpha = 0; }
+      P.b = b;
+    } else if (p.type === 'flow' && b) {   // the polygon is filled with a repeating water texture whose offset scrolls (no stencil mask)
+      P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g); P.poly = b.pts.flatMap(([u, v]) => L2(u, v)); P.off = 0;
+    } else if (p.type === 'sparkle') {
+      P.stars = (p.pts || []).map(pt => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.position.set(...at(...pt)); s.alpha = 0; c.addChild(s); return s; });
+    } else if (p.type === 'ripple') {
+      P.g = new PIXI.Graphics(); c.addChild(P.g);
+    } else if (p.type === 'rise') {
+      P.dots = Array.from({ length: 4 }, () => { const s = new PIXI.Sprite(tex('bubble')); s.anchor.set(.5); c.addChild(s); return s; });
+    } else if (p.type === 'petals') {
+      P.dots = Array.from({ length: 6 }, () => { const s = new PIXI.Sprite(T.petal); s.anchor.set(.5); c.addChild(s); return s; });
+    } else if (p.type === 'spin' && IMG[p.tex]) {
+      const s = new PIXI.Sprite(tex(p.tex)); s.anchor.set(.5); s.position.set(...at(...p.pt)); s.scale.set((p.size || 1) * W / s.texture.width); c.addChild(s); P.s = s;
+    }
+    return P;
+  });
+  const glow = new PIXI.Sprite(base); glow.anchor.set(.5, 1); glow.blendMode = ADD(); glow.alpha = 0; c.addChild(glow);
+  return { lv, c, glow, parts, W, H, ph: Math.random() * 10 };
+}
+/** Animate one building's parts. t = motion clock (frozen under Reduce Motion), s = on-screen scale (px per texture px). */
+function updateInst(I, t, dt, s, still) {
+  const W = I.W, H = I.H, TAU = Math.PI * 2, L2 = (u, v) => [u - W / 2, v - H];
+  for (const P of I.parts) {
+    const p = P.p, ph = P.ph + I.ph, per = p.period || 3, wave = Math.sin(TAU * t / per + ph);
+    switch (p.type) {
+      case 'sway': P.s.rotation = (p.amp || 3) * Math.PI / 180 * wave; break;
+      case 'bob': P.s.y = P.y0 + (p.amp || 3) / s * wave; break;
+      case 'squish': { const k = (p.amp || .04) * wave; P.s.scale.set(1 - k * .5, 1 + k); break; }
+      case 'glow': P.s.alpha = (p.alpha ?? .4) * (.5 + .5 * wave); if (p.hue) P.s.tint = hsl((t * 40 + ph * 50) % 360); break;
+      case 'sweep': {
+        const q = ((t + ph) % per) / per, b = P.b, g = P.g; g.clear();
+        if (q >= .45) break;   // idle between sweeps: nothing to draw
+        const run = q / .45, h = b.y1 - b.y0, bx = b.x0 - P.bw + run * (b.x1 - b.x0 + 2 * P.bw), [, y0] = L2(0, b.y0), x0 = bx - W / 2;
+        const band = clipRect([[x0, y0], [x0 + P.bw, y0], [x0 + P.bw - h * .35, y0 + h], [x0 - h * .35, y0 + h]], ...L2(b.x0, b.y0), ...L2(b.x1, b.y1));
+        if (band.length > 2) g.beginTextureFill({ texture: b.tex, matrix: P.m, alpha: p.alpha ?? .5, color: p.hue ? hsl((run * 300 + t * 20) % 360, .9, .72) : 0xffffff }).drawPolygon(band.flat()).endFill();
+        break;
+      }
+      case 'flow': {
+        if (!still) P.off += (p.speed || 60) / s * dt;
+        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: 0xcff4ff, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
+        break;
+      }
+      case 'sparkle': P.stars.forEach((st, i) => { const a = Math.max(0, Math.sin(t * 1.9 + i * 2.1 + ph)) ** 6 * .9; st.alpha = still ? .35 : a; st.visible = st.alpha > .02; st.scale.set((.25 + .35 * st.alpha) / s * .7); st.rotation = t * .4; }); break;
+      case 'ripple': {
+        const g = P.g, [px, py] = [(p.pt[0] - .5) * W, (p.pt[1] - 1) * H]; g.clear();
+        for (let i = 0; i < 2; i++) { const q = ((t / (p.period || 3.5)) + i / 2 + ph) % 1, rx = (p.rx || .3) * W * (.35 + .65 * q);
+          g.lineStyle(2.5 / s, 0xffffff, still ? .3 : (1 - q) * .7).drawEllipse(px, py, rx, rx * .33); }
+        break;
+      }
+      case 'rise': P.dots.forEach((d, i) => { const q = (t * .45 + i / 4 + ph) % 1; d.position.set((p.pt[0] - .5) * W + Math.sin(q * 7 + i) * 5 / s, (p.pt[1] - 1) * H - q * 70 / s); d.alpha = still ? 0 : (1 - q) * .85; d.scale.set((8 + i * 2) / s / d.texture.width * (0.6 + q)); }); break;
+      case 'petals': { const [a, b2, c2, d2] = p.box; P.dots.forEach((d, i) => { const q = (t * .12 + i / 6 + ph) % 1; d.position.set(((a + (c2 - a) * ((i * .37 + .1) % 1)) - .5) * W + Math.sin(q * 9 + i) * 10 / s, (b2 + (d2 - b2) * q - 1) * H); d.alpha = still ? 0 : Math.sin(q * Math.PI) * .9; d.rotation = q * 7 + i; d.scale.set(1 / s * .8); }); break; }
+      case 'spin': if (P.s && !still) P.s.rotation += (p.speed || .7) * dt; break;
+    }
+  }
+}
+
+/** Repeating copy of a water texture (POT, so it can wrap). */
+const WT = {};
+function waterTex(k) { if (!WT[k]) { WT[k] = tex(k); WT[k].baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT; } return WT[k]; }
+/** Clip a convex polygon [[x,y]...] to a rectangle (Sutherland-Hodgman). */
+function clipRect(poly, x0, y0, x1, y1) {
+  const edges = [[p => p[0] >= x0, (a, b) => [x0, a[1] + (b[1] - a[1]) * (x0 - a[0]) / (b[0] - a[0])]], [p => p[0] <= x1, (a, b) => [x1, a[1] + (b[1] - a[1]) * (x1 - a[0]) / (b[0] - a[0])]],
+    [p => p[1] >= y0, (a, b) => [a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0]], [p => p[1] <= y1, (a, b) => [a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1]]];
+  for (const [inside, cut] of edges) {
+    const out = []; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length];
+      if (inside(b)) { if (!inside(a)) out.push(cut(a, b)); out.push(b); } else if (inside(a)) out.push(cut(a, b)); }
+    poly = out; if (!poly.length) break;
+  }
+  return poly;
+}
+/** Grout channels: textured lines along the tile seams, the texture offset scrolls with the flow (§6.2). */
+function drawGrout(g, k, sc, ox, oy, color, alpha) {
+  const t = waterTex(k), m = new PIXI.Matrix().scale(sc, sc).translate(ox % (t.width * sc), oy % (t.height * sc));
+  g.clear().lineTextureStyle({ width: 11, texture: t, matrix: m, color, alpha, cap: PIXI.LINE_CAP.ROUND });
+  for (let i = 1; i <= 4; i++) { g.moveTo(...center(i - .5, -.5)).lineTo(...center(i - .5, 3.5)); g.moveTo(...center(-.5, i - .5)).lineTo(...center(3.5, i - .5)); }
+}
+
+let app = null, R = null;
+function initRenderer() {
+  app = new PIXI.Application({ view: $('cv'), width: 1080, height: 1920, backgroundAlpha: 0, antialias: true, resolution: 1 });
+  if (app.renderer.events) app.renderer.events.autoPreventDefault = false;
+  const T = genTextures(), S = app.stage;
+  const world = new PIXI.Container(); S.addChild(world);
+  // sky: three time-of-day backgrounds cross-fade
+  const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; world.addChild(s); return s; });
+  const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
+    const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
+  const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1080, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
+  const clouds = [cloud('cloudFar', -90, .9, .7), cloud('cloudMid', 120, .9, .8)];
+  // bubbles live behind the island (hole mask) and behind every building
+  const bubbleLayer = new PIXI.Container(), hole = new PIXI.Graphics();
+  hole.beginFill(0xffffff).drawRect(-200, -200, 1480, 2320).beginHole().drawPolygon(ISLAND).endHole().endFill();
+  world.addChild(bubbleLayer, hole); bubbleLayer.mask = hole;
+  // board water spilling over the front edges + mist
+  const falls = new PIXI.Container(); world.addChild(falls);
+  const fallStrips = FALLS.map(([x, y]) => [0, 1, 2].map(i => { const s = new PIXI.TilingSprite(tex('flow'), 26 - i * 4, 48); s.tileScale.set(.12); s.position.set(x - 13 + i * 2, y - 6 + i * 48); s.alpha = [.95, .7, .35][i]; falls.addChild(s); return s; }));
+  const mist = new PIXI.ParticleContainer(80, { position: true, alpha: true, scale: true });
+  mist.blendMode = ADD(); falls.addChild(mist);
+  // board (colour graded by time of day)
+  const boardF = new PIXI.Container(); world.addChild(boardF);
+  const tw = TW * .95, tiles = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const [x, y] = center(r, c), s = new PIXI.Sprite(tex('tile')); s.width = tw; s.height = tex('tile').height * tw / tex('tile').width; s.position.set(x - tw / 2, y - TH * .95 / 2); boardF.addChild(s); tiles.push(s); }
+  // grout = shallow water channels on the tile seams, running to the two front edges where they spill as falls (§6.2)
+  const water = new PIXI.Graphics(), waterHi = new PIXI.Graphics(); waterHi.blendMode = ADD(); boardF.addChild(water, waterHi);
+  const floorG = new PIXI.Graphics(); boardF.addChild(floorG);
+  const pieces = new PIXI.Container(); pieces.sortableChildren = true; boardF.addChild(pieces);
+  const CM = PIXI.ColorMatrixFilter || PIXI.filters.ColorMatrixFilter, cm = new CM();
+  const arrows = new PIXI.Graphics(), badges = new PIXI.Container(); world.addChild(arrows, badges);
+  const badgePool = Array.from({ length: 16 }, () => { const s = new PIXI.Sprite(T.badge[1]); s.anchor.set(.5); s.width = s.height = 56; s.visible = false; badges.addChild(s); return s; });
+  clouds.push(cloud('cloudNear', 1330, .9, .85));   // near clouds pass in front of the island's foot
+  // night fireflies, effects, floating text
+  const fireflies = Array.from({ length: 26 }, (_, i) => { const s = new PIXI.Sprite(T.dot); s.anchor.set(.5); s.tint = 0xfff3a0; s.blendMode = ADD(); s.alpha = 0; s.scale.set(.35 + (i % 3) * .1); world.addChild(s); return { s, a: Math.random() * 7, r: 220 + Math.random() * 430, y: 820 + Math.random() * 520 }; });
+  const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); S.addChild(fxG, fxTop);
+  const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
+  const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
+  R = { world, bgs, lights, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  floatText = (text, x, y, gold) => {
+    const t = new PIXI.Text(text, { fontFamily: 'Nunito, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
+    t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
+  };
+  app.ticker.add(frame);
+  document.addEventListener('visibilitychange', () => document.hidden ? app.ticker.stop() : app.ticker.start());   // spec §8: pause when hidden
+}
+
+/* ---------- per-frame ---------- */
+let TM = 0, TP = 0;   // TM: ambient clock, TP: building-part clock (frozen under Reduce Motion)
+const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0-1)
+  [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+  [1.08, .04, 0, 0, .02, 0, .96, 0, 0, 0, 0, 0, .84, 0, 0, 0, 0, 0, 1, 0],
+  [.6, 0, 0, 0, 0, 0, .68, .02, 0, .02, 0, .04, .9, 0, .06, 0, 0, 0, 1, 0]];
+function frame() {
+  const dt = Math.min(app.ticker.deltaMS, 50) / 1000, now = performance.now(), still = reduce();
+  TM += dt; if (!still) TP += dt;
+  updatePhase(dt); updateTilt(dt);
+  updateSky(dt, still);
+  updateBubbles(dt, now, still);
+  updateBoard(dt, now, still);
+  updateFx(dt, now);
+}
+function updatePhase(dt) {
+  if (U.screen === 'game') U.phaseTop = Math.max(U.phaseTop, G.top);   // best building this game: Rewind does not undo a sunset
+  const tgt = U.screen === 'game' ? (U.phaseTop >= 15 ? 2 : U.phaseTop >= 12 ? 1 : 0) : 0;   // spec §6.5 + §11 #6 (menus stay Day)
+  const w = U.phaseW, k = Math.min(1, dt / 3);   // 3 s cross-fade
+  for (let i = 0; i < 3; i++) w[i] += ((i === tgt ? 1 : 0) - w[i]) * Math.min(1, k * 3);
+  const sum = w[0] + w[1] + w[2]; for (let i = 0; i < 3; i++) w[i] /= sum;
+}
+function updateSky(dt, still) {
+  const w = U.phaseW, T = U.tilt;
+  R.bgs[0].alpha = 1; R.bgs[1].alpha = w[1] + w[2]; R.bgs[2].alpha = w[2] / Math.max(1e-6, w[1] + w[2]);
+  const breathe = still ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
+  R.lights[0].alpha = .55 * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
+  const tint = mix3(w, 0xffffff, 0xffc4b0, 0x6878b0);
+  R.clouds.forEach((c, i) => {   // far / mid / near cross the screen in 140 / 90 / 60 s
+    if (!still) c.tilePosition.x -= 1080 / [140, 90, 60][i] * dt / c.tileScale.x;
+    c.x = -T.x * 12 * (i + 1) / 3; c.tint = tint;
+  });
+  // fireflies at night
+  R.fireflies.forEach((f, i) => { f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(TM * 2 + i))); });
+  // board water: grout flows toward the front edges and tilts with the device
+  const fx = T.x * 40, fy = 24 + T.y * 30, k = still ? .3 : 1;
+  const wo = R.waterOff; wo[0] += fx * dt * k; wo[1] += fy * dt * k; wo[2] += fx * 1.6 * dt * k; wo[3] += fy * 2.2 * dt * k;
+  drawGrout(R.water, 'caustic', .3, wo[0], wo[1], mix3(w, 0x8adcff, 0xffb888, 0x7c9ce0), .78);
+  drawGrout(R.waterHi, 'flow', .2, wo[2], wo[3], 0xffffff, .5 + .15 * w[2]);
+  for (const strips of R.fallStrips) for (const s of strips) { s.tilePosition.y += (110 + T.y * 40) * dt * k / .12; s.tint = mix3(w, 0xffffff, 0xffd9b8, 0xb8d4ff); }
+  if (!still && R.mist.children.length < 60 && Math.random() < dt * 30) {
+    const [x, y] = FALLS[Math.floor(Math.random() * FALLS.length)], m = new PIXI.Sprite(genTextures().dot);
+    m.anchor.set(.5); m.position.set(x + (Math.random() - .5) * 20, y + 140); m.scale.set(.6 + Math.random() * .6); m.alpha = .5; m.vy = -10 - Math.random() * 15; m.vx = (Math.random() - .5) * 16; R.mist.addChild(m);
+  }
+  for (const m of [...R.mist.children]) { m.x += m.vx * dt; m.y += m.vy * dt; m.alpha -= dt * .35; m.scale.x = m.scale.y += dt * .5; if (m.alpha <= 0) { R.mist.removeChild(m); m.destroy(); } }
+  // board colour grading only while not plain Day (one filter pass)
+  if (w[0] > .999) R.boardF.filters = null;
+  else { R.cm.matrix = PHASE_M[0].map((_, i) => w[0] * PHASE_M[0][i] + w[1] * PHASE_M[1][i] + w[2] * PHASE_M[2][i]); R.boardF.filters = [R.cm]; }
+}
+
+let drawn = [];   // buildings as drawn this frame (for taps): {r,c,lv,x,y,w,h}
+const ease = t => 1 - (1 - t) ** 3;
+const overlap = (a, b) => a && b && a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+function diamond(g, x, y, k) { g.drawPolygon([x, y - TH / 2 * k, x + TW / 2 * k, y, x, y + TH / 2 * k, x - TW / 2 * k, y]); }
+function gardenPulse(x, y) {   // spec §6.4: one diagonal shimmer crosses the whole board every 6 s (three quick ones after a Lv15+ merge)
+  if (reduce()) return 0;
+  const s = x * .8 + y * .6, band = q => Math.max(0, 1 - Math.abs(s - (560 + q * 980)) / 150);
+  const b = U.pulseBoost ? (performance.now() - U.pulseBoost) / 700 : 9;
+  if (b < 3) return band(b % 1);
+  const q = TM % 6; return q > 1.6 ? 0 : band(q / 1.6);
+}
+/* ---------- place drop (§7): fall, trail, shadow, squash, splash; Cloud Drop gathers a cloud first ---------- */
+function startDrop(r, c, lv, viaCloud) {
+  endDrop();
+  U.drop = { r, c, lv, t0: performance.now(), delay: viaCloud && !reduce() ? 420 : 0, fall: viaCloud ? 300 : 350, h: viaCloud ? 340 : 1000, trail: [] };
+  if (viaCloud) { cloudFx(r, c); SFX.whoosh(.42); } else SFX.whoosh();
+  if (reduce()) { SFX.land(); vib(10); }
+}
+function trail(D, I, x, y, sp, dy, t) {   // afterimages above the falling building
+  if (!D.trail.length) for (let i = 0; i < 3; i++) { const g = new PIXI.Sprite(I.c.children[0].texture); g.anchor.set(.5, 1); R.pieces.addChild(g); D.trail.push(g); }
+  D.trail.forEach((g, i) => { g.scale.set(sp.w / I.W); g.position.set(x + sp.ox, y + .4 * TH + sp.oy + dy - (i + 1) * 70 * (.3 + t)); g.alpha = (.32 - i * .09) * (1 - t * .3); g.zIndex = D.r + D.c - .01; });
+}
+function land(D, x, y) {
+  D.landed = true; D.trail.forEach(g => g.destroy()); D.trail = [];
+  const f = addFxXY('splash', x, y + 8);
+  if (f) { parts(f, 16, 'spray', { flat: true, speed: 6, r: 7, lift: 3, g: .3, dy: -4 }); parts(f, 6, 'drop', { r: 8, speed: 3, dy: -10 }); }
+  SFX.land(); vib(12);
+}
+function endDrop() { const D = U.drop; if (!D) return; D.trail.forEach(g => g.destroy()); U.drop = null; }
+function cloudFx(r, c) {   // Cloud Drop: puffs gather above the tile, then a light column marks the landing
+  const [x, y] = center(r, c), f = addFxXY('clouddrop', x, y); if (!f) return;
+  for (let i = 0; i < 5; i++) { const p = new PIXI.Sprite(genTextures().puff); p.anchor.set(.5); p.from = [x + (i - 2) * 160 + (Math.random() - .5) * 60, y - 420 - Math.random() * 120]; p.to = [x + (i - 2) * 34, y - 340 + Math.abs(i - 2) * 10]; p.scale.set(.9 + Math.random() * .3); R.fxTop.addChild(p); f.spr.push(p); }
+  f.col = new PIXI.Sprite(genTextures().pillar); R.fxTop.addChildAt(f.col, 0); f.spr.push(f.col); SFX.cloud();
+}
+function ghostOf(lv, r, c) {   // plain sprite copy of a building, placed like the board does
+  const sp = sprite(lv); if (!sp || !R) return null;
+  const t = tex('b' + lv), g = new PIXI.Sprite(t), [x, y] = center(r, c); g.anchor.set(.5, 1); g.scale.set(sp.w / t.width); g.position.set(x + sp.ox, y + .4 * TH + sp.oy); return g;
+}
+function updateBoard(dt, now, still) {
+  const inGame = U.screen === 'game', board = inGame ? G.board : SHOW, w = U.phaseW;
+  let ox = 0, oy = 0;
+  if (U.shake && now - U.shake < 300) { const t = (now - U.shake) / 300; ox = Math.sin(t * 40) * U.shakeAmp * (1 - t); oy = Math.cos(t * 33) * U.shakeAmp * .5 * (1 - t); }
+  R.world.position.set(ox, oy);
+  const pulse = .55 + .45 * Math.sin(now / 170), g = R.floorG; g.clear();
+  if (inGame && U.target) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    if (U.target === 'pop' ? !board[r][c] : board[r][c]) continue;
+    const [x, y] = center(r, c); g.lineStyle(8, U.target === 'pop' ? 0xff78c8 : 0x28c8ff, pulse); diamond(g, x, y, .9);
+  }
+  const sel = inGame && !U.anim ? (U.drag && U.drag.active ? U.drag.from : U.sel) : null;
+  const tg = sel ? L.targets(board, sel[0], sel[1]) : [];
+  if (sel) {
+    const [x, y] = center(...sel);
+    g.lineStyle(9, 0xffffff, .7 + .3 * pulse).beginFill(0x78e6ff, .25 + .2 * pulse); diamond(g, x, y, .92); g.endFill();
+    g.lineStyle(4, 0x28beff, .8); diamond(g, x, y, 1.02);
+    for (const t of tg) { const [tx, ty] = center(...t); g.lineStyle(7, 0xffd640, .55 + .45 * pulse).beginFill(0xffec78, .18 + .22 * pulse); diamond(g, tx, ty, .9); g.endFill(); }
+  }
+  const D = U.drop;
+  if (inGame && D && !D.landed && !still) {   // the landing shadow grows as the building nears the ground
+    const el = now - D.t0 - D.delay, t = el < 0 ? .15 * (1 + el / D.delay) : .15 + .85 * Math.min(1, el / D.fall), [x, y] = center(D.r, D.c);
+    g.lineStyle(0).beginFill(0x123c6e, .3 * t).drawEllipse(x, y + 6, 92 * (.35 + .65 * t), 38 * (.35 + .65 * t)).endFill();
+  }
+  // pieces this frame
+  const pieces = [], A = U.anim;
+  if (inGame && A) {
+    const t = A.dur ? Math.min(1, (now - A.t0) / A.dur) : 1, e = ease(t);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {   // board already holds the result: show the old target until arrival
+      if (same([r, c], A.e.to)) { pieces.push({ lv: A.e.from_lv, r, c, key: r + ',' + c }); continue; }
+      if (board[r][c]) pieces.push({ lv: board[r][c], r, c, key: r + ',' + c });
+    }
+    const [fr, fc] = A.e.from, [tr, tc] = A.e.to;
+    pieces.push({ lv: A.e.from_lv, r: fr + (tr - fr) * e, c: fc + (tc - fc) * e, lift: -12 * Math.sin(e * Math.PI), moving: true, key: 'mv' });
+    if (t >= 1) { U.anim = null; finishMerge(A.e); }
+  } else for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c]) pieces.push({ lv: board[r][c], r, c, key: r + ',' + c });
+  const draggingNow = inGame && U.drag && U.drag.active;
+  if (draggingNow) { const [px, py] = U.drag.pt; pieces.push({ lv: board[U.drag.from[0]][U.drag.from[1]], x: px, y: py + 20, k: 1.06, alpha: .9, key: 'drag', z: 99 }); }
+  const rectOf = p => { const sp = sprite(p.lv); if (!sp) return null; const [x, y] = center(p.r, p.c); return [x - sp.w / 2 + sp.ox, y + .4 * TH - sp.h + sp.oy, sp.w, sp.h]; };
+  const selRect = sel ? rectOf({ lv: board[sel[0]][sel[1]], r: sel[0], c: sel[1] }) : null;
+  const seen = new Set(); drawn = [];
+  for (const p of pieces) {
+    const sp = sprite(p.lv); if (!sp) continue;
+    let I = R.inst.get(p.key);
+    if (!I || I.lv !== p.lv) { if (I) I.c.destroy({ children: true }); I = makeInst(p.lv); R.inst.set(p.key, I); R.pieces.addChild(I.c); }
+    seen.add(p.key);
+    const [x, y] = p.x != null ? [p.x, p.y] : center(p.r, p.c);
+    let k = p.k || 1, dy = p.lift || 0, alpha = p.alpha || 1, dx = 0, kx = 1, ky = 1;
+    if (inGame && p.key !== 'mv' && p.key !== 'drag') {
+      const pt = U.pops[p.key];   // appear bounce, stronger for higher grades
+      if (pt) { const t = (now - pt.t0) / pt.dur; if (t < 1) k = 1 + pt.amp * Math.sin(t * Math.PI) * (1 - t * .3); else delete U.pops[p.key]; }
+      if (U.boardBounce && now - U.boardBounce < 180 && !still) dy -= 4 * Math.sin((now - U.boardBounce) / 180 * Math.PI);  // everyone hops together (§6.4)
+      const D = U.drop;
+      if (D && D.r === p.r && D.c === p.c) {   // place: falls in from the sky, trail, squash on landing (§7)
+        const el = now - D.t0 - D.delay;
+        if (still) { alpha = Math.min(1, (now - D.t0) / 200); if (alpha >= 1) endDrop(); }
+        else if (el < 0) { I.c.visible = false; continue; }                       // Cloud Drop: the cloud is still gathering
+        else if (el < D.fall) { const t = el / D.fall; dy = -D.h * (1 - t * t); trail(D, I, x, y, sp, dy, t); }
+        else { if (!D.landed) land(D, x, y); const t = (el - D.fall) / 240;
+          if (t >= 1) endDrop(); else { const q = Math.sin(t * Math.PI) * (1 - t * .5); kx = 1 + .2 * q; ky = 1 - .22 * q; } }
+      }
+      if (U.nope && U.nope.r === p.r && U.nope.c === p.c) { const t = (now - U.nope.t0) / 300; if (t >= 1) U.nope = null; else if (!still) dx = Math.sin(t * 30) * 7 * (1 - t); }
+      if (sel && same([p.r, p.c], sel)) { if (draggingNow) { I.c.visible = false; continue; } dy -= 8 + 3 * Math.sin(now / 220); }
+      if (sel && tg.some(t => same(t, [p.r, p.c])) && U.settings.hints) dy -= 3 * (.5 + .5 * Math.sin(now / 140));
+      if (selRect && (p.r + p.c) > (sel[0] + sel[1]) && overlap(rectOf(p), selRect)) alpha = Math.min(alpha, .35);
+    }
+    const s = sp.w / I.W;
+    I.c.visible = true; I.c.alpha = alpha; I.c.zIndex = p.z ?? (p.r + p.c + (p.moving ? .5 : 0));
+    I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
+    I.glow.alpha = gardenPulse(x, y - 60) * .38 + w[2] * .1; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
+    updateInst(I, TP, dt, s * k, still);
+    if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
+  }
+  for (const [key, I] of R.inst) if (!seen.has(key)) { I.c.destroy({ children: true }); R.inst.delete(key); }
+  // hint arrows and badges stay outside the colour grading so they always read clearly
+  const a = R.arrows; a.clear();
+  if (sel && tg.length && U.settings.hints) {
+    const [sx, sy] = center(...sel);
+    for (const t of tg) {
+      const [tx, ty] = center(...t), ang = Math.atan2(ty - sy, tx - sx), m = .58 + .06 * Math.sin(now / 160), cx = sx + (tx - sx) * m, cy = sy + (ty - sy) * m;
+      const P = [[22, 0], [-12, -16], [-4, 0], [-12, 16]].flatMap(([u, v]) => [cx + u * Math.cos(ang) - v * Math.sin(ang), cy + u * Math.sin(ang) + v * Math.cos(ang)]);
+      a.lineStyle(5, 0xf2a91d).beginFill(0xffffff).drawPolygon(P).endFill();
+    }
+  }
+  let bi = 0;
+  if (inGame && !A) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c]) {
+    if (draggingNow && same([r, c], U.drag.from)) continue;
+    if (D && !D.landed && D.r === r && D.c === c) continue;   // badge appears when the building lands
+    const [x, y] = center(r, c), b = R.badgePool[bi++]; b.texture = genTextures().badge[board[r][c]]; b.position.set(x + TW * .24, y + TH * .14); b.visible = true;
+  }
+  for (; bi < 16; bi++) R.badgePool[bi].visible = false;
+}
+
+/* ---------- bubbles (spec §4) ---------- */
+const BC = L.CONFIG.bubbles;
+const inIsland = (x, y) => { let inside = false; for (let i = 0, j = ISLAND.length - 2; i < ISLAND.length; j = i, i += 2) { const xi = ISLAND[i], yi = ISLAND[i + 1], xj = ISLAND[j], yj = ISLAND[j + 1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; } return inside; };
+const rollFor = b => L.rollBubble(Math.random, U.screen === 'game' && L.bubbleCanItem(G));
+function spawnBubble(content = null) {
+  const side = Math.random(), r = 56 + Math.random() * 18, b = { r, ph: Math.random() * 6, amp: 20 + Math.random() * 20, vy: -(40 + Math.random() * 30), t: 0 };
+  if (side < .35) Object.assign(b, { x: -r, y: 1000 + Math.random() * 800, vx: 30 + Math.random() * 30 });
+  else if (side < .7) Object.assign(b, { x: 1080 + r, y: 1000 + Math.random() * 800, vx: -(30 + Math.random() * 30) });
+  else Object.assign(b, { x: 80 + Math.random() * 920, y: 1920 + r, vx: (Math.random() - .5) * 20 });
+  b.content = content || rollFor(b);
+  const c = new PIXI.Container(), shell = new PIXI.Sprite(tex('bubble')), glow = new PIXI.Sprite(tex('bubble'));
+  shell.anchor.set(.5); glow.anchor.set(.5); glow.blendMode = ADD(); glow.alpha = 0; shell.width = shell.height = glow.width = glow.height = r * 2;
+  const icon = new PIXI.Sprite(PIXI.Texture.EMPTY); icon.anchor.set(.5); c.addChild(icon, shell, glow);
+  Object.assign(b, { c, shell, glow, icon }); setIcon(b);
+  R.bubbleLayer.addChild(c); U.bubbles.push(b);
+}
+function setIcon(b) {
+  const k = b.content.kind, t = k === 'item' ? tex('item' + (ITEMS.findIndex(i => i[0] === b.content.item) + 1)) : k === 'treasure' ? tex('acc' + b.content.id) : PIXI.Texture.EMPTY;
+  b.icon.texture = t; if (t !== PIXI.Texture.EMPTY) b.icon.scale.set(b.r * 1.05 / Math.max(t.width, t.height));
+  b.icon.tint = k === 'treasure' && !U.treasures[b.content.id] ? 0x2a4c80 : 0xffffff;    // unknown treasure shows as a silhouette
+  b.icon.alpha = k === 'treasure' && !U.treasures[b.content.id] ? .55 : .95;
+}
+function updateBubbles(dt, now, still) {
+  const max = U.perf ? BC.max : still ? BC.maxReduced : BC.max;
+  if (!U.nextBubble) U.nextBubble = now + 1500;
+  if ((now >= U.nextBubble || U.perf) && U.bubbles.length < max) { spawnBubble(); U.nextBubble = now + (BC.everySec[0] + Math.random() * (BC.everySec[1] - BC.everySec[0])) * 1000; }
+  const T = U.tilt, w = U.phaseW, tint = mix3(w, 0xffffff, 0xffd8bc, 0xc8d6ff);
+  for (const b of [...U.bubbles]) {
+    b.t += dt; b.x += (b.vx + T.x * 45) * dt; b.vx *= Math.pow(.92, dt); b.y += (b.vy + T.y * 18) * dt;
+    const sway = still ? 0 : Math.sin(b.t * 1.3 + b.ph) * b.amp;
+    b.sx = b.x + sway; b.c.position.set(b.sx, b.y);
+    const wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * .025; b.shell.scale.set(b.r * 2 / b.shell.texture.width * (1 + wob), b.r * 2 / b.shell.texture.width * (1 - wob));
+    b.shell.tint = tint; b.glow.alpha = w[2] * .5;
+    if (b.y < -160 || b.sx < -220 || b.sx > 1300) removeBubble(b);
+  }
+}
+function removeBubble(b) { U.bubbles = U.bubbles.filter(x => x !== b); b.c.destroy({ children: true }); }
+function bubbleAt(x, y) {
+  if (inIsland(x, y)) return null;
+  for (let i = U.bubbles.length - 1; i >= 0; i--) { const b = U.bubbles[i]; if (Math.hypot(x - b.sx, y - b.y) < b.r * .95) return b; }
+  return null;
+}
+function popBubbleAt(b) {
+  const iconTex = b.icon.texture, iconScale = b.icon.scale.x;   // read before the bubble is destroyed
+  removeBubble(b); addFxXY('bubble', b.sx, b.y + 30); SFX.bubble(); vib(10);
+  const inGame = U.screen === 'game', c = b.content;
+  if (c.kind === 'treasure') {
+    const id = c.id, dup = gainTreasure(id);
+    const e = inGame ? L.popBubble(G, c, dup) : { gained: 0 };
+    toast(dup ? `Already in your Treasures${e.gained ? ` · +${e.gained}` : ''}` : `New Treasure! ${TREASURES[id - 1][0]} · ${RARITY_NAME[c.rarity]}`, 2400, accSrc(id));
+    if (!dup) SFX.gift();
+    if (inGame) hud();
+    return;
+  }
+  if (!inGame) return;
+  const e = L.popBubble(G, c);
+  if (e.item) {   // icon flies to its item button, then the count bumps
+    const s = new PIXI.Sprite(iconTex); s.anchor.set(.5); s.scale.set(iconScale); s.position.set(b.sx, b.y); R.fxTop.addChild(s);
+    U.flies.push({ s, from: [b.sx, b.y], to: itemXY(e.item), t0: performance.now(), item: e.item });
+  } else floatText(`+${e.gained}`, b.sx, b.y - 20, false);
+  hud();
+}
+
+/* ---------- effects drawing ---------- */
+const ring = (g, x, y, R0, w, col, a) => { if (a > .01 && R0 > 1) g.lineStyle(w, col, a).drawEllipse(x, y, R0, R0 * .5); };
+const pillarSpr = (f, key = 'pillar') => f[key] || (f[key] = (() => { const p = new PIXI.Sprite(genTextures().pillar); p.blendMode = ADD(); R.fxTop.addChildAt(p, 0); f.spr.push(p); return p; })());
+const FXDRAW = {
+  merge(f, t, g) {   // grade 0: droplet ring · 1: two light rings, petals, short pillar · 2: three rings, big pillar, spray · 3: + light rising to the sky
+    const T = f.tier, col = [0xa0ebff, 0xfff4fb, 0xffe678, 0xffe678][T];
+    for (let i = 0; i < [1, 2, 3, 3][T]; i++) { const tt = Math.max(0, t - i * .12); ring(g, f.x, f.y, (110 + T * 70) * ease(tt), 8 + T * 2, col, .9 * (1 - tt)); }
+    if (T >= 1) { const p = pillarSpr(f), h = [0, 300, 640, 1100][T], w = [0, 70, 100, 130][T]; p.position.set(f.x - w / 2, f.y - h); p.width = w; p.height = h; p.alpha = (1 - t) * .65; }
+    if (T === 3) {   // a ball of light climbs out of the top of the screen
+      if (!f.orb) { f.orb = new PIXI.Sprite(genTextures().glow); f.orb.anchor.set(.5); f.orb.blendMode = ADD(); f.orb.tint = 0xfff2b0; R.fxTop.addChild(f.orb); f.spr.push(f.orb); }
+      const e = ease(Math.min(1, t * 1.4)); f.orb.position.set(f.x, f.y - 80 - e * (f.y + 120)); f.orb.width = f.orb.height = 200 * (1 - t * .4); f.orb.alpha = 1 - t * .6;
+    }
+  },
+  bloom(f, t, g) {   // eight petals of light open outward, gold rings, a column to the sky
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 1.3, d = 40 + 300 * ease(t), r = 70 * (1 - t) + 18;
+      g.lineStyle(0).beginFill(k % 2 ? 0xffe3f2 : 0xfff6c8, .85 * (1 - t)).drawEllipse(f.x + Math.cos(a) * d, f.y - 60 + Math.sin(a) * d * .5, r, r * .55).endFill(); }
+    for (let i = 0; i < 3; i++) { const tt = Math.max(0, t - i * .15); ring(g, f.x, f.y, 480 * ease(tt), 16 - i * 4, 0xffe678, 1 - tt); }
+    const p = pillarSpr(f); p.position.set(f.x - 80, -50); p.width = 160; p.height = f.y + 50; p.alpha = Math.sin(Math.min(1, t * 1.3) * Math.PI) * .8;
+  },
+  rewind(f, t, g) {   // a clock face spins backwards around the board; the removed buildings fade back as afterimages
+    const a = 1 - t, R0 = 470 * (1 - .12 * t);
+    ring(g, CX, CY, R0 + 4, 16, 0xffffff, .7 * a); ring(g, CX, CY, R0, 10, 0x2f9fe8, .9 * a); ring(g, CX, CY, R0 - 26, 3, 0x2c74c4, .6 * a);
+    for (let k = 0; k < 12; k++) { const an = k * Math.PI / 6, c = Math.cos(an), s2 = Math.sin(an);
+      g.lineStyle(k % 3 ? 4 : 8, 0x2c74c4, .85 * a).moveTo(CX + c * (R0 - 50), CY + s2 * (R0 - 50) * .5).lineTo(CX + c * (R0 - 20), CY + s2 * (R0 - 20) * .5); }
+    const hand = (len, an, w) => g.lineStyle(w, 0x2c74c4, .9 * a).moveTo(CX, CY).lineTo(CX + Math.cos(an) * len, CY + Math.sin(an) * len * .5);
+    hand(R0 * .78, -Math.PI / 2 - t * Math.PI * 4, 8); hand(R0 * .5, -Math.PI / 2 - t * Math.PI / 1.5, 12);
+    const pts = []; for (let i = 0; i <= 48; i++) { const an = -Math.PI / 2 - Math.PI * 2 * ease(t) * i / 48, r = 560 * (1 - .35 * t); pts.push(CX + Math.cos(an) * r, CY + Math.sin(an) * r * .5); }
+    g.lineStyle(18, 0x38b6ff, .75 * a).moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+    for (const s2 of f.spr) { const sw = t * 1.6; s2.alpha = .6 * a; s2.position.set(s2.home[0] + Math.sin(sw * 4) * 18 * t, s2.home[1] - 40 * ease(t)); }
+  },
+  splash(f, t, g) { ring(g, f.x, f.y, 120 * ease(t), 7, 0xc8f2ff, 1 - t); ring(g, f.x, f.y, 70 * ease(Math.max(0, t - .15)), 4, 0xffffff, .8 * (1 - t)); },
+  bubble(f, t, g) { ring(g, f.x, f.y, 90 * ease(t), 8, 0xa0ebff, 1 - t); },
+  burst(f, t, g) { ring(g, f.x, f.y, 360 * ease(t), 16, 0xffe678, 1 - t); },
+  clouddrop(f, t, g) {   // puffs drift together above the tile, a light column joins cloud and tile, then the cloud thins
+    const gather = ease(Math.min(1, t / .45)), fade = t > .7 ? 1 - (t - .7) / .3 : 1;
+    f.spr.forEach(p => { if (!p.from) return; p.position.set(p.from[0] + (p.to[0] - p.from[0]) * gather, p.from[1] + (p.to[1] - p.from[1]) * gather); p.alpha = .95 * fade * Math.min(1, t * 4); });
+    const on = t > .3 ? Math.sin(Math.min(1, (t - .3) / .7) * Math.PI) : 0; f.col.position.set(f.x - 45, f.y - 330); f.col.width = 90; f.col.height = 330; f.col.alpha = .75 * on;
+    ring(g, f.x, f.y, 100, 6, 0x9fe8ff, .7 * on);
+  },
+  wrap(f, t, g) {   // the bubble swells around the building (0-55%), then pops and both vanish
+    const [gh, b] = f.spr.length > 1 ? f.spr : [null, f.spr[0]];
+    if (t < .55) {
+      const q = t / .55, wob = Math.sin(q * 18) * .04 * q, size = f.size * (.75 + .5 * ease(q));
+      b.width = size * (1 + wob); b.height = size * (1 - wob); b.position.set(f.x, f.y - 20 * q);
+      if (gh) { gh.position.set(gh.home[0], gh.home[1] - 40 * q); gh.alpha = 1 - q * .3; }
+    } else {
+      if (!f.popped) { f.popped = true; b.visible = false; if (gh) gh.visible = false; parts(f, 22, 'drop', { r: 13, speed: 6 }); parts(f, 12, 'spark', { r: 6, speed: 7 }); SFX.pop(); }
+      const q = (t - .55) / .45; ring(g, f.x, f.y + 60, f.size * .9 * ease(q), 8, 0xffaae6, 1 - q);
+    }
+  },
+};
+function updateFx(dt, now) {
+  const g = R.fxG, f60 = dt * 60; g.clear();
+  U.fx = U.fx.filter(f => { if (now - f.t0 < f.life) return true; partCount -= f.parts.length; f.spr.forEach(s2 => s2.destroy()); return false; });
+  for (const f of U.fx) {
+    const t = (now - f.t0) / f.life;
+    FXDRAW[f.type]?.(f, t, g);
+    for (const p of f.parts) {
+      p.x += p.vx * f60; p.y += p.vy * f60; p.vy += p.g * f60; const a = 1 - t;
+      if (p.kind === 'drop') g.lineStyle(3, 0xffffff, .95 * a).beginFill(0xaae6ff, .25 * a).drawCircle(p.x, p.y, p.r).endFill();
+      else if (p.kind === 'petal') { p.spin += .08 * f60; p.vx *= .99; g.lineStyle(0).beginFill(0xffc6de, .9 * a).drawEllipse(p.x + Math.sin(p.spin) * 6, p.y, p.r * (.6 + .4 * Math.abs(Math.cos(p.spin))), p.r * .55).endFill(); }
+      else if (p.kind === 'spray') g.lineStyle(0).beginFill(0xd8f6ff, .9 * a).drawCircle(p.x, p.y, p.r * .6).endFill();
+      else g.lineStyle(0).beginFill(f.tier >= 2 || f.type === 'bloom' || f.type === 'burst' ? 0xfff3a0 : 0xffffff, a).drawCircle(p.x, p.y, p.r * .5).endFill();
+    }
+  }
+  // screen-level light: warm edge glow (Lv10+) and a short white flash (Lv15+, never under Reduce Motion)
+  const eT = U.edge ? (now - U.edge) / 900 : 9, fT = U.flash ? (now - U.flash) / 280 : 9;
+  R.edge.alpha = eT < 1 ? .75 * Math.sin(Math.min(1, eT * 3) * Math.PI / 2) * (1 - eT) : 0; R.edge.visible = R.edge.alpha > 0;
+  R.flash.alpha = !reduce() && fT < 1 ? .55 * (1 - fT) : 0; R.flash.visible = R.flash.alpha > 0;
+  U.floats = U.floats.filter(f => {
+    const t = (now - f.t0) / 950; if (t >= 1) { f.t.destroy(); return false; }
+    const k = t < .15 ? .7 + 2 * t : 1; f.t.position.set(f.x, f.y - 70 * ease(t)); f.t.scale.set(k); f.t.alpha = t > .7 ? (1 - t) / .3 : 1; return true;
+  });
+  U.flies = U.flies.filter(f => {
+    const t = Math.min(1, (now - f.t0) / 650), e = ease(t);
+    f.s.position.set(f.from[0] + (f.to[0] - f.from[0]) * e, f.from[1] + (f.to[1] - f.from[1]) * e - Math.sin(e * Math.PI) * 140);
+    if (t < 1) return true;
+    f.s.destroy(); bumpBadge(f.item); SFX.gift(); return false;
+  });
+}
+
+/* ---------- tilt (spec §6.6) ---------- */
+function updateTilt(dt) {
+  const T = U.tilt, on = U.settings.tilt && !reduce();
+  if (!on) { T.tx = T.ty = 0; }
+  else if (T.src !== 'sensor' && T.src !== 'drag' && performance.now() - T.at > 4000) { T.tx *= .98; T.ty *= .98; }
+  T.x += (T.tx - T.x) * Math.min(1, dt * 3); T.y += (T.ty - T.y) * Math.min(1, dt * 3);
+}
+const clamp1 = v => Math.max(-1, Math.min(1, v));
+function onOrientation(e) {
+  if (e.gamma == null) return;
+  const T = U.tilt; T.src = 'sensor'; T.at = performance.now(); T.tx = clamp1(e.gamma / 30); T.ty = clamp1((e.beta - 45) / 30);
+}
+let sensorOn = false;
+function enableSensor() {   // iOS asks for permission, and only from a tap
+  if (sensorOn || !('DeviceOrientationEvent' in window)) return Promise.resolve(false);
+  const go = () => { addEventListener('deviceorientation', onOrientation); sensorOn = true; return true; };
+  const rp = DeviceOrientationEvent.requestPermission;
+  return typeof rp === 'function' ? rp.call(DeviceOrientationEvent).then(s => s === 'granted' && go()).catch(() => false) : Promise.resolve(go());
+}
+addEventListener('pointermove', e => {   // desktop fallback: the mouse position stands in for tilt
+  if (e.pointerType !== 'mouse' || U.tilt.src === 'sensor') return;
+  const T = U.tilt; T.src = 'mouse'; T.at = performance.now();
+  T.tx = clamp1((e.clientX / innerWidth - .5) * 2); T.ty = clamp1((e.clientY / innerHeight - .5) * 2);
+});
+
+/* ---------- input ---------- */
+function stagePoint(e) { const r = $('stage').getBoundingClientRect(); return [(e.clientX - r.left) / scale, (e.clientY - r.top) / scale]; }
+function tileAt(x, y) {
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const [cx, cy] = center(r, c); if (Math.abs(x - cx) / (TW / 2) + Math.abs(y - cy) / (TH / 2) <= 1) return [r, c]; }
+  return null;
+}
+function opaqueAt(d, x, y) {
+  if (x < d.x || x > d.x + d.w || y < d.y || y > d.y + d.h) return false;
+  const m = MASK[d.lv]; if (!m) return true;
+  const px = Math.floor((x - d.x) / d.w * m.w), py = Math.floor((y - d.y) / d.h * m.h);
+  return m.a[(py * m.w + px) * 4 + 3] > 40;
+}
+/** Everything under the finger: buildings whose visible pixels are hit (front first), plus the floor tile's building. */
+function candidates(x, y) {
+  const list = [];
+  for (const d of [...drawn].sort((a, b) => (b.r + b.c) - (a.r + a.c))) if (opaqueAt(d, x, y)) list.push([d.r, d.c]);
+  const tile = tileAt(x, y);
+  if (tile && G.board[tile[0]][tile[1]] && !list.some(rc => same(rc, tile))) list.push(tile);
+  return { list, tile };
+}
+let down = null;
+const cv = $('cv');
+cv.addEventListener('pointerdown', e => {
+  ac(); if (busy()) return;
+  const pt = stagePoint(e), inGame = U.screen === 'game', cands = inGame ? candidates(...pt) : { list: [], tile: null };
+  // buildings always win over bubbles (bubbles float behind the garden)
+  if (!cands.list.length && !(inGame && cands.tile && U.target)) { const b = bubbleAt(...pt); if (b) { popBubbleAt(b); down = null; return; } }
+  if (!inGame || (!cands.list.length && !cands.tile)) {   // empty sky: touch-drag stands in for tilt
+    if (e.pointerType !== 'mouse' && U.tilt.src !== 'sensor') down = { tiltDrag: true, pt };
+    else down = inGame ? { pt, cands } : null;
+    if (down) try { cv.setPointerCapture(e.pointerId); } catch {}
+    return;
+  }
+  down = { pt, cands };
+  // a drag can start on any building that has a matching neighbor
+  const from = !U.target && cands.list.find(rc => L.targets(G.board, rc[0], rc[1]).length && !isTarget(rc));
+  U.drag = from ? { from, start: pt, pt, active: false } : null;
+  try { cv.setPointerCapture(e.pointerId); } catch {}
+});
+cv.addEventListener('pointermove', e => {
+  if (down && down.tiltDrag) { const p = stagePoint(e), T = U.tilt; T.src = 'drag'; T.at = performance.now(); T.tx = clamp1((p[0] - down.pt[0]) / 300); T.ty = clamp1((p[1] - down.pt[1]) / 300); return; }
+  if (!U.drag) return;
+  U.drag.pt = stagePoint(e);
+  if (!U.drag.active && Math.hypot(U.drag.pt[0] - U.drag.start[0], U.drag.pt[1] - U.drag.start[1]) > 18) { U.drag.active = true; U.sel = U.drag.from; SFX.select(); }
+});
+cv.addEventListener('pointerup', e => {
+  if (down && down.tiltDrag) { const T = U.tilt; T.src = 'none'; T.tx = T.ty = 0; down = null; if (U.screen === 'game') U.sel = null; return; }
+  if (U.screen !== 'game' || !down) { down = null; U.drag = null; return; }
+  if (U.drag && U.drag.active) {
+    const t = tileAt(...stagePoint(e)), from = U.drag.from; U.drag = null;
+    if (t && L.targets(G.board, from[0], from[1]).some(x => same(x, t))) doMerge(from, t);
+    else U.sel = from;
+  } else { U.drag = null; onTap(down.cands); }
+  down = null; hud();
+});
+cv.addEventListener('pointercancel', () => { U.drag = null; down = null; U.tilt.tx = U.tilt.ty = 0; });
+addEventListener('keydown', e => {
+  if (EDITOR || U.screen !== 'game' || busy()) return;
+  if (e.key === ' ' || e.key === 'Enter') { if (document.activeElement && document.activeElement.tagName === 'BUTTON') return; e.preventDefault(); doPlace(); }
+  else if (e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') useItem('rewind');
+  else if (e.key === 'Escape') { U.target = null; U.sel = null; hud(); }
+});
+document.addEventListener('click', e => {
+  if (EDITOR) return;
+  ac(); if (U.settings.music && !musicNodes) music(true);   // audio may only start from a tap
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.item) useItem(b.dataset.item);
+  if (b.dataset.open === 'collection') openCollection();
+  if (b.dataset.open === 'settings') openSettings();
+  if (b.hasAttribute('data-close')) { overlay('collection', false); overlay('settings', false); }
+});
+$('btn-guest').onclick = () => show('main');
+$('btn-signin').onclick = () => toast('Sign In is not part of this prototype. Continue as Guest to play.');
+$('btn-play').onclick = newGame;
+$('place').onclick = () => doPlace();
+$('cel-ok').onclick = () => { overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
+$('stuck-pop').onclick = () => useItem('pop');
+$('stuck-rewind').onclick = () => useItem('rewind');
+$('stuck-end').onclick = gameOver;
+$('res-retry').onclick = newGame;
+$('res-home').onclick = () => { overlay('result', false); show('main'); };
+$('set-home').onclick = () => { overlay('settings', false); show('main'); };
+
+/* ---------- collection: Garden / Treasures ---------- */
+let colTab = 'garden';
+function openCollection(tab = colTab) {
+  colTab = tab;
+  $('tab-garden').setAttribute('aria-selected', tab === 'garden'); $('tab-treasures').setAttribute('aria-selected', tab === 'treasures');
+  $('tr-detail').hidden = true;
+  if (tab === 'garden') {
+    const n = U.discovered.size, total = NAMES.length - 1;
+    $('col-count').textContent = `${n} / ${total}`; $('col-fill').style.width = (n / total * 100) + '%';
+    $('col-grid').innerHTML = NAMES.slice(1).map((nm, i) => {
+      const lv = i + 1, got = U.discovered.has(lv);
+      return `<div class="card ${got ? '' : 'locked'}"><span class="badge">${lv}</span><img src="${artSrc(lv)}" alt="${got ? nm : 'Locked building'}"><div class="nm">${got ? nm : '???'}</div></div>`;
+    }).join('');
+  } else {
+    const n = Object.keys(U.treasures).length;
+    $('col-count').textContent = `${n} / 12`; $('col-fill').style.width = (n / 12 * 100) + '%';
+    $('col-grid').innerHTML = TREASURES.map(([nm], i) => {
+      const id = i + 1, t = U.treasures[id], rar = L.TREASURE_RARITY[i];
+      return `<button class="card tr ${rar} ${t ? '' : 'locked'}" data-tr="${id}" aria-label="${t ? nm : 'Locked treasure'}, ${RARITY_NAME[rar]}">${t ? `<span class="cnt">×${t.n}</span>` : ''}<img src="${accSrc(id)}" alt=""><div class="nm">${t ? nm : '???'}</div></button>`;
+    }).join('');
+  }
+  overlay('collection');
+}
+$('tab-garden').onclick = () => openCollection('garden');
+$('tab-treasures').onclick = () => openCollection('treasures');
+$('col-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-tr]'); if (!b) return;
+  const id = +b.dataset.tr, t = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
+  if (!t) { toast('Pop bubbles to find this treasure.'); return; }
+  $('td-img').src = accSrc(id); $('td-name').textContent = TREASURES[id - 1][0]; $('td-desc').textContent = TREASURES[id - 1][1];
+  $('td-rar').className = 'rar ' + rar; $('td-rar').textContent = RARITY_NAME[rar];
+  $('td-meta').textContent = `First found ${t.first} · Found ${t.n} ${t.n === 1 ? 'time' : 'times'}`;
+  $('tr-detail').hidden = false;
+});
+$('tr-detail').addEventListener('click', e => { if (e.target.closest('[data-detail-close]')) $('tr-detail').hidden = true; });
+
+/* ---------- settings ---------- */
+const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-hints', tilt: 'set-tilt', reduce: 'set-reduce' };
+function tiltNote() {
+  $('tilt-note').textContent = U.settings.reduce ? 'Reduce Motion is on, so tilt effects are off.' :
+    !U.settings.tilt ? 'Tilt moves bubbles, water and clouds.' :
+    sensorOn && U.tilt.src === 'sensor' ? 'Tilt your phone to move bubbles, water and clouds.' :
+    'No motion sensor here: move the mouse, or drag on the sky, to tilt the garden.';
+}
+function openSettings() { for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); tiltNote(); overlay('settings'); }
+for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
+  U.settings[k] = !U.settings[k]; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings);
+  if (k === 'music') music(U.settings.music);
+  if (k === 'tilt' && U.settings.tilt) enableSensor().then(tiltNote);
+  tiltNote(); hud();
+});
+
+/* ======================================================================
+   ?editor — motion map editor (dev only). Reuses makeInst/updateInst for a live preview.
+   ====================================================================== */
+const PART_DEFAULTS = { sway: { amp: 3, period: 3 }, bob: { amp: 3, period: 3.5 }, squish: { amp: .04, period: 2.4 }, flow: { speed: 60, alpha: .45 },
+  glow: { alpha: .4, period: 3, hue: false }, sweep: { period: 5, alpha: .5, hue: false }, sparkle: {}, ripple: { rx: .3, period: 3.5 }, rise: {}, petals: {}, spin: { tex: 'sails', size: 1, speed: .7 } };
+function startEditor() {
+  $('wrap').hidden = true; $('editor').hidden = false; document.body.style.overflow = 'auto';
+  const eapp = new PIXI.Application({ view: $('ed-cv'), width: 720, height: 720, backgroundColor: 0xffffff, antialias: true });
+  const checker = new PIXI.Graphics(); for (let y = 0; y < 720; y += 24) for (let x = 0; x < 720; x += 24) checker.beginFill((x + y) / 24 % 2 ? 0xe7eef6 : 0xf7fafd).drawRect(x, y, 24, 24).endFill();
+  const over = new PIXI.Graphics(); eapp.stage.addChild(checker);
+  let lv = 1, cur = 0, inst = null, clicks = 0;
+  const map = () => (MOTION[lv] = MOTION[lv] || []);
+  const fitScale = () => Math.min(620 / IMG['b' + lv].height, 640 / IMG['b' + lv].width);
+  function rebuild() {
+    if (inst) inst.c.destroy({ children: true }); delete BAKE[lv];
+    inst = makeInst(lv); inst.c.scale.set(fitScale()); inst.c.position.set(360, 690); eapp.stage.addChild(inst.c, over);
+    $('ed-parts').innerHTML = map().map((p, i) => `<label><input type="radio" name="ed-part" value="${i}" ${i === cur ? 'checked' : ''}> ${i + 1}. ${p.type}</label>`).join('') || '<p class="ed-note">No parts yet.</p>';
+    const p = map()[cur];
+    $('ed-params').innerHTML = p ? Object.keys(PART_DEFAULTS[p.type]).map(k => typeof PART_DEFAULTS[p.type][k] === 'boolean'
+      ? `<label><input type="checkbox" data-k="${k}" ${p[k] ? 'checked' : ''}> ${k}</label>`
+      : `<label>${k} <input data-k="${k}" value="${p[k] ?? PART_DEFAULTS[p.type][k]}" size="6"></label>`).join('') : '';
+  }
+  const toLocal = (px, py) => { const s = fitScale(), W = inst.W, H = inst.H; return [+(((px - 360) / s + W / 2) / W).toFixed(3), +(((py - 690) / s + H) / H).toFixed(3)]; };
+  const toPx = ([nx, ny]) => { const s = fitScale(); return [360 + (nx * inst.W - inst.W / 2) * s, 690 + (ny * inst.H - inst.H) * s]; };
+  eapp.ticker.add(() => {
+    const dt = eapp.ticker.deltaMS / 1000; TP += dt; updateInst(inst, TP, dt, fitScale(), false);
+    over.clear(); if (!$('ed-over').checked) return;
+    map().forEach((p, i) => {
+      const col = i === cur ? 0xff3366 : 0x3388ff;
+      if (p.poly && p.poly.length) { over.lineStyle(2, col, .9).beginFill(col, .08).drawPolygon(p.poly.flatMap(toPx)).endFill(); }
+      for (const q of [p.pivot, p.pt, ...(p.pts || [])].filter(Boolean)) { const [x, y] = toPx(q); over.lineStyle(2, col).beginFill(0xffffff).drawCircle(x, y, 6).endFill(); }
+      if (p.box) { const [a, b] = toPx([p.box[0], p.box[1]]), [c, d] = toPx([p.box[2], p.box[3]]); over.lineStyle(2, col, .9).drawRect(a, b, c - a, d - b); }
+    });
+  });
+  $('ed-lv').innerHTML = NAMES.slice(1).map((n, i) => `<option value="${i + 1}">${i + 1} · ${n}</option>`).join('');
+  $('ed-type').innerHTML = Object.keys(PART_DEFAULTS).map(t => `<option>${t}</option>`).join('');
+  $('ed-lv').onchange = () => { lv = +$('ed-lv').value; cur = 0; rebuild(); };
+  $('ed-parts').onchange = e => { cur = +e.target.value; rebuild(); };
+  $('ed-add').onclick = () => { const t = $('ed-type').value, p = { type: t, ...PART_DEFAULTS[t] }; if (['sway', 'bob', 'squish', 'flow', 'glow', 'sweep'].includes(t)) p.poly = [];
+    if (t === 'sparkle') p.pts = []; if (['ripple', 'rise', 'spin'].includes(t)) p.pt = [.5, .5]; if (t === 'petals') p.box = [.2, .1, .8, .6]; map().push(p); cur = map().length - 1; rebuild(); };
+  $('ed-del').onclick = () => { map().splice(cur, 1); cur = Math.max(0, cur - 1); rebuild(); };
+  $('ed-clear').onclick = () => { const p = map()[cur]; if (!p) return; if (p.poly) p.poly = []; if (p.pts) p.pts = []; rebuild(); };
+  $('ed-params').oninput = e => { const p = map()[cur], k = e.target.dataset.k; if (!p || !k) return; p[k] = e.target.type === 'checkbox' ? e.target.checked : (k === 'tex' ? e.target.value : +e.target.value); rebuild(); };
+  $('ed-cv').addEventListener('pointerdown', e => {
+    const p = map()[cur]; if (!p) { $('ed-status').textContent = 'Add a part first.'; return; }
+    const r = $('ed-cv').getBoundingClientRect(), q = toLocal((e.clientX - r.left) * 720 / r.width, (e.clientY - r.top) * 720 / r.height);
+    const mode = document.querySelector('[name=ed-mode]:checked').value;
+    if (p.type === 'sparkle') p.pts.push(q);
+    else if (p.type === 'petals') { if (clicks++ % 2 === 0) { p.box[0] = q[0]; p.box[1] = q[1]; } else { p.box[2] = q[0]; p.box[3] = q[1]; } }
+    else if (mode === 'poly' && p.poly) p.poly.push(q);
+    else if (['ripple', 'rise', 'spin'].includes(p.type)) p.pt = q;
+    else p.pivot = q;
+    rebuild();
+  });
+  const exportJson = () => {
+    const doc = Object.assign({}, window.__motionDoc || { version: 1 }, { buildings: MOTION });
+    const body = Object.keys(MOTION).sort((a, b) => a - b).map(k => `    "${k}": [\n${MOTION[k].map(p => '      ' + JSON.stringify(p)).join(',\n')}\n    ]`).join(',\n');
+    return JSON.stringify(Object.assign({}, doc, { buildings: '§' }), null, 2).replace('"§"', `{\n${body}\n  }`);
+  };
+  $('ed-export').onclick = () => { $('ed-json').value = exportJson(); $('ed-status').textContent = 'Paste into motion_map.json.'; };
+  $('ed-copy').onclick = () => { $('ed-json').value = exportJson(); navigator.clipboard?.writeText($('ed-json').value).then(() => $('ed-status').textContent = 'Copied.', () => $('ed-status').textContent = 'Select the text and copy it.'); };
+  rebuild();
+}
+
+// local QA only: ?debug exposes state, a merge log and a frame-time probe (query strings never reach the shared page)
+if (location.search.includes('debug')) {
+  window.__sky = { get G() { return G; }, get app() { return app; }, get R() { return R; }, hud, U, log: [], candidates, spawnBubble, popBubbleAt, inIsland,
+    /** Show a stage region full-window (for screenshots); call again with no args to close. */
+    peek(x, y, w, h) {
+      document.getElementById('peek')?.remove(); if (x == null) return;
+      const c = app.renderer.extract.canvas(app.stage, new PIXI.Rectangle(x, y, w, h)), i = new Image(); i.id = 'peek'; i.src = c.toDataURL();
+      i.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#222;z-index:99'; document.body.append(i);
+    },
+    /** Hold 5 bubbles and a full particle budget for `sec` seconds and report frame times. */
+    perf(sec = 4) {
+      U.perf = true; const fr = []; let last = performance.now(); const end = last + sec * 1000;
+      return new Promise(res => { const loop = t => {
+        fr.push(t - last); last = t;
+        if (partCount < MAX_PARTS - 40) addFxXY('burst', 200 + Math.random() * 680, 600 + Math.random() * 700, 3);
+        if (t < end) requestAnimationFrame(loop);
+        else { U.perf = false; fr.shift(); fr.sort((a, b) => a - b); const avg = fr.reduce((a, b) => a + b, 0) / fr.length;
+          res({ frames: fr.length, avgFps: +(1000 / avg).toFixed(1), p95ms: +fr[Math.floor(fr.length * .95)].toFixed(1), worstMs: +fr[fr.length - 1].toFixed(1), bubbles: U.bubbles.length, particles: partCount }); } };
+        requestAnimationFrame(loop); });
+    } };
+  const m = L.merge; L.merge = (...a) => { const e = m(...a); window.__sky.log.push(e); return e; };
+}
+
+/* ---------- boot (keeps a running game across live page updates) ---------- */
+window.claude?.hot?.snapshot?.(() => ({ screen: U.screen, G, phaseTop: U.phaseTop }));
+function start(data) {
+  fit();
+  if (!window.PIXI) { toast('The graphics library could not load. Check your connection and reload.', 60000); return; }
+  Promise.all(loading).then(() => document.fonts && document.fonts.ready).then(() => {
+    prepareImages();
+    if (EDITOR) { startEditor(); return; }
+    initRenderer();
+    if (U.settings.tilt && !reduce() && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') enableSensor();
+    if (data && data.G && data.G.board) { G = data.G; U.phaseTop = data.phaseTop || 0; show(data.screen || 'game'); }
+    else show('login');
+    hud();
+  });
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>

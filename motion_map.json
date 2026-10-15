@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "note": "Coordinates are 0-1 fractions of each building image (b01-b17.webp; Lv6 uses the trimmed windmill_body). Edit with index.html?editor.",
+  "types": {
+    "sway": "region copy rotates around pivot: amp degrees, period s",
+    "bob": "region copy moves up and down: amp px (at 1x board size), period s",
+    "squish": "region copy squashes around pivot: amp = scale fraction, period s",
+    "flow": "flowing water texture inside the region: speed px/s downward, alpha",
+    "glow": "region lights up (additive) and pulses: alpha, period s, hue true = colour cycles",
+    "sweep": "a light band crosses the region: period s, alpha, hue true = rainbow band",
+    "sparkle": "twinkling stars at pts; timed by Garden Pulse",
+    "ripple": "expanding water ring at pt: rx = radius fraction of width, period s",
+    "rise": "small bubbles rise from pt",
+    "petals": "petals fall inside the box [x0,y0,x1,y1]",
+    "spin": "separate texture tex rotates around pt: size = fraction of building width, speed rad/s"
+  },
+  "buildings": {
+    "1": [
+      { "type": "squish", "poly": [[0.25,0.15],[0.55,0.0],[0.8,0.08],[0.8,0.5],[0.6,0.62],[0.4,0.62],[0.25,0.5]], "pivot": [0.52,0.58], "amp": 0.035, "period": 2.3 },
+      { "type": "sparkle", "pts": [[0.62,0.22],[0.38,0.3],[0.5,0.47]] }
+    ],
+    "2": [
+      { "type": "sway", "poly": [[0.0,0.12],[0.5,0.02],[1.0,0.0],[1.0,0.28],[0.62,0.46],[0.5,0.52],[0.32,0.42],[0.0,0.32]], "pivot": [0.47,0.56], "amp": 3, "period": 3.1 },
+      { "type": "ripple", "pt": [0.47,0.66], "rx": 0.32, "period": 3.4 }
+    ],
+    "3": [
+      { "type": "bob", "poly": [[0.26,0.05],[0.74,0.05],[0.76,0.46],[0.24,0.46]], "amp": 3, "period": 3.7 },
+      { "type": "ripple", "pt": [0.5,0.62], "rx": 0.38, "period": 4.1 }
+    ],
+    "4": [
+      { "type": "sway", "poly": [[0.05,0.0],[0.95,0.0],[0.97,0.5],[0.62,0.6],[0.4,0.6],[0.04,0.5]], "pivot": [0.5,0.62], "amp": 2, "period": 3.4 },
+      { "type": "sparkle", "pts": [[0.22,0.72],[0.78,0.66]] }
+    ],
+    "5": [
+      { "type": "flow", "poly": [[0.36,0.3],[0.64,0.3],[0.7,0.78],[0.3,0.78]], "speed": 70, "alpha": 0.45 },
+      { "type": "rise", "pt": [0.5,0.3] }
+    ],
+    "6": [
+      { "type": "spin", "tex": "sails", "pt": [0.5,0.145], "size": 1.12, "speed": 0.7 }
+    ],
+    "7": [
+      { "type": "sweep", "poly": [[0.12,0.18],[0.55,0.0],[0.97,0.2],[0.97,0.52],[0.55,0.46],[0.1,0.5]], "period": 5.3, "alpha": 0.55 }
+    ],
+    "8": [
+      { "type": "flow", "poly": [[0.3,0.47],[0.7,0.47],[0.72,0.86],[0.28,0.86]], "speed": 60, "alpha": 0.5 },
+      { "type": "flow", "poly": [[0.02,0.36],[0.12,0.36],[0.12,0.62],[0.02,0.62]], "speed": 60, "alpha": 0.4 }
+    ],
+    "9": [
+      { "type": "sweep", "poly": [[0.1,0.36],[0.28,0.1],[0.5,0.02],[0.74,0.1],[0.92,0.36],[0.92,0.52],[0.1,0.52]], "period": 4.7, "alpha": 0.5 },
+      { "type": "sparkle", "pts": [[0.35,0.2],[0.6,0.3],[0.8,0.38]] }
+    ],
+    "10": [
+      { "type": "flow", "poly": [[0.38,0.18],[0.6,0.18],[0.66,0.78],[0.4,0.78]], "speed": 90, "alpha": 0.55 },
+      { "type": "glow", "poly": [[0.62,0.05],[0.95,0.05],[0.95,0.26],[0.62,0.26]], "alpha": 0.5, "period": 3.9 },
+      { "type": "ripple", "pt": [0.52,0.8], "rx": 0.2, "period": 2.9 }
+    ],
+    "11": [
+      { "type": "glow", "poly": [[0.4,0.0],[0.6,0.0],[0.66,0.76],[0.34,0.76]], "alpha": 0.35, "period": 2.6 },
+      { "type": "sparkle", "pts": [[0.5,0.08],[0.24,0.42],[0.78,0.44]] }
+    ],
+    "12": [
+      { "type": "sweep", "poly": [[0.05,0.3],[0.3,0.1],[0.5,0.04],[0.8,0.12],[0.97,0.35],[0.97,0.56],[0.05,0.56]], "period": 6.1, "alpha": 0.5 },
+      { "type": "bob", "poly": [[0.0,0.6],[1.0,0.6],[1.0,0.98],[0.0,0.98]], "amp": 2, "period": 4.3 }
+    ],
+    "13": [
+      { "type": "sweep", "poly": [[0.2,0.02],[0.8,0.02],[0.82,0.55],[0.18,0.55]], "period": 4.1, "alpha": 0.6, "hue": true },
+      { "type": "flow", "poly": [[0.42,0.56],[0.74,0.56],[0.74,0.84],[0.42,0.84]], "speed": 60, "alpha": 0.45 }
+    ],
+    "14": [
+      { "type": "bob", "poly": [[0.6,0.38],[0.96,0.38],[0.96,0.7],[0.6,0.7]], "amp": 4, "period": 3.3 },
+      { "type": "sway", "poly": [[0.48,0.0],[0.6,0.0],[0.6,0.09],[0.48,0.09]], "pivot": [0.5,0.08], "amp": 6, "period": 1.7 },
+      { "type": "flow", "poly": [[0.2,0.72],[0.3,0.72],[0.3,0.95],[0.2,0.95]], "speed": 80, "alpha": 0.5 }
+    ],
+    "15": [
+      { "type": "sway", "poly": [[0.48,0.0],[0.76,0.0],[0.76,0.36],[0.48,0.36]], "pivot": [0.56,0.34], "amp": 3, "period": 7.3 },
+      { "type": "sparkle", "pts": [[0.72,0.62],[0.64,0.59],[0.82,0.6],[0.45,0.27],[0.38,0.2]] }
+    ],
+    "16": [
+      { "type": "sweep", "poly": [[0.0,0.28],[1.0,0.28],[1.0,0.86],[0.0,0.86]], "period": 6.7, "alpha": 0.45, "hue": true },
+      { "type": "sparkle", "pts": [[0.5,0.03],[0.3,0.33],[0.7,0.35]] }
+    ],
+    "17": [
+      { "type": "glow", "poly": [[0.3,0.08],[0.72,0.08],[0.76,0.62],[0.26,0.62]], "alpha": 0.4, "period": 3.1 },
+      { "type": "petals", "box": [0.18,0.08,0.82,0.6] }
+    ]
+  }
+}
