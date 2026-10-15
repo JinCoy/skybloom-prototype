@@ -5,9 +5,10 @@
   const CONFIG = {
     board: 4, maxLevel: 17,
     spawnLadder: { gap: 4, odds: [0.6, 0.3, 0.1] },     // next level = max(1, top - gap) + 0/1/2
-    // v0.4 §4.2 optional spawn helpers (0 = off). pairAware: boost levels already on the board.
+    // v0.4 §4.2 spawn helpers (0 = off). pairAware: boost levels already on the board (little effect, off).
     // mercy: when 2 or fewer tiles are empty, boost levels that sit next to an empty tile (an instant merge is possible).
-    spawn: { pairAware: 0, mercy: 0 },
+    // mercy 3 is on (spec v0.4 §4.1.1): Lv12 reach 42% -> 67% with ads, 6% -> 16% without.
+    spawn: { pairAware: 0, mercy: 3 },
     startItems: { rewind: 3, pop: 5, drop: 6 },          // v0.4 §4.1: fewer, refilled by bubbles, ads and gold
     // v0.4 §3: bubbles every 5-10 s. Green item bubbles have a quota per level band of this game's best building,
     // and appear more often early in each band. Bubbles never give score; yellow ones give gold.
