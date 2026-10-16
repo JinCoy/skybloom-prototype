@@ -124,6 +124,8 @@ body {
 #toast img { width: 110px; height: 110px; object-fit: contain; flex: none; }
 .pre { white-space: pre-line; }
 #coach { left: 140px; top: 410px; width: 800px; min-height: 110px; padding: 12px 14px 12px 18px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; z-index: 3; }   /* the toast's spot (10-2 F1) */
+#coach { pointer-events: none; transition: opacity .2s; }   /* taps pass through to the bubbles; only Skip is a target */
+#coach button { pointer-events: auto; }
 #coach b { font: 900 26px/1 var(--font); color: #fff; background: var(--blue); border-radius: 999px; padding: 9px 13px; white-space: nowrap; }
 #coach span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; font: 800 36px/1.25 var(--font); color: var(--navy); }   /* one line: fitCoach() shrinks the type */
 #coach button { position: static; height: 64px; padding: 0 18px; font-size: 28px; flex: none; }
@@ -146,7 +148,7 @@ body {
 .pk b { font: 900 30px/1 var(--font); color: var(--navy); margin-top: 6px; }
 .pk i { font: 800 22px/1 var(--font); font-style: normal; color: var(--blue); }
 .pk.on { border-color: var(--gold-1); background: linear-gradient(#fffbe0, #ffe9a8); transform: scale(1.06); }
-#fps { position: fixed; left: 8px; top: 8px; z-index: 9; padding: 4px 8px; border-radius: 8px; background: rgba(0, 0, 0, .6); color: #fff; font: 600 12px/1.3 ui-monospace, monospace; pointer-events: none; }
+#fps { position: fixed; left: 8px; top: calc(8px + env(safe-area-inset-top, 0px)); z-index: 99; padding: 4px 8px; border-radius: 8px; background: rgba(0, 0, 0, .6); color: #fff; font: 600 12px/1.3 ui-monospace, monospace; pointer-events: none; }
 .title { font: 900 76px/1 var(--font); color: #fff; text-shadow: 0 5px 0 #1d64b8, 0 0 18px rgba(20, 90, 180, .4); }
 @media (prefers-reduced-motion: reduce) { .rays { animation: none; } .gel { transition: none; } .bump { animation: none; } }
 /* sign-in buttons follow Google / Apple branding: white with the Google G, black with the Apple logo */
@@ -158,13 +160,13 @@ body {
 .sso:active { transform: scale(.97); }
 /* shop */
 .shop-cards { display: flex; gap: 20px; overflow-x: auto; padding: 6px 4px 14px; scroll-snap-type: x mandatory; }
-.sk { flex: none; width: 280px; height: 470px; border-radius: 32px; border: 5px solid var(--rim); background: rgba(255, 255, 255, .7); display: flex; flex-direction: column;
+.sk { flex: none; width: 280px; height: 390px; border-radius: 32px; border: 5px solid var(--rim); background: rgba(255, 255, 255, .7); display: flex; flex-direction: column;
   align-items: center; justify-content: space-between; padding: 18px 14px; box-sizing: border-box; scroll-snap-align: start; cursor: pointer; font: inherit; color: var(--navy); }
 .sk.on { border-color: var(--gold-1); box-shadow: 0 0 0 4px rgba(255, 214, 64, .6); }
-.sk .art { width: 230px; height: 200px; border-radius: 20px; display: grid; flex: none; place-items: center; overflow: hidden; position: relative; }
+.sk .art { width: 230px; height: 150px; border-radius: 20px; display: grid; flex: none; place-items: center; overflow: hidden; position: relative; }
 .sk .art img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.sk .nm { font: 900 34px/1.1 var(--font); text-align: center; }
-.sk .act { width: 240px; height: 80px; border-radius: 40px; font: 900 34px/1 var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; border: 4px solid var(--rim); }
+.sk .nm { font: 900 30px/1.1 var(--font); text-align: center; }
+.sk .act { width: 240px; height: 68px; border-radius: 40px; font: 900 34px/1 var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; border: 4px solid var(--rim); }
 .sk .act.buy { background: linear-gradient(var(--gold-1), var(--gold-2)); color: #fff; text-shadow: 0 3px 0 #b8640a; }
 .sk .act.cash { background: linear-gradient(#b8f0c8, #3fb36a); color: #fff; text-shadow: 0 3px 0 #1d7a40; }
 .sk .act.eq { background: linear-gradient(var(--aqua-1), var(--aqua-2)); color: #fff; text-shadow: 0 3px 0 #165aa6; }
@@ -174,7 +176,7 @@ body {
 #shop-tabs .tab { width: 180px; height: 80px; font-size: 32px; }
 /* 10-2 B3: the panel slides down to a 120px strip so the whole garden preview is visible; ▲ brings it back */
 #shop-panel { transition: transform .3s cubic-bezier(.2, .8, .25, 1); }
-#shop-panel.down { transform: translateY(620px); }
+#shop-panel.down { transform: translateY(470px); }
 #shop-panel > .tabs, #shop-panel > .shop-cards { transition: opacity .2s; }
 #shop-panel.down > .tabs, #shop-panel.down > .shop-cards { opacity: 0; pointer-events: none; }
 #shop-dim { transition: opacity .3s; }
@@ -330,7 +332,7 @@ body {
       <div class="glass pill" style="left:440px;top:245px"><i class="coin"></i><span id="shop-gold">0</span></div>
       <button class="gel aqua sq" data-close aria-label="Close" data-i18n-aria="aria.close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
       <div class="abs lbl" id="shop-hint" style="left:0;right:0;top:330px;font-size:30px;pointer-events:none">Tap a card to preview it on your garden</div>
-      <div class="glass" id="shop-panel" style="left:30px;top:1150px;width:1020px;height:740px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+      <div class="glass" id="shop-panel" style="left:30px;top:1300px;width:1020px;height:590px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
         <button class="gel ghost" id="shop-fold" aria-label="Lower the panel" data-i18n-aria="shop.fold" style="left:440px;top:-38px;width:140px;height:70px;font-size:36px">▼</button>
         <div class="tabs" role="tablist" id="shop-tabs"></div>
         <div id="shop-cards" class="shop-cards" role="tabpanel"></div>
@@ -1198,7 +1200,7 @@ const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0
   [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
   [1.08, .04, 0, 0, .02, 0, .96, 0, 0, 0, 0, 0, .84, 0, 0, 0, 0, 0, 1, 0],
   [.82, 0, 0, 0, 0, 0, .86, .02, 0, .01, 0, .03, 1, 0, .04, 0, 0, 0, 1, 0]];   // v0.4: night board and buildings brighter (sky stays dark)
-const FPS = location.search.includes('fps') ? { el: Object.assign(document.createElement('div'), { id: 'fps' }), ms: [], t: 0 } : null;   // ?fps: phone frame meter
+const FPS = (location.search.includes('fps') || location.hash.includes('fps')) ? { el: Object.assign(document.createElement('div'), { id: 'fps' }), ms: [], t: 0 } : null;   // ?fps: phone frame meter
 if (FPS) document.body.append(FPS.el);
 function frame() {
   const dt = Math.min(app.ticker.deltaMS, 50) / 1000, now = performance.now(), still = reduce();
@@ -1277,11 +1279,12 @@ function gardenPulse(x, y, periodic = true) {   // spec §6.4: one diagonal shim
   if (!periodic) return 0;
   const q = TM % 6; return q > 1.6 ? 0 : band(q / 1.6);
 }
-/* 10-2 D1: every 6 s the buildings that can merge right now glow together (slow fade in place under Reduce Motion).
+/* 10-2 D1: every 8 s the buildings that can merge right now glow together (slow fade in place under Reduce Motion).
    No pair but a free tile: the Place button gets a light streak instead. Quiet while something is selected, dragged, animating or open. */
+const HINT_EVERY = 8;   // seconds between hint glows (10-2b)
 function hintStrength(inGame, A, still) {
-  const q = TM % 6, on = inGame && !A && U.settings.hints && !U.sel && !U.target && !U.tut && !(U.drag && U.drag.active) && !busy();
-  const cyc = Math.floor(TM / 6);
+  const q = TM % HINT_EVERY, on = inGame && !A && U.settings.hints && !U.sel && !U.target && !U.tut && !(U.drag && U.drag.active) && !busy();
+  const cyc = Math.floor(TM / HINT_EVERY);
   if (cyc !== U.hintCyc) { U.hintCyc = cyc; if (on && !L.canMerge(G.board) && L.empties(G.board).length) shinePlace(still); }
   return on ? Math.sin(Math.min(1, q / (still ? 3 : 1.6)) * Math.PI) : 0;
 }
@@ -1384,7 +1387,7 @@ function updateBoard(dt, now, still) {
     const s = sp.w / I.W;
     I.c.visible = true; I.c.alpha = alpha; I.c.zIndex = p.z ?? (p.r + p.c + (p.moving ? .5 : 0));
     I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
-    I.glow.alpha = gardenPulse(x, y - 60, !inGame) * .38 + (hintK > 0 && p.key !== 'mv' && p.key !== 'drag' && L.targets(board, p.r, p.c).length ? hintK * .5 : 0) + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
+    I.glow.alpha = gardenPulse(x, y - 60, !inGame) * .38 + (hintK > 0 && p.key !== 'mv' && p.key !== 'drag' && L.targets(board, p.r, p.c).length ? hintK * .3 : 0) + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
     updateInst(I, TP, dt, s * k, still);
     if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, key: I.key, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
   }
@@ -1439,6 +1442,10 @@ function setIcon(b) {
   b.icon.alpha = k === 'treasure' && !U.treasures[b.content.id] ? .55 : .95;
 }
 function updateBubbles(dt, now, still) {
+  if (U.tut === 3 && U.tutBubble && U.tutBubble.sx != null) {   // 10-2b: the guide box fades when the tutorial bubble drifts behind it
+    const [bx, by] = toScreen([U.tutBubble.sx, U.tutBubble.y]), r = U.tutBubble.r * WS;
+    $('coach').style.opacity = bx + r > 140 && bx - r < 940 && by + r > 410 && by - r < 530 ? .3 : '';
+  } else if ($('coach').style.opacity) $('coach').style.opacity = '';
   const max = U.perf ? BC.max : still ? BC.maxReduced : BC.max;
   if (!U.nextBubble) U.nextBubble = now + 1500;
   if (U.tut && U.screen === 'game') { if (U.tut === 3 && !U.bubbles.includes(U.tutBubble)) tutBubble(); }   // tutorial: only its own bubble
@@ -1748,9 +1755,9 @@ function applySkins(sel = U.equip) {
 }
 function skinArt(cat, k) {
   if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="assets/${SKIN_FILES[k.tile] || 'tile'}.webp" alt=""></span>`;
-  if (cat === 'sky') return `<span class="art"><img src="assets/${SKIN_FILES[k.bg] || 'bg'}.webp" alt="" style="width:230px;height:200px;object-fit:cover;max-width:none;max-height:none"></span>`;
+  if (cat === 'sky') return `<span class="art"><img src="assets/${SKIN_FILES[k.bg] || 'bg'}.webp" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
   if (cat === 'building') return `<span class="art"><img src="assets/${k.set === 'candy' ? 'c' : 'b'}12.webp" alt=""></span>`;
-  return `<span class="art"><span style="position:absolute;inset:30px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:170px;position:relative"></span>`;
+  return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:130px;position:relative"></span>`;
 }
 function setShopDown(down, animate = true) {
   shopDown = down; const p = $('shop-panel'); p.style.transition = animate && !reduce() ? '' : 'none';   // Reduce Motion: change at once
@@ -1776,7 +1783,7 @@ function openShop(tab = shopTab) {
 }
 function closeShop() { preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
 $('ov-shop').addEventListener('click', e => {
-  if (e.target.id === 'shop-dim') { if (shopDown) setShopDown(false); else closeShop(); return; }   // 10-2 B4: outside tap closes; with the panel down it raises the panel instead
+  if (e.target.id === 'shop-dim') { setShopDown(!shopDown); return; }   // 10-2b: a background tap folds / unfolds the panel like the arrow; only ✕ closes the shop
   const tb = e.target.closest('[data-shop-tab]'); if (tb) { openShop(tb.dataset.shopTab); return; }
   const card = e.target.closest('[data-skin]'); if (!card) return;
   const k = skin(shopTab, card.dataset.skin);
