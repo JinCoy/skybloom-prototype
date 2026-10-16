@@ -188,7 +188,8 @@ body {
 @keyframes deny { 15% { transform: translateX(-16px); } 35% { transform: translateX(16px); } 55% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 @keyframes bought { 0% { transform: scale(.9); box-shadow: 0 0 0 0 rgba(255, 220, 80, .95); } 40% { transform: scale(1.08); box-shadow: 0 0 0 26px rgba(255, 220, 80, .0), 0 0 40px 12px rgba(255, 232, 120, .9); } 100% { transform: scale(1); } }
 @keyframes equipflash { 0% { box-shadow: 0 0 0 0 rgba(143, 224, 255, .95); } 100% { box-shadow: 0 0 0 30px rgba(143, 224, 255, 0); } }
-#shop-fold { background: none; border: 0; box-shadow: none; color: #1e6fd0; text-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 2px 4px rgba(10, 60, 130, .4); font-size: 80px !important; }   /* just the arrow, no box */
+#shop-fold { background: url(assets/fold_arrow.webp) center / contain no-repeat; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }   /* Frutiger Aero glass arrow (Higgsfield art) */
+#shop-fold.up { background-image: url(assets/unfold_arrow.webp); }
 #shop-fold::before { display: none; }
 #shop-dim.off { opacity: 0; }
 /* ranking */
@@ -350,7 +351,7 @@ body {
       <button class="gel aqua sq" data-close aria-label="Close" data-i18n-aria="aria.close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
       <div class="abs lbl" id="shop-hint" style="left:0;right:0;top:330px;font-size:30px;pointer-events:none">Tap a card to preview it on your garden</div>
       <div class="glass" id="shop-panel" style="left:30px;top:1300px;width:1020px;height:590px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
-        <button class="gel ghost" id="shop-fold" aria-label="Lower the panel" data-i18n-aria="shop.fold" style="left:440px;top:-38px;width:140px;height:70px;font-size:36px">▼</button>
+        <button class="gel ghost" id="shop-fold" aria-label="Lower the panel" data-i18n-aria="shop.fold" style="left:435px;top:-68px;width:150px;height:90px"></button>
         <div class="tabs" role="tablist" id="shop-tabs"></div>
         <div id="shop-cards" class="shop-cards" role="tabpanel"></div>
       </div>
@@ -568,7 +569,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.4`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.5`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -1830,7 +1831,7 @@ function skinArt(cat, k) {
 function setShopDown(down, animate = true) {
   shopDown = down; const p = $('shop-panel'); p.style.transition = animate && !reduce() ? '' : 'none';   // Reduce Motion: change at once
   p.classList.toggle('down', down); $('shop-dim').classList.toggle('off', down); $('shop-dim').style.transition = p.style.transition;
-  $('shop-fold').textContent = down ? '▲' : '▼'; $('shop-fold').setAttribute('aria-label', tl(down ? 'shop.unfold' : 'shop.fold'));
+  $('shop-fold').classList.toggle('up', down); $('shop-fold').setAttribute('aria-label', tl(down ? 'shop.unfold' : 'shop.fold'));
   void p.offsetWidth; if (!animate) p.style.transition = '';
 }
 $('shop-fold').onclick = () => setShopDown(!shopDown);
