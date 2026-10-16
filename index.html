@@ -501,19 +501,15 @@ const TREASURES = [   // spec §4.3, ids 1-12 (rarity lives in logic.js)
   ['Bubble Wand', 'A rainbow wand for blowing bubbles.'], ['Mini Balloon', 'A tiny hot-air balloon.'],
   ['Rainbow Feather', 'A feather painted in every colour of the rainbow.'], ['Crystal Koi', 'A crystal koi that swims through the sky.']];
 const accSrc = id => `assets/acc${String(id).padStart(2, '0')}.webp`;
-/* Main-screen garden (10-3): a random showcase every visit. Each style lists slots [row, col, minLv, maxLv]; the picks must be distinct, descend toward the front
-   along each diagonal (tall buildings behind, small in front: nothing hides anything), and include at least 3 clearly moving buildings.
-   The back corner (0,0) never gets a tall one (the logo). Styles: max 13 buildings, medium 9, min 5. */
-const MAIN_STYLES = {
-  max: [[0,0,7,9],[0,1,5,8],[0,2,12,14],[0,3,15,17],[1,0,6,9],[1,2,3,5],[1,3,4,6],[2,0,12,15],[2,2,2,4],[2,3,1,3],[3,0,9,12],[3,1,4,7],[3,2,1,2]],
-  medium: [[0,1,4,7],[0,3,15,17],[1,0,5,9],[1,2,2,4],[2,0,9,12],[2,2,3,5],[2,3,1,3],[3,1,5,8],[3,3,1,2]],
-  min: [[0,3,16,17],[2,0,8,12],[2,2,2,4],[3,1,4,6],[3,3,1,2]],
-};
-const MAIN_FALLBACK = { max: [[9,7,13,17],[8,0,4,5],[15,0,3,2],[11,6,1,0]], medium: [[0,5,0,16],[7,0,3,0],[11,0,4,2],[0,6,0,1]], min: [[0,0,0,17],[0,0,0,0],[10,0,3,0],[0,5,0,1]] };
+/* Main-screen garden (10-3, style "Maximum" chosen): 13 buildings, a random showcase every visit. Slots are [row, col, minLv, maxLv]; the picks must be distinct,
+   descend toward the front along each diagonal (tall buildings behind, small in front: nothing hides anything), and include at least 3 clearly moving buildings.
+   The back corner (0,0) never gets a tall one (the logo). The left-corner slot (3,0) and the upper slot (0,2) swapped their level ranges after the first review. */
+const MAIN_SLOTS = [[0,0,7,9],[0,1,5,8],[0,2,9,12],[0,3,15,17],[1,0,6,9],[1,2,3,5],[1,3,4,6],[2,0,12,15],[2,2,2,4],[2,3,1,3],[3,0,12,14],[3,1,4,7],[3,2,1,2]];
+const MAIN_FALLBACK = [[9,7,11,17],[8,0,4,5],[15,0,3,2],[13,6,1,0]];
 const MOVERS = new Set([2, 3, 4, 5, 6, 8, 10, 12, 14]);   // spin, sway, bob and flowing-water buildings
-const SHOW = MAIN_FALLBACK.medium.map(r => r.slice());
-function genShow(style) {
-  const slots = MAIN_STYLES[style], pick = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const SHOW = MAIN_FALLBACK.map(r => r.slice());
+function genShow() {
+  const slots = MAIN_SLOTS, pick = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   let g = null;
   for (let tries = 0; tries < 6000 && !g; tries++) {
     const b = Array.from({ length: 4 }, () => Array(4).fill(0)), used = new Set(); let ok = true;
@@ -525,13 +521,11 @@ function genShow(style) {
     }
     if (ok) g = b;
   }
-  g = g || MAIN_FALLBACK[style].map(r => r.slice());
+  g = g || MAIN_FALLBACK.map(r => r.slice());
   const flip = Math.random() < .5;   // mirror left/right so the tall one is not always on the same side
   for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) SHOW[r][c] = flip ? g[c][r] : g[r][c];
 }
-const MAIN_ORDER = ['medium', 'max', 'min'], MAIN_NAME = { medium: 'B · Medium', max: 'A · Maximum', min: 'C · Minimum' };
-let mainStyle = MAIN_ORDER.find(k => location.hash === '#' + k) || 'medium';
-genShow(mainStyle);
+genShow();
 const DEMO = {   // demo links start a game from a fixed board: #combo #lv17 #stuck, #sunset (merge the Lv11 pair), #night (merge the Lv14 pair)
   combo: [[1, 1, 2, 2], [3, 3, 4, 4], [1, 1, 2, 2], [3, 3, 0, 0]],
   lv17: [[16, 16, 0, 2], [3, 0, 1, 0], [0, 2, 0, 1], [1, 0, 3, 0]],
@@ -599,7 +593,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.7`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.8`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -1810,8 +1804,6 @@ $('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cl
 for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).catch(() =>
   sheet(tl('signin.title', { p: pv === 'google' ? 'Google' : 'Apple' }), tl('signin.body')));
 $('ov-sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) overlay('sheet', false); });
-// TEMPORARY comparison aid: tap the logo on the main screen to cycle the three garden styles (or open the page with #max / #medium / #min)
-$('main-logo').onclick = () => { mainStyle = MAIN_ORDER[(MAIN_ORDER.indexOf(mainStyle) + 1) % 3]; genShow(mainStyle); toast(MAIN_NAME[mainStyle], 1400); };
 $('btn-play').onclick = () => transition('bubble', () => newGame(false, 'normal'), [400, 1660]);
 $('btn-speed').onclick = () => transition('bubble', () => newGame(false, 'speed'), [815, 1660]);
 $('place').onclick = () => doPlace();
