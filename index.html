@@ -487,8 +487,12 @@ body {
 const L = window.SkyLogic;
 const $ = id => document.getElementById(id);
 const EDITOR = location.search.includes('editor') || location.hash === '#editor';
-const NAMES = ['', 'Dew Drop', 'Sprout', 'Lily Bloom', 'Glass Planter', 'Bubble Fountain', 'Breeze Windmill', 'Glass Greenhouse', 'Aqua Pavilion',
+const NAMES_BASE = ['', 'Dew Drop', 'Sprout', 'Lily Bloom', 'Glass Planter', 'Bubble Fountain', 'Breeze Windmill', 'Glass Greenhouse', 'Aqua Pavilion',
   'Solar Dome', 'Waterfall Garden', 'Crystal Tower', 'Sky Dome', 'Rainbow Bridge', 'Cloud Harbor', 'Star Observatory', 'Aurora Palace', 'Skybloom Tree'];
+// each equipped building set names its own 17 buildings (Classic and Candy Glass keep the base names); applySkins() switches NAMES
+const NAMES_BY = { eco: ['', 'Eco Pod', 'Solar Lamp', 'Topiary Planter', 'Rain Tank', 'Helix Turbine', 'Fountain Pool', 'Holo Kiosk', 'Pod House', 'Glass Pavilion', 'Hydro Garden', 'Atrium Hall', 'Monorail Station', 'Turbine Tower', 'Tube Plaza', 'Sky Lab', 'Aqua Arcology', 'Biosphere Hill'],
+  aqua: ['', 'Fish Bowl', 'Gacha Capsule', 'Lava Lamp', 'Jelly Tank', 'Clear Radio Hut', 'Disc Fountain', 'Pixel Pet House', 'Aquarium Cottage', 'Teardrop Dome', 'Reef Arcade', 'Dolphin Spire', 'Tube Slide Park', 'Glass Lift Tower', 'Ocean Drive Mall', 'Wave Station', 'Server Palace', 'Dream Globe'] };
+let NAMES = NAMES_BASE;
 const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.25, 2.3, 2.35, 2.4, 2.45];
 const CAL = [0, 1.35, 1.25, 1.15, 1.15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 const TW = 240, TH = 120, CX = 540, CY = 1000;
@@ -537,12 +541,15 @@ const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 2];
 // v0.4 §2.1: island, board, buildings, bubbles and effects are one "world" drawn 1.1x around the board centre; the HUD is not scaled
 const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
-const artSrc = lv => `assets/${U && U.bset === 'candy' ? 'c' : 'b'}${String(lv).padStart(2, '0')}.webp`;
-// building image key for the active set; Candy Glass falls back to Classic until its image has loaded
-const bkey = lv => U.bset === 'candy' && IMG['c' + lv] ? 'c' + lv : 'b' + lv;
+const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g' };   // building set -> image key / file prefix; Classic is 'b'
+const artSrc = lv => `assets/${(U && SET_PRE[U.bset]) || 'b'}${String(lv).padStart(2, '0')}.webp`;
+// building image key for the active set; the other sets fall back to Classic until its image has loaded
+const bkey = lv => { const p = SET_PRE[U.bset]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
 const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [110, 119, 937, 945], b16: [87, 24, 938, 991], b17: [99, 73, 929, 977],
-  c13: [223, 16, 829, 978], c14: [92, 29, 958, 991], c15: [81, 98, 945, 957], c16: [101, 25, 925, 962], c17: [111, 49, 913, 967] };
+  c13: [223, 16, 829, 978], c14: [92, 29, 958, 991], c15: [81, 98, 945, 957], c16: [101, 25, 925, 962], c17: [111, 49, 913, 967],
+  e13: [244, 19, 792, 996], e14: [33, 69, 1001, 977], e15: [116, 55, 915, 958], e16: [202, 23, 836, 1006], e17: [62, 35, 962, 984],
+  g13: [241, 35, 783, 992], g14: [131, 92, 910, 989], g15: [111, 64, 915, 984], g16: [113, 122, 913, 947], g17: [67, 138, 962, 956] };
 // island silhouette in the backgrounds (flat top + rock underside): bubbles pass behind it and cannot be tapped there
 const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935];
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
@@ -593,7 +600,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.8`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.9`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -1822,7 +1829,8 @@ const SKINS = {
   board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 'tile_petal', water: 0x6f6fe6 },
           { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 }],
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default', bg: 'bg' }, { id: 'blossom', name: 'Blossom Island', gold: 800, bg: 'bg_blossom' }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', bg: 'bg_aurora' }],
-  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' }],
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' },
+              { id: 'eco', name: 'Eco Campus', cash: '$2.99', set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', cash: '$2.99', set: 'aqua' }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 }],
 };
 const SHOP_TABS = ['board', 'sky', 'building', 'bubble'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
@@ -1836,20 +1844,21 @@ function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
   const need = [b.tile, sk.bg].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]);
-  if (bu.set === 'candy') for (let lv = 1; lv <= 17; lv++) need.push(['c' + lv, `assets/c${String(lv).padStart(2, '0')}.webp`]);
+  const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;
   R.tiles.forEach(t => { t.texture = tt; t.width = tw; t.height = tt.height * tw / tt.width; });
   U.skinWater = b.water || null;
   R.bgs[0].texture = tex(IMG[sk.bg] ? sk.bg : 'bg');
-  const set = bu.set || null; if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
+  const set = bu.set || null; NAMES = NAMES_BY[set] || NAMES_BASE;
+  if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
   U.skinBubble = bb.tint || null;
 }
 function skinArt(cat, k) {
   if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="assets/${SKIN_FILES[k.tile] || 'tile'}.webp" alt=""></span>`;
   if (cat === 'sky') return `<span class="art"><img src="assets/${SKIN_FILES[k.bg] || 'bg'}.webp" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
-  if (cat === 'building') return `<span class="art"><img src="assets/${k.set === 'candy' ? 'c' : 'b'}12.webp" alt=""></span>`;
+  if (cat === 'building') return `<span class="art"><img src="assets/${SET_PRE[k.set] || 'b'}12.webp" alt=""></span>`;
   return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:130px;position:relative"></span>`;
 }
 function setShopDown(down, animate = true) {
@@ -1979,7 +1988,7 @@ $('tab-treasures').onclick = () => openCollection('treasures');
 $('col-grid').addEventListener('click', e => {
   const bd = e.target.closest('[data-bd]');   // building detail: English name, description in the player's language (v0.5 §3.2)
   if (bd) { const lv = +bd.dataset.bd; if (!U.discovered.has(lv)) return;
-    $('td-img').src = artSrc(lv); $('td-name').textContent = NAMES[lv]; $('td-desc').textContent = tl('bd.' + lv);
+    $('td-img').src = artSrc(lv); $('td-name').textContent = NAMES[lv]; $('td-desc').textContent = tl('bd.' + (SET_PRE[U.bset] === 'e' || SET_PRE[U.bset] === 'g' ? SET_PRE[U.bset] : '') + lv);
     $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = ''; $('tr-detail').hidden = false; return; }
   const b = e.target.closest('[data-tr]'); if (!b) return;
   const id = +b.dataset.tr, got = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
