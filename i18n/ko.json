@@ -64,14 +64,10 @@
   "shop.cashTitle": "결제는 앱 출시 후에",
   "shop.cashBody": "{name}({price})은(는) App Store·Google Play 버전에서 판매할 예정이에요. 이 프로토타입에서는 결제되지 않아요.",
   "rank.title": "랭킹",
-  "rank.week": "이번 주",
-  "rank.all": "전체",
   "rank.soon": "상위 100위 준비 중",
   "rank.body": "게임 서버가 연결되면 랭킹이 표시돼요.\n예시 플레이어는 보여 주지 않아요.",
   "rank.you": "나",
   "rank.guest": "게스트",
-  "rank.noteWeek": "이 기기의 최고 점수 (지금까지 모든 판)",
-  "rank.noteAll": "이 기기의 최고 점수",
   "sheet.ok": "확인",
   "col.title": "도감",
   "col.garden": "정원",
@@ -177,5 +173,8 @@
   "log.none": "저장된 판이 아직 없어요. 한 판 하고 다시 와 주세요.",
   "main.speed": "스피드",
   "speed.best": "스피드 최고 {n}",
-  "speed.secs": "{n}초"
+  "speed.secs": "{n}초",
+  "rank.normal": "일반",
+  "rank.speed": "스피드",
+  "rank.note": "이 기기에서의 내 최고 점수"
 }

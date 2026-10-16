@@ -181,6 +181,13 @@ body {
 #shop-panel > .tabs, #shop-panel > .shop-cards { transition: opacity .2s; }
 #shop-panel.down > .tabs, #shop-panel.down > .shop-cards { opacity: 0; pointer-events: none; }
 #shop-dim { transition: opacity .3s; }
+/* shop feedback: refused (shake + red gold), bought (pop + glow), equipped (flash) */
+.pill.poor { color: #e0342a; animation: poor .5s; } .pill.poor .coin { filter: saturate(.4) hue-rotate(-30deg); }
+@keyframes poor { 30% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.sk.deny { animation: deny .45s; } .sk.bought { animation: bought .7s ease-out; } .sk.equipflash { animation: equipflash .6s ease-out; }
+@keyframes deny { 15% { transform: translateX(-16px); } 35% { transform: translateX(16px); } 55% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+@keyframes bought { 0% { transform: scale(.9); box-shadow: 0 0 0 0 rgba(255, 220, 80, .95); } 40% { transform: scale(1.08); box-shadow: 0 0 0 26px rgba(255, 220, 80, .0), 0 0 40px 12px rgba(255, 232, 120, .9); } 100% { transform: scale(1); } }
+@keyframes equipflash { 0% { box-shadow: 0 0 0 0 rgba(143, 224, 255, .95); } 100% { box-shadow: 0 0 0 30px rgba(143, 224, 255, 0); } }
 #shop-fold { background: none; border: 0; box-shadow: none; color: #1e6fd0; text-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 2px 4px rgba(10, 60, 130, .4); font-size: 80px !important; }   /* just the arrow, no box */
 #shop-fold::before { display: none; }
 #shop-dim.off { opacity: 0; }
@@ -354,8 +361,8 @@ body {
       <div class="abs title" style="left:0;right:0;top:150px;text-align:center" data-i18n="rank.title">Ranking</div>
       <button class="gel aqua sq" data-close aria-label="Close" data-i18n-aria="aria.close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
       <div class="abs tabs" role="tablist" style="left:224px;top:270px">
-        <button class="tab" role="tab" id="rk-week" aria-selected="true" data-i18n="rank.week">This Week</button>
-        <button class="tab" role="tab" id="rk-all" aria-selected="false" data-i18n="rank.all">All Time</button>
+        <button class="tab" role="tab" id="rk-normal" aria-selected="true" data-i18n="rank.normal">Normal</button>
+        <button class="tab" role="tab" id="rk-speed" aria-selected="false" data-i18n="rank.speed">Speed</button>
       </div>
       <div class="glass panel" style="top:410px;gap:26px;min-height:900px;justify-content:flex-start">
         <div class="rk-empty"><svg viewBox="0 0 24 24" width="120" height="120" aria-hidden="true"><path fill="#9cc3ea" d="M7 3h10v2h4v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 15v2h3v3H8v-3h3v-2a5 5 0 0 1-3.7-3H7a4 4 0 0 1-4-4V5h4V3zm10 4v3a2 2 0 0 0 2-2V7h-2zM5 7v1a2 2 0 0 0 2 2V7H5z"/></svg>
@@ -525,7 +532,7 @@ const store = {
 
 /* ---------- state: G = rules (logic.js), U = view-only ---------- */
 let G = L.newState();
-const APP_V = '0.5.3';
+const APP_V = '0.5.4';
 const U = {
   gameT0: performance.now(), playMs: 0, mode: 'normal', screen: 'login', best: store.get('best', 0), bestSpeed: store.get('bestSpeed', 0),
   discovered: new Set(store.get('discovered', [])),
@@ -561,7 +568,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.3`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.4`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -1188,6 +1195,7 @@ const GROUT = [];
 for (let i = 1; i <= 4; i++) GROUT.push([center(i - .5, -.5), center(i - .5, 3.5)], [center(-.5, i - .5), center(3.5, i - .5)]);
 const GSEG = GROUT.flatMap(([a, b]) => Array.from({ length: 16 }, (_, k) => [[a[0] + (b[0] - a[0]) * k / 16, a[1] + (b[1] - a[1]) * k / 16], [a[0] + (b[0] - a[0]) * (k + 1) / 16, a[1] + (b[1] - a[1]) * (k + 1) / 16]]));
 const RIM = [[540, 760], [1020, 1000], [540, 1240], [60, 1000]].flatMap((p, i, A) => { const q = A[(i + 1) % 4]; return Array.from({ length: 10 }, (_, k) => [p[0] + (q[0] - p[0]) * (k + .5) / 10, p[1] + (q[1] - p[1]) * (k + .5) / 10]); });
+const WATER_SPEED = .6;   // board water and falls run at 60% of the old speed
 const WTL = { x: 0, y: 0, vx: 0, vy: 0 };   // water's own tilt: a damped spring behind the device tilt, so it sloshes
 const level = (x, y) => Math.max(0, Math.min(1, .5 + .9 * ((x - CX) / 480 * WTL.x + (y - CY) / 240 * WTL.y)));
 const WATER = { base: [0x3f76e4, 0x6f80e0, 0x4a74e8], deep: 0x2e5bc9, hi: 0x7db2ff };   // Minecraft-style water (#3F76E4)
@@ -1293,7 +1301,7 @@ function updateSky(dt, still) {
   // water sloshes after the tilt (spring), then flows toward the low side
   const tx = still ? 0 : T.x, ty = still ? 0 : T.y;
   WTL.vx += ((tx - WTL.x) * 36 - WTL.vx * 6) * dt; WTL.vy += ((ty - WTL.y) * 36 - WTL.vy * 6) * dt; WTL.x += WTL.vx * dt; WTL.y += WTL.vy * dt;
-  const mag = Math.hypot(WTL.x, WTL.y), fx = WTL.x * 70, fy = 24 + WTL.y * 60, k = (still ? .3 : 1) * (1 + mag * 1.5);
+  const mag = Math.hypot(WTL.x, WTL.y), fx = WTL.x * 70, fy = 24 + WTL.y * 60, k = WATER_SPEED * (still ? .3 : 1) * (1 + mag * 1.5);
   const wo = R.waterOff; wo[0] += fx * dt * k; wo[1] += fy * dt * k; wo[2] += fx * 1.6 * dt * k; wo[3] += fy * 2.2 * dt * k;
   const wc = mix3(w, U.skinWater || WATER.base[0], WATER.base[1], WATER.base[2]);
   drawWater(R.water, 'caustic', .3, wo[0], wo[1], wc, false);
@@ -1826,6 +1834,17 @@ function setShopDown(down, animate = true) {
   void p.offsetWidth; if (!animate) p.style.transition = '';
 }
 $('shop-fold').onclick = () => setShopDown(!shopDown);
+function denyShop(card) {   // not enough gold: the card shakes, the phone buzzes, the gold count turns red for a moment
+  vib([30, 40, 30]); const pill = $('shop-gold').parentElement;
+  if (!reduce()) { card.classList.remove('deny'); void card.offsetWidth; card.classList.add('deny'); }
+  pill.classList.remove('poor'); void pill.offsetWidth; pill.classList.add('poor'); clearTimeout(denyShop.t); denyShop.t = setTimeout(() => pill.classList.remove('poor'), 1500);
+}
+function shopFx() {   // after a purchase / equip: card glow + a burst over the garden preview
+  const f = U.shopFx; U.shopFx = null; if (!f) return;
+  const card = document.querySelector(`#shop-cards [data-skin="${f.id}"]`);
+  if (card && !reduce()) card.classList.add(f.kind === 'bought' ? 'bought' : 'equipflash');
+  if (f.kind === 'bought') { addFxXY('burst', CX, CY - 80); SFX.fanfare(); vib([20, 30, 20]); } else { addFxXY('merge', CX, CY - 60, 1); SFX.shimmer(); vib(12); }
+}
 function openShop(tab = shopTab) {
   if ($('ov-shop').hidden) setShopDown(false, false);   // a fresh open always starts with the panel up
   shopTab = tab; preview = preview || { ...U.equip };
@@ -1838,7 +1857,7 @@ function openShop(tab = shopTab) {
     const act = eq ? `<span class="act done">${tl('shop.equipped')}</span>` : own ? `<span class="act eq" data-equip>${tl('shop.equip')}</span>` : k.cash ? `<span class="act cash" data-cash>${k.cash}</span>` : `<span class="act buy" data-buy>${coin}${k.gold}</span>`;
     return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${k.name}</span><span class="sub">${k.sub ? tl('shop.default') : k.cash ? tl('shop.premium') : ''}</span>${act}</button>`;
   }).join('');
-  applySkins(preview); overlay('shop');
+  applySkins(preview); overlay('shop'); shopFx();
   $('scr-' + U.screen).style.visibility = 'hidden';   // the garden stays visible for previews, the HUD steps aside
 }
 function closeShop() { preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
@@ -1849,22 +1868,22 @@ $('ov-shop').addEventListener('click', e => {
   const k = skin(shopTab, card.dataset.skin);
   if (e.target.closest('[data-cash]')) { sheet(tl('shop.cashTitle'), tl('shop.cashBody', { name: k.name, price: k.cash })); return; }
   if (e.target.closest('[data-buy]')) {
-    if (U.gold < k.gold) { toast(tl('shop.noGold')); SFX.bad(); return; }
-    addGold(-k.gold); U.owned[shopTab].push(k.id); store.set('owned', U.owned); SFX.gift();
-  }
+    if (U.gold < k.gold) { toast(tl('shop.noGold')); SFX.bad(); denyShop(card); return; }
+    addGold(-k.gold); U.owned[shopTab].push(k.id); store.set('owned', U.owned); SFX.gift(); U.shopFx = { id: k.id, kind: 'bought' };
+  } else if (e.target.closest('[data-equip]')) U.shopFx = { id: k.id, kind: 'equip' };
   if (e.target.closest('[data-buy]') || e.target.closest('[data-equip]')) { U.equip[shopTab] = k.id; store.set('equip', U.equip); }
   preview[shopTab] = k.id; openShop(shopTab);
 });
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
-function openRanking(tab = 'week') {
-  $('rk-week').setAttribute('aria-selected', tab === 'week'); $('rk-all').setAttribute('aria-selected', tab === 'all');
+function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
+  $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-speed').setAttribute('aria-selected', tab === 'speed');
   const u = SkyAuth.currentUser(); $('rk-who').textContent = u ? (u.provider === 'guest' ? tl('rank.guest') : u.provider) : tl('rank.guest');
-  $('rk-best').textContent = U.best.toLocaleString('en-US'); fitText($('rk-best'), 54);
-  $('rk-note').textContent = tl(tab === 'week' ? 'rank.noteWeek' : 'rank.noteAll');
+  $('rk-best').textContent = (tab === 'speed' ? U.bestSpeed : U.best).toLocaleString('en-US'); fitText($('rk-best'), 54);
+  $('rk-note').textContent = tl('rank.note');
   overlay('ranking');
 }
-$('rk-week').onclick = () => openRanking('week'); $('rk-all').onclick = () => openRanking('all');
+$('rk-normal').onclick = () => openRanking('normal'); $('rk-speed').onclick = () => openRanking('speed');
 
 /* ---------- result card (v0.4 §6.4): 1080x1350 image made when the result opens, so sharing starts straight from the tap ---------- */
 let cardFile = null;

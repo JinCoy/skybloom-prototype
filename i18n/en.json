@@ -64,14 +64,10 @@
   "shop.cashTitle": "Payments come with the app",
   "shop.cashBody": "{name} ({price}) will be sold in the App Store and Google Play versions. Nothing is charged in this prototype.",
   "rank.title": "Ranking",
-  "rank.week": "This Week",
-  "rank.all": "All Time",
   "rank.soon": "Top 100 coming soon",
   "rank.body": "Rankings appear once the game server is connected.\nNo sample players are shown.",
   "rank.you": "You",
   "rank.guest": "Guest",
-  "rank.noteWeek": "Your best score on this device (all games so far)",
-  "rank.noteAll": "Your best score on this device",
   "sheet.ok": "OK",
   "col.title": "Collection",
   "col.garden": "Garden",
@@ -177,5 +173,8 @@
   "log.none": "No games saved yet. Play a game first, then come back.",
   "main.speed": "Speed",
   "speed.best": "Speed best {n}",
-  "speed.secs": "{n}s"
+  "speed.secs": "{n}s",
+  "rank.normal": "Normal",
+  "rank.speed": "Speed",
+  "rank.note": "Your best score on this device"
 }
