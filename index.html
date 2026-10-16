@@ -131,6 +131,50 @@ body {
 #fps { position: fixed; left: 8px; top: 8px; z-index: 9; padding: 4px 8px; border-radius: 8px; background: rgba(0, 0, 0, .6); color: #fff; font: 600 12px/1.3 ui-monospace, monospace; pointer-events: none; }
 .title { font: 900 76px/1 var(--font); color: #fff; text-shadow: 0 5px 0 #1d64b8, 0 0 18px rgba(20, 90, 180, .4); }
 @media (prefers-reduced-motion: reduce) { .rays { animation: none; } .gel { transition: none; } .bump { animation: none; } }
+/* sign-in buttons follow Google / Apple branding: white with the Google G, black with the Apple logo */
+.sso { position: absolute; left: 170px; width: 740px; height: 110px; border-radius: 55px; display: flex; align-items: center; justify-content: center; gap: 22px;
+  font: 600 40px/1 Roboto, "Helvetica Neue", Arial, system-ui, sans-serif; cursor: pointer; box-shadow: 0 6px 16px rgba(10, 70, 150, .2); }
+.sso.google { background: #fff; color: #1f1f1f; border: 2px solid #747775; }
+.sso.apple { background: #000; color: #fff; border: 2px solid #000; }
+.sso:focus-visible { outline: 6px solid var(--gold-1); outline-offset: 4px; }
+.sso:active { transform: scale(.97); }
+/* shop */
+.shop-cards { display: flex; gap: 20px; overflow-x: auto; padding: 6px 4px 14px; scroll-snap-type: x mandatory; }
+.sk { flex: none; width: 280px; height: 470px; border-radius: 32px; border: 5px solid var(--rim); background: rgba(255, 255, 255, .7); display: flex; flex-direction: column;
+  align-items: center; justify-content: space-between; padding: 18px 14px; box-sizing: border-box; scroll-snap-align: start; cursor: pointer; font: inherit; color: var(--navy); }
+.sk.on { border-color: var(--gold-1); box-shadow: 0 0 0 4px rgba(255, 214, 64, .6); }
+.sk .art { width: 230px; height: 200px; border-radius: 20px; display: grid; flex: none; place-items: center; overflow: hidden; position: relative; }
+.sk .art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sk .nm { font: 900 34px/1.1 var(--font); text-align: center; }
+.sk .act { width: 240px; height: 80px; border-radius: 40px; font: 900 34px/1 var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; border: 4px solid var(--rim); }
+.sk .act.buy { background: linear-gradient(var(--gold-1), var(--gold-2)); color: #fff; text-shadow: 0 3px 0 #b8640a; }
+.sk .act.cash { background: linear-gradient(#b8f0c8, #3fb36a); color: #fff; text-shadow: 0 3px 0 #1d7a40; }
+.sk .act.eq { background: linear-gradient(var(--aqua-1), var(--aqua-2)); color: #fff; text-shadow: 0 3px 0 #165aa6; }
+.sk .act.done { background: rgba(255, 255, 255, .6); color: var(--blue); }
+.sk .act .coin { width: 34px; height: 34px; }
+.sk .sub { font: 800 24px/1.2 var(--font); color: var(--blue); text-align: center; min-height: 28px; }
+#shop-tabs .tab { width: 180px; height: 80px; font-size: 32px; }
+/* ranking */
+.rk-empty { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 30px 0; }
+.rk-me { font-size: 40px; }
+/* screen transitions (v0.4 §6.2) */
+#trans { position: absolute; z-index: 20; pointer-events: auto; }
+#trans.cloud { left: 0; width: 1080px; top: -240px; height: 2400px;
+  background: radial-gradient(150px 110px at 8% 6%, #fff 97%, #fff0), radial-gradient(170px 120px at 30% 4%, #fff 97%, #fff0), radial-gradient(160px 120px at 55% 6%, #fff 97%, #fff0),
+    radial-gradient(180px 130px at 80% 4%, #fff 97%, #fff0), radial-gradient(150px 110px at 98% 7%, #fff 97%, #fff0),
+    radial-gradient(150px 110px at 8% 94%, #fff 97%, #fff0), radial-gradient(170px 120px at 34% 96%, #fff 97%, #fff0), radial-gradient(160px 120px at 62% 94%, #fff 97%, #fff0),
+    radial-gradient(180px 130px at 88% 96%, #fff 97%, #fff0), linear-gradient(#fff0 4%, #f3faff 8%, #e4f3ff 50%, #f3faff 92%, #fff0 96%); }
+#trans.pass { top: 0; height: 1920px; left: -200px; width: 1480px;
+  background: radial-gradient(110px 150px at 6% 8%, #fff 97%, #fff0), radial-gradient(120px 170px at 4% 30%, #fff 97%, #fff0), radial-gradient(120px 160px at 6% 55%, #fff 97%, #fff0),
+    radial-gradient(130px 180px at 4% 80%, #fff 97%, #fff0), radial-gradient(110px 150px at 94% 12%, #fff 97%, #fff0), radial-gradient(120px 170px at 96% 38%, #fff 97%, #fff0),
+    radial-gradient(120px 160px at 94% 64%, #fff 97%, #fff0), radial-gradient(130px 180px at 96% 90%, #fff 97%, #fff0), linear-gradient(90deg, #fff0 3%, #f3faff 7%, #e4f3ff 50%, #f3faff 93%, #fff0 97%); }
+#trans.bubble { width: 800px; height: 800px; border-radius: 50%; background: radial-gradient(circle, rgba(244, 251, 255, .97) 56%, rgba(244, 251, 255, 0) 71%), url(assets/bubble.webp) center / contain no-repeat; }
+#trans.fade { inset: 0; background: #f3faff; }
+/* overlays fade in and rise 12px */
+.ov-in { animation: ovIn .2s ease-out; }
+.ov-in-r { animation: ovInR .15s linear; }
+@keyframes ovIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes ovInR { from { opacity: 0; } }
 
 /* ?editor: dev-only motion map editor (outside the game stage) */
 #editor { position: fixed; inset: 0; overflow: auto; background: #eef4fa; color: #12326e; font: 600 15px/1.4 system-ui, sans-serif; padding: 16px; box-sizing: border-box;
@@ -156,8 +200,9 @@ body {
     <div class="layer" id="scr-login">
       <img class="abs" src="assets/logo.webp" alt="Skybloom" style="left:130px;top:300px;width:820px">
       <div class="abs lbl" style="left:0;right:0;top:640px;font-size:40px">Sky Garden Merge Puzzle</div>
-      <button class="gel green" id="btn-guest" style="left:120px;top:1560px;width:840px;height:160px;font-size:62px">Continue as Guest</button>
-      <button class="gel ghost" id="btn-signin" style="left:300px;top:1750px;width:480px;height:92px;font-size:42px">Sign In</button>
+      <button class="sso google" id="btn-google" style="top:1380px"><svg viewBox="0 0 48 48" width="46" height="46" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continue with Google</span></button>
+      <button class="sso apple" id="btn-apple" style="top:1510px"><svg viewBox="0 0 384 512" width="40" height="48" aria-hidden="true"><path fill="#fff" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg><span>Continue with Apple</span></button>
+      <button class="gel green" id="btn-guest" style="left:170px;top:1650px;width:740px;height:130px;font-size:54px">Continue as Guest</button>
     </div>
 
     <!-- MAIN -->
@@ -169,6 +214,10 @@ body {
       <img class="abs" src="assets/logo.webp" alt="Skybloom" style="left:160px;top:300px;width:760px">
       <div class="glass stat" style="left:340px;top:1360px;width:400px;height:140px;justify-content:center"><span class="cap">BEST</span><span class="num" id="main-best">0</span></div>
       <div class="glass pill" style="left:420px;top:1270px"><i class="coin"></i><span id="main-gold">0</span></div>
+      <button class="gel aqua sq" data-open="shop" aria-label="Shop" style="left:150px;top:1360px;width:130px;height:130px"><svg viewBox="0 0 24 24" width="62" height="62" style="position:relative" aria-hidden="true"><path fill="#fff" d="M7 7V6a5 5 0 0 1 10 0v1h3l-1 14H5L4 7h3zm2 0h6V6a3 3 0 0 0-6 0v1z"/></svg></button>
+      <div class="abs lbl" style="left:125px;top:1500px;width:180px">Shop</div>
+      <button class="gel aqua sq" data-open="ranking" aria-label="Ranking" style="left:800px;top:1360px;width:130px;height:130px"><svg viewBox="0 0 24 24" width="62" height="62" style="position:relative" aria-hidden="true"><path fill="#fff" d="M7 3h10v2h4v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 15v2h3v3H8v-3h3v-2a5 5 0 0 1-3.7-3H7a4 4 0 0 1-4-4V5h4V3zm10 4v3a2 2 0 0 0 2-2V7h-2zM5 7v1a2 2 0 0 0 2 2V7H5z"/></svg></button>
+      <div class="abs lbl" style="left:775px;top:1500px;width:180px">Ranking</div>
       <button class="gel green" id="btn-play" style="left:140px;top:1560px;width:800px;height:200px;font-size:104px">Play</button>
     </div>
 
@@ -185,6 +234,8 @@ body {
       </div>
       <div id="items"></div>
       <div class="glass pill" style="left:836px;top:270px"><i class="coin"></i><span id="gold">0</span></div>
+      <button class="gel aqua sq" data-open="shop" aria-label="Shop" style="left:50px;top:330px;width:120px;height:120px"><svg viewBox="0 0 24 24" width="62" height="62" style="position:relative" aria-hidden="true"><path fill="#fff" d="M7 7V6a5 5 0 0 1 10 0v1h3l-1 14H5L4 7h3zm2 0h6V6a3 3 0 0 0-6 0v1z"/></svg></button>
+      <div class="abs lbl" style="left:20px;top:462px;width:180px">Shop</div>
       <button class="gel gold" id="ad-refill" hidden style="left:200px;top:1350px;width:680px;height:130px;font-size:46px;flex-direction:column;gap:4px">
         <span>▶ Watch an ad · +2 each</span><small id="ad-left" style="font:800 28px/1 var(--font)">5 left</small></button>
       <button class="gel green" id="place" aria-label="Place next building">
@@ -240,12 +291,52 @@ body {
         <span class="chip gold" id="res-new" hidden>New Best!</span>
         <div class="cap" id="res-best"></div>
         <div class="cap" style="margin-top:14px">TOP BUILDING</div>
-        <img id="res-img" alt="" style="height:320px;width:420px;object-fit:contain">
+        <img id="res-img" alt="" style="height:240px;width:380px;object-fit:contain">
         <div style="font:900 52px/1 var(--font);color:var(--navy)" id="res-name"></div>
         <span class="chip gold" id="res-gold"><i class="coin"></i><span></span></span>
       </div>
+      <button class="gel aqua" id="res-save" style="left:150px;top:1440px;width:370px;height:110px;font-size:42px">Save Image</button>
+      <button class="gel aqua" id="res-share" style="left:560px;top:1440px;width:370px;height:110px;font-size:42px">Share</button>
       <button class="gel green" id="res-retry" style="left:140px;top:1580px;width:800px;height:160px;font-size:76px">Retry</button>
       <button class="gel ghost" id="res-home" style="left:330px;top:1770px;width:420px;height:96px;font-size:46px">Home</button>
+    </div>
+
+    <div class="layer" id="ov-shop" hidden>
+      <div class="dim" style="background:linear-gradient(rgba(10,50,110,0) 0, rgba(10,50,110,0) 52%, rgba(10,50,110,.45) 60%)"></div>
+      <div class="abs title" style="left:0;right:0;top:150px;text-align:center">Shop</div>
+      <div class="glass pill" style="left:440px;top:245px"><i class="coin"></i><span id="shop-gold">0</span></div>
+      <button class="gel aqua sq" data-close aria-label="Close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
+      <div class="abs lbl" id="shop-hint" style="left:0;right:0;top:330px;font-size:30px">Tap a card to preview it on your garden</div>
+      <div class="glass" style="left:30px;top:1150px;width:1020px;height:740px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+        <div class="tabs" role="tablist" id="shop-tabs"></div>
+        <div id="shop-cards" class="shop-cards" role="tabpanel"></div>
+      </div>
+    </div>
+
+    <div class="layer" id="ov-ranking" hidden>
+      <div class="dim" style="background:rgba(70,150,220,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)"></div>
+      <div class="abs title" style="left:0;right:0;top:150px;text-align:center">Ranking</div>
+      <button class="gel aqua sq" data-close aria-label="Close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
+      <div class="abs tabs" role="tablist" style="left:224px;top:270px">
+        <button class="tab" role="tab" id="rk-week" aria-selected="true">This Week</button>
+        <button class="tab" role="tab" id="rk-all" aria-selected="false">All Time</button>
+      </div>
+      <div class="glass panel" style="top:410px;gap:26px;min-height:900px;justify-content:flex-start">
+        <div class="rk-empty"><svg viewBox="0 0 24 24" width="120" height="120" aria-hidden="true"><path fill="#9cc3ea" d="M7 3h10v2h4v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 15v2h3v3H8v-3h3v-2a5 5 0 0 1-3.7-3H7a4 4 0 0 1-4-4V5h4V3zm10 4v3a2 2 0 0 0 2-2V7h-2zM5 7v1a2 2 0 0 0 2 2V7H5z"/></svg>
+          <h2 style="font-size:54px">Top 100 coming soon</h2>
+          <div class="cap" style="letter-spacing:.02em;font-size:34px;line-height:1.35;color:var(--navy)">Rankings appear once the game server is connected.<br>No sample players are shown.</div></div>
+        <div class="row rk-me"><span>You · <b id="rk-who">Guest</b></span><span class="num" id="rk-best">0</span></div>
+        <div class="cap" id="rk-note" style="letter-spacing:.02em;font-size:28px;color:var(--blue)">Your best score on this device</div>
+      </div>
+    </div>
+
+    <div class="layer" id="ov-sheet" hidden>
+      <div class="dim" data-sheet-close></div>
+      <div class="glass panel" style="top:640px;gap:24px">
+        <h2 id="sheet-title" style="font-size:58px"></h2>
+        <div class="cap" id="sheet-text" style="letter-spacing:.02em;font-size:34px;line-height:1.4;color:var(--navy)"></div>
+        <button class="gel green" data-sheet-close style="position:relative;width:420px;height:120px;font-size:52px">OK</button>
+      </div>
     </div>
 
     <div class="layer" id="ov-collection" hidden>
@@ -288,6 +379,7 @@ body {
     </div>
 
     <div class="glass" id="toast" style="opacity:0;pointer-events:none" role="status"></div>
+    <div id="trans" hidden aria-hidden="true"></div>
     <div class="glass" id="picker" hidden aria-label="Choose a building"></div>
   </div>
 </div>
@@ -311,7 +403,8 @@ body {
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
-<script src="logic.js?v=0.4.7"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
+<script src="logic.js?v=0.4.8"></script>
+<script src="auth.js?v=0.4.8"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
 <script>
 (() => {
 'use strict';
@@ -379,7 +472,7 @@ const reduce = () => U.settings.reduce;
 /* ---------- images ---------- */
 const IMG = {}, MASK = {};
 const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = res; i.src = src; });
-const ASSETS = { bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near',
+const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near',
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
@@ -508,7 +601,30 @@ function show(screen) {
   $('main-best').textContent = U.best.toLocaleString('en-US'); fitText($('main-best'), 54);
   $('main-gold').textContent = U.gold.toLocaleString('en-US'); U.menuActed = true;
 }
-function overlay(name, on = true) { $('ov-' + name).hidden = !on; if (name === 'settings') $('set-home').hidden = U.screen !== 'game'; }
+function overlay(name, on = true) {
+  const el = $('ov-' + name); el.hidden = !on; if (name === 'settings') $('set-home').hidden = U.screen !== 'game';
+  if (on) { el.classList.remove('ov-in', 'ov-in-r'); void el.offsetWidth; el.classList.add(reduce() ? 'ov-in-r' : 'ov-in'); }
+}
+/* screen transitions (v0.4 §6.2): short, gentle, and a tap skips straight to the end */
+const TRANS = {
+  cloud: [450, [{ transform: 'translateY(2400px)' }, { transform: 'translateY(0)', offset: .5 }, { transform: 'translateY(-2400px)' }]],
+  pass: [400, [{ transform: 'translateX(1480px)' }, { transform: 'translateX(0)', offset: .5 }, { transform: 'translateX(-1480px)' }]],
+  bubble: [400, [{ transform: 'scale(.06)', opacity: 1 }, { transform: 'scale(5)', opacity: 1, offset: .5 }, { transform: 'scale(5.6)', opacity: 0 }]],
+  fade: [150, [{ opacity: 0 }, { opacity: 1, offset: .5 }, { opacity: 0 }]],
+};
+let endTrans = null;
+function transition(kind, swap, at = null) {
+  if (endTrans) endTrans();
+  const k = reduce() ? 'fade' : kind, [dur, frames] = TRANS[k], el = $('trans');
+  el.className = k; el.hidden = false;
+  if (k === 'bubble') { const [x, y] = at || [540, 1000]; el.style.left = x - 400 + 'px'; el.style.top = y - 400 + 'px'; } else el.style.left = el.style.top = '';
+  let swapped = false; const doSwap = () => { if (!swapped) { swapped = true; swap(); } };
+  const anim = el.animate ? el.animate(frames, { duration: dur, easing: 'ease-in-out' }) : null, mid = setTimeout(doSwap, dur / 2);
+  const end = () => { clearTimeout(mid); doSwap(); anim?.cancel(); el.hidden = true; el.onpointerdown = null; endTrans = null; };
+  if (anim) anim.onfinish = end; else setTimeout(end, dur);
+  el.onpointerdown = end; endTrans = end;
+}
+function sheet(title, text) { $('sheet-title').textContent = title; $('sheet-text').textContent = text; overlay('sheet'); }
 let toastT = 0;
 function toast(msg, ms = 1900, img = null) {
   const t = $('toast'); t.textContent = '';
@@ -632,6 +748,7 @@ function gameOver() {
   $('res-name').textContent = `${NAMES[G.top]} · Lv ${G.top}`;
   const endG = L.endGold(G); addGold(endG);   // v0.4 §5.1: 10 + best level x 5, plus what bubbles gave this game
   $('res-gold').querySelector('span').textContent = `+${(endG + G.gold).toLocaleString('en-US')} gold`;
+  buildCard();   // capture the final garden before the result overlay hides it
   overlay('result');
 }
 function useItem(k) {
@@ -645,7 +762,7 @@ function useItem(k) {
   if (k === 'drop' && !L.empties(G.board).length) { toast('No empty tile for Cloud Drop.'); SFX.bad(); return; }
   U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
 }
-const busy = () => !!U.anim || !$('ov-celebrate').hidden || !$('ov-result').hidden || !$('ov-collection').hidden || !$('ov-settings').hidden || !$('ov-ad').hidden;
+const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet'].some(k => !$('ov-' + k).hidden);
 
 /* ---------- rewarded-ad mock-up (v0.4 §4.3): a clearly labelled placeholder, no real or imitation ads ---------- */
 let adTimer = 0;
@@ -697,10 +814,11 @@ function onTap(cands) {
   select(primary);
 }
 
+const localDate = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD in the player's time zone
 /* ---------- treasures ---------- */
 function gainTreasure(id) {
   const had = !!U.treasures[id];
-  const t = U.treasures[id] || { n: 0, first: new Date().toISOString().slice(0, 10) };
+  const t = U.treasures[id] || { n: 0, first: localDate() };
   t.n++; U.treasures[id] = t; store.set('treasures', U.treasures);
   return had;
 }
@@ -1025,7 +1143,7 @@ function updateSky(dt, still) {
   WTL.vx += ((tx - WTL.x) * 36 - WTL.vx * 6) * dt; WTL.vy += ((ty - WTL.y) * 36 - WTL.vy * 6) * dt; WTL.x += WTL.vx * dt; WTL.y += WTL.vy * dt;
   const mag = Math.hypot(WTL.x, WTL.y), fx = WTL.x * 70, fy = 24 + WTL.y * 60, k = (still ? .3 : 1) * (1 + mag * 1.5);
   const wo = R.waterOff; wo[0] += fx * dt * k; wo[1] += fy * dt * k; wo[2] += fx * 1.6 * dt * k; wo[3] += fy * 2.2 * dt * k;
-  const wc = mix3(w, ...WATER.base);
+  const wc = mix3(w, U.skinWater || WATER.base[0], WATER.base[1], WATER.base[2]);
   drawWater(R.water, 'caustic', .3, wo[0], wo[1], wc, false);
   drawWater(R.waterHi, 'flow', .2, wo[2], wo[3], wc, true); R.waterHi.alpha = .8 + .2 * w[2];
   // the six board falls: thick and fast on the low side, thin then dry on the high side
@@ -1225,7 +1343,7 @@ function updateBubbles(dt, now, still) {
     const sway = still ? 0 : Math.sin(b.t * 1.3 + b.ph) * b.amp;
     b.sx = b.x + sway; b.c.position.set(b.sx, b.y);
     const wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * .025; b.shell.scale.set(b.r * 2 / b.shell.texture.width * (1 + wob), b.r * 2 / b.shell.texture.width * (1 - wob));
-    b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : tint;
+    b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : U.skinBubble ? lerpColor(U.skinBubble, tint, .25) : tint;
     b.glow.tint = b.color || 0xffffff; b.glow.alpha = Math.max(w[2] * .5, b.color ? .3 : 0);   // coloured bubbles glow a little so the colour reads
     if (b.y < toWorld([0, 0])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
   }
@@ -1464,20 +1582,143 @@ document.addEventListener('click', e => {
   if (b.dataset.item) useItem(b.dataset.item);
   if (b.dataset.open === 'collection') openCollection();
   if (b.dataset.open === 'settings') openSettings();
-  if (b.hasAttribute('data-close')) { overlay('collection', false); overlay('settings', false); }
+  if (b.dataset.open === 'shop') openShop();
+  if (b.dataset.open === 'ranking') openRanking();
+  if (b.hasAttribute('data-close')) { if (!$('ov-shop').hidden) closeShop(); for (const k of ['collection', 'settings', 'ranking']) overlay(k, false); }
 });
-$('btn-guest').onclick = () => show('main');
-$('btn-signin').onclick = () => toast('Sign In is not part of this prototype. Continue as Guest to play.');
-$('btn-play').onclick = newGame;
+// sign-in (v0.4 §6.1): only the guest path works until the server exists; no pretend Google / Apple sessions
+$('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cloud', () => show('main')));
+for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).catch(() =>
+  sheet(`${pv === 'google' ? 'Google' : 'Apple'} sign-in is on its way`, 'Sign-in arrives when the game server is connected. Start as a guest for now: your garden, gold and treasures stay on this device.'));
+$('ov-sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) overlay('sheet', false); });
+$('btn-play').onclick = () => transition('bubble', newGame, [540, 1660]);
 $('place').onclick = () => doPlace();
 $('cel-ok').onclick = () => { overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
 $('stuck-pop').onclick = () => useItem('pop');
 $('stuck-ad').onclick = openAd; $('ad-refill').onclick = openAd; $('ad-cancel').onclick = cancelAd;
 $('stuck-rewind').onclick = () => useItem('rewind');
 $('stuck-end').onclick = gameOver;
-$('res-retry').onclick = newGame;
-$('res-home').onclick = () => { overlay('result', false); show('main'); };
-$('set-home').onclick = () => { overlay('settings', false); show('main'); };
+$('res-retry').onclick = () => transition('pass', newGame);
+$('res-home').onclick = () => transition('cloud', () => { overlay('result', false); show('main'); });
+$('set-home').onclick = () => transition('cloud', () => { overlay('settings', false); show('main'); });
+$('res-save').onclick = saveCard; $('res-share').onclick = shareCard;
+
+/* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skins are temporary recolours of the current art ---------- */
+const SKINS = {
+  board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 0xffd6ea, water: 0x6f6fe6 },
+          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 0xd6d2ff, water: 0x4f5cd8 }],
+  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Sky', gold: 800, hue: 120 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', hue: 70 }],
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', hue: -55 }],
+  bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 }],
+};
+const SHOP_TABS = [['board', 'Board'], ['sky', 'Sky'], ['building', 'Buildings'], ['bubble', 'Bubbles'], ['items', 'Items']];
+U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));
+U.equip = Object.assign({ board: 'frost', sky: 'day', building: 'classic', bubble: 'rainbow' }, store.get('equip', {}));
+let shopTab = 'board', preview = null;
+const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
+const hex = n => '#' + n.toString(16).padStart(6, '0');
+// hue only: in Pixi 7, chaining saturate(…, true) after hue() collapses the matrix to grey
+function hueFilter(k) { if (!k.hue) return null; const CM = PIXI.ColorMatrixFilter || PIXI.filters.ColorMatrixFilter, f = new CM(); f.hue(k.hue, false); return [f]; }
+function applySkins(sel = U.equip) {
+  if (!R) return;
+  const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
+  R.tiles.forEach(t => t.tint = b.tile || 0xffffff); U.skinWater = b.water || null;
+  const fs = hueFilter(sk); R.bgs.forEach(s2 => s2.filters = fs);
+  R.pieces.filters = hueFilter(bu); U.skinBubble = bb.tint || null;
+}
+function skinArt(cat, k) {
+  const css = k.hue ? `filter:hue-rotate(${k.hue}deg)` : '';
+  if (cat === 'board') return `<span class="art" style="background:${k.tile ? hex(k.tile) : '#eef7ff'}"><img src="assets/tile.webp" alt="" style="mix-blend-mode:multiply"></span>`;
+  if (cat === 'sky') return `<span class="art"><img src="assets/bg.webp" alt="" style="width:230px;height:200px;object-fit:cover;max-width:none;max-height:none;${css}"></span>`;
+  if (cat === 'building') return `<span class="art"><img src="${artSrc(12)}" alt="" style="${css}"></span>`;
+  return `<span class="art"><span style="position:absolute;inset:30px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:170px;position:relative"></span>`;
+}
+function openShop(tab = shopTab) {
+  shopTab = tab; preview = preview || { ...U.equip };
+  $('shop-gold').textContent = U.gold.toLocaleString('en-US');
+  $('shop-tabs').innerHTML = SHOP_TABS.map(([k, n]) => `<button class="tab" role="tab" data-shop-tab="${k}" aria-selected="${k === tab}">${n}</button>`).join('');
+  const coin = '<i class="coin"></i>';
+  if (tab === 'items') {
+    const inGame = U.screen === 'game', left = inGame ? L.CONFIG.shop.itemsPerGame - G.bought : 0, price = L.CONFIG.shop.itemPrice;
+    $('shop-hint').textContent = inGame ? `Items for this game · ${left} of ${L.CONFIG.shop.itemsPerGame} left` : 'Items can be bought during a game';
+    $('shop-cards').innerHTML = ITEMS.map(([k, n, src]) => `<button class="sk" data-buy-item="${k}" aria-label="Buy ${n} for ${price} gold"><span class="art"><img src="${src}" alt=""></span><span class="nm">${n}</span>
+      <span class="sub">+1 for this game</span><span class="act ${inGame && left > 0 ? 'buy' : 'done'}">${inGame && left > 0 ? coin + price : inGame ? 'Limit reached' : 'In game only'}</span></button>`).join('');
+  } else {
+    $('shop-hint').textContent = 'Tap a card to preview it on your garden';
+    $('shop-cards').innerHTML = SKINS[tab].map(k => {
+      const own = U.owned[tab].includes(k.id), eq = U.equip[tab] === k.id, on = preview[tab] === k.id;
+      const act = eq ? '<span class="act done">Equipped</span>' : own ? '<span class="act eq" data-equip>Equip</span>' : k.cash ? `<span class="act cash" data-cash>${k.cash}</span>` : `<span class="act buy" data-buy>${coin}${k.gold}</span>`;
+      return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${k.name}</span><span class="sub">${k.sub || (k.cash ? 'Premium' : '')}</span>${act}</button>`;
+    }).join('');
+  }
+  applySkins(preview); overlay('shop');
+  $('scr-' + U.screen).style.visibility = 'hidden';   // the garden stays visible for previews, the HUD steps aside
+}
+function closeShop() { preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
+$('ov-shop').addEventListener('click', e => {
+  const tb = e.target.closest('[data-shop-tab]'); if (tb) { openShop(tb.dataset.shopTab); return; }
+  const it = e.target.closest('[data-buy-item]');
+  if (it) {
+    if (U.screen !== 'game') { toast('Start a game to buy items.'); return; }
+    const price = L.CONFIG.shop.itemPrice; if (U.gold < price) { toast('Not enough gold yet. Yellow bubbles and finished games give gold.'); SFX.bad(); return; }
+    const r = L.buyItem(G, it.dataset.buyItem); if (!r.ok) { toast(`You can buy ${L.CONFIG.shop.itemsPerGame} items per game.`); SFX.bad(); return; }
+    addGold(-price); bumpBadge(r.item); SFX.gift(); toast(`+1 ${ITEM_NAME[r.item]}`); hud(); openShop('items'); return;
+  }
+  const card = e.target.closest('[data-skin]'); if (!card) return;
+  const k = skin(shopTab, card.dataset.skin);
+  if (e.target.closest('[data-cash]')) { sheet('Payments come with the app', `${k.name} (${k.cash}) will be sold in the App Store and Google Play versions. Nothing is charged in this prototype.`); return; }
+  if (e.target.closest('[data-buy]')) {
+    if (U.gold < k.gold) { toast('Not enough gold yet. Yellow bubbles and finished games give gold.'); SFX.bad(); return; }
+    addGold(-k.gold); U.owned[shopTab].push(k.id); store.set('owned', U.owned); SFX.gift();
+  }
+  if (e.target.closest('[data-buy]') || e.target.closest('[data-equip]')) { U.equip[shopTab] = k.id; store.set('equip', U.equip); }
+  preview[shopTab] = k.id; openShop(shopTab);
+});
+
+/* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
+function openRanking(tab = 'week') {
+  $('rk-week').setAttribute('aria-selected', tab === 'week'); $('rk-all').setAttribute('aria-selected', tab === 'all');
+  const u = SkyAuth.currentUser(); $('rk-who').textContent = u ? (u.provider === 'guest' ? 'Guest' : u.provider) : 'Guest';
+  $('rk-best').textContent = U.best.toLocaleString('en-US'); fitText($('rk-best'), 54);
+  $('rk-note').textContent = tab === 'week' ? 'Your best score on this device (all games so far)' : 'Your best score on this device';
+  overlay('ranking');
+}
+$('rk-week').onclick = () => openRanking('week'); $('rk-all').onclick = () => openRanking('all');
+
+/* ---------- result card (v0.4 §6.4): 1080x1350 image made when the result opens, so sharing starts straight from the tap ---------- */
+let cardFile = null;
+function rrect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
+function buildCard() {
+  cardFile = null; if (!app) return;
+  const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const shot = app.renderer.extract.canvas(app.stage, new PIXI.Rectangle(0, 300, 1080, 1100));   // sky + island + final garden
+  x.drawImage(shot, 0, 0, 1080, 1100);
+  const g = x.createLinearGradient(0, 1000, 0, H); g.addColorStop(0, 'rgba(191,232,255,0)'); g.addColorStop(.3, '#cdebff'); g.addColorStop(1, '#a9dcff'); x.fillStyle = g; x.fillRect(0, 1000, W, H - 1000);
+  if (IMG.logo) { const lw = 420, lh = IMG.logo.height * lw / IMG.logo.width; x.drawImage(IMG.logo, (W - lw) / 2, 20, lw, lh); }
+  x.fillStyle = 'rgba(255,255,255,.82)'; rrect(x, 40, 1010, 1000, 300, 44); x.fill(); x.lineWidth = 6; x.strokeStyle = '#fff'; x.stroke();
+  const top = IMG['b' + G.top]; if (top) { const s2 = Math.min(220 / top.width, 230 / top.height); x.drawImage(top, 70 + (220 - top.width * s2) / 2, 1045 + (230 - top.height * s2), top.width * s2, top.height * s2); }
+  x.textAlign = 'left'; x.fillStyle = '#2c74c4'; x.font = '800 34px Nunito, system-ui, sans-serif'; x.fillText('SCORE', 330, 1075);
+  x.fillStyle = '#12326e'; x.font = '900 96px Nunito, system-ui, sans-serif'; x.fillText(G.score.toLocaleString('en-US'), 326, 1170);
+  x.font = '900 44px Nunito, system-ui, sans-serif'; x.fillText(`${NAMES[G.top]} · Lv ${G.top}`, 330, 1235);
+  x.fillStyle = '#2c74c4'; x.font = '800 28px Nunito, system-ui, sans-serif'; x.fillText(localDate(), 330, 1282);
+  c.toBlob(b => { if (b) cardFile = new File([b], `skybloom-${localDate()}.jpg`, { type: 'image/jpeg' }); }, 'image/jpeg', .9);
+}
+const shareText = () => `I built ${NAMES[G.top]} (Lv ${G.top}) in Skybloom! Score ${G.score.toLocaleString('en-US')}`;   // no link by default (§6.4)
+function downloadCard() {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(cardFile); a.download = cardFile.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast('Image saved.');
+}
+function saveCard() {   // iPhone: the share sheet has "Save Image"; elsewhere a normal download
+  if (!cardFile) { toast('Preparing the image… try again in a moment.'); return; }
+  if (navigator.canShare?.({ files: [cardFile] })) navigator.share({ files: [cardFile] }).catch(() => {}); else downloadCard();
+}
+function shareCard() {
+  if (!cardFile) { toast('Preparing the image… try again in a moment.'); return; }
+  const text = shareText();
+  if (navigator.canShare?.({ files: [cardFile], text })) navigator.share({ files: [cardFile], text }).catch(() => {});
+  else if (navigator.share) navigator.share({ text }).catch(() => {});
+  else { downloadCard(); navigator.clipboard?.writeText(text).then(() => toast('Image saved and caption copied.'), () => {}); }
+}
 
 /* ---------- collection: Garden / Treasures ---------- */
 let colTab = 'garden';
@@ -1597,7 +1838,7 @@ function startEditor() {
 
 // local QA only: ?debug exposes state, a merge log and a frame-time probe (query strings never reach the shared page)
 if (location.search.includes('debug')) {
-  window.__sky = { get G() { return G; }, get app() { return app; }, get R() { return R; }, hud, toScreen, toWorld, badgePos, WTL, openAd, addGold, get sounds() { return Object.keys(SND); }, U, log: [], candidates, spawnBubble, popBubbleAt, inIsland,
+  window.__sky = { get G() { return G; }, get app() { return app; }, get R() { return R; }, hud, toScreen, toWorld, badgePos, WTL, openAd, addGold, transition, get cardFile() { return cardFile; }, get sounds() { return Object.keys(SND); }, U, log: [], candidates, spawnBubble, popBubbleAt, inIsland,
     /** Show a stage region full-window (for screenshots); call again with no args to close. */
     peek(x, y, w, h) {
       document.getElementById('peek')?.remove(); if (x == null) return;
@@ -1626,7 +1867,7 @@ function start(data) {
   Promise.all(loading).then(() => document.fonts && document.fonts.ready).then(() => {
     prepareImages();
     if (EDITOR) { startEditor(); return; }
-    initRenderer();
+    initRenderer(); applySkins();
     if (U.settings.tilt && !reduce() && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') enableSensor();
     if (data && data.G && data.G.board) { G = data.G; U.phaseTop = data.phaseTop || 0; show(data.screen || 'game'); }
     else show('login');
