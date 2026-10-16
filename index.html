@@ -403,7 +403,10 @@ body {
         <div class="row"><span data-i18n="set.tilt">Tilt Effects</span><button class="tog" role="switch" id="set-tilt" aria-label="Tilt Effects" data-i18n-aria="set.tilt"></button></div>
         <div class="row"><span data-i18n="set.reduce">Reduce Motion</span><button class="tog" role="switch" id="set-reduce" aria-label="Reduce Motion" data-i18n-aria="set.reduce"></button></div>
         <div class="row"><span data-i18n="set.lang">Language</span><button class="gel ghost" id="set-lang" style="position:relative;height:78px;padding:0 34px;font-size:38px" data-i18n="set.langValue">English</button></div>
-        <button class="gel aqua" id="set-tut" style="position:relative;height:96px;padding:0 44px;font-size:42px" data-i18n="set.tutorial">Replay Tutorial</button>
+        <div style="display:flex;gap:14px;width:100%">
+          <button class="gel aqua" id="set-tut" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.tutorial">Replay Tutorial</button>
+          <button class="gel aqua" id="set-log" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.log">Send Play Log</button>
+        </div>
         <div class="cap" id="tilt-note" style="letter-spacing:.02em;font-size:28px;line-height:1.35;color:var(--blue)"></div>
       </div>
       <button class="gel aqua" data-close style="left:200px;top:1600px;width:680px;height:140px;font-size:64px" data-i18n="set.close">Close</button>
@@ -418,6 +421,18 @@ body {
         <div style="display:flex;gap:30px;margin-top:14px">
           <button class="gel ghost" id="cf-no" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="banner.cancel">Cancel</button>
           <button class="gel aqua" id="cf-yes" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="set.logout">Log out</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer" id="ov-export" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" style="top:420px;gap:24px">
+        <h2 data-i18n="log.title">Send Play Log</h2>
+        <div class="cap" id="log-text" style="letter-spacing:.02em;font-size:34px;line-height:1.4;color:var(--navy)"></div>
+        <div style="display:flex;gap:30px;margin-top:10px">
+          <button class="gel ghost" id="log-close" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="set.close">Close</button>
+          <button class="gel aqua" id="log-send" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="log.send">Save / Share</button>
         </div>
       </div>
     </div>
@@ -447,8 +462,8 @@ body {
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
-<script src="logic.js?v=0.4.9"></script>
-<script src="auth.js?v=0.4.9"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
+<script src="logic.js?v=0.5.0"></script>
+<script src="auth.js?v=0.5.0"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
 <script>
 (() => {
 'use strict';
@@ -501,8 +516,9 @@ const store = {
 
 /* ---------- state: G = rules (logic.js), U = view-only ---------- */
 let G = L.newState();
+const APP_V = '0.5.2';
 const U = {
-  screen: 'login', best: store.get('best', 0),
+  gameT0: performance.now(), screen: 'login', best: store.get('best', 0),
   discovered: new Set(store.get('discovered', [])),
   treasures: store.get('treasures', {}),          // id -> { n, first }
   gold: store.get('gold', 0),    // v0.4 §5.1 wallet (this device)
@@ -536,7 +552,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.1`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.2`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -719,6 +735,7 @@ function hud() {
 }
 
 /* ---------- game flow ---------- */
+const stamp = () => { G.t = Math.round(performance.now() - U.gameT0); };   // action log time (ms since the game began)
 /* first-game tutorial (v0.5 §3.1): fixed board, three steps that each advance on the real action, Skip any time */
 const TUT_BOARD = [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], TUT_AT = [1, 2];   // the placed Dew Drop lands next to the one already there
 function tutRand() { const i = L.empties(G.board).findIndex(([r, c]) => r === TUT_AT[0] && c === TUT_AT[1]), n = L.empties(G.board).length; let first = true;
@@ -748,7 +765,9 @@ $('coach-skip').onclick = () => tutEnd(false);
 function newGame(tut = false) {
   const demo = DEMO[location.hash.slice(1)];
   U.tut = !demo && (tut || !store.get('tutorialDone', false)) ? 1 : 0;
-  G = L.newState(Math.random, U.tut ? TUT_BOARD : demo || null);
+  const seed = Math.floor(Math.random() * 2 ** 31), board0 = U.tut ? TUT_BOARD : demo || null;
+  G = L.newState(U.tut ? Math.random : seed, board0);   // the tutorial picks its own drop tile, so it is not seed-replayable
+  G.meta = { gameId: 'g_' + Date.now().toString(36) + seed.toString(36), startedAt: new Date().toISOString(), tutorial: !!U.tut, board0, saved: false }; U.gameT0 = performance.now();
   if (U.tut) G.next = 1;
   else tutStep(0);
   Object.assign(U, { sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, celebQueue: [], nope: null, phaseTop: 0 });
@@ -756,7 +775,7 @@ function newGame(tut = false) {
   U.celebQueue = [];
   for (const k of ['celebrate', 'result', 'stuck']) overlay(k, false);
   show('game'); hud();
-  for (const b of U.bubbles) { b.content = rollFor(b); setIcon(b); }   // bubbles already on screen may now carry items
+  for (const b of U.bubbles) { b.content = rollFor(b); setIcon(b); if (!U.tut) L.record(G, { a: 'bspawn', kind: b.content.kind }); }   // bubbles already on screen may now carry items
   if (U.tut) tutStep(1);
   else if (location.hash !== '#stuck') toast(tl(location.hash === '#sunset' ? 't.demoSunset' : location.hash === '#night' ? 't.demoNight' : 't.tapHint'), 2600);
   checkStuck();
@@ -791,7 +810,7 @@ function announceGrants(grants) {
 
 function doPlace(at = null) {
   if (busy() || tutBlock('place')) return;
-  const e = L.place(G, U.tut === 1 && !at ? tutRand() : Math.random, at);
+  stamp(); const e = L.place(G, U.tut === 1 && !at ? tutRand() : undefined, at);
   if (!e.ok) { toast(tl(e.reason === 'full' ? 't.full' : 't.pickEmpty')); SFX.bad(); return; }
   U.sel = null; U.target = null;
   startDrop(e.at[0], e.at[1], e.lv, e.viaDrop);
@@ -800,7 +819,7 @@ function doPlace(at = null) {
 }
 function doMerge(from, to) {
   if (busy()) return;
-  const e = L.merge(G, from, to);
+  stamp(); const e = L.merge(G, from, to);
   if (!e.ok) return;
   U.sel = null; U.drag = null;
   U.anim = { t0: performance.now(), dur: reduce() ? 0 : 170, e };
@@ -826,9 +845,18 @@ function checkStuck() {
   if (!L.isStuck(G.board)) return;
   const canPop = G.items.pop > 0, canRew = G.items.rewind > 0 && G.history.length > 0, canAd = L.canAdRefill(G);
   if (canPop || canRew || canAd) {
+    if ($('ov-stuck').hidden) { stamp(); L.record(G, { a: 'stuck' }); }
     $('stuck-pop').classList.toggle('dis', !canPop); $('stuck-rewind').classList.toggle('dis', !canRew); $('stuck-ad').hidden = !canAd;
     overlay('stuck');
   } else gameOver();
+}
+const fnv = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
+/** Keep the last 20 games on this device (11): the action log plus the final numbers. No name, e-mail or account id. */
+function saveGame(endedBy, endGold = 0) {
+  if (!G.meta || G.meta.saved || !G.log.length) return; G.meta.saved = true; stamp();
+  const rec = { gameId: G.meta.gameId, seed: G.seed, appVersion: APP_V, config: 'fnv:' + fnv(JSON.stringify(L.CONFIG)), startedAt: G.meta.startedAt, durationMs: G.t,
+    tutorial: G.meta.tutorial || undefined, board0: G.meta.board0 || undefined, endedBy, actions: G.log, final: { score: G.score, top: G.top, gold: G.gold + endGold } };
+  store.set('games', [...store.get('games', []), rec].slice(-20));
 }
 function gameOver() {
   overlay('stuck', false);
@@ -839,7 +867,7 @@ function gameOver() {
   $('res-best').textContent = isNew ? '' : tl('res.best', { n: U.best.toLocaleString('en-US') });
   $('res-img').src = artSrc(G.top);
   $('res-name').textContent = `${NAMES[G.top]} · Lv ${G.top}`;
-  const endG = L.endGold(G); addGold(endG);   // v0.4 §5.1: 10 + best level x 5, plus what bubbles gave this game
+  const endG = L.endGold(G); addGold(endG); saveGame('stuck', endG);   // v0.4 §5.1: 10 + best level x 5, plus what bubbles gave this game
   $('res-gold').querySelector('span').textContent = tl('res.gold', { n: (endG + G.gold).toLocaleString('en-US') });
   buildCard();   // capture the final garden before the result overlay hides it
   overlay('result');
@@ -848,14 +876,14 @@ function useItem(k) {
   if (busy() || tutBlock('item')) return;
   if (G.items[k] <= 0) { toast(tl('t.noItem', { item: itemName(k) })); SFX.bad(); return; }
   if (k === 'rewind') {
-    const before = L.clone(G.board), e = L.rewind(G);
+    stamp(); const before = L.clone(G.board), e = L.rewind(G);
     if (!e.ok) { toast(tl('t.nothingRewind')); SFX.bad(); return; }
     U.sel = null; U.target = null; rewindFx(before); SFX.rewind(); overlay('stuck', false); hud(); return;
   }
   if (k === 'drop' && !L.empties(G.board).length) { toast(tl('t.noEmptyDrop')); SFX.bad(); return; }
   U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
 }
-const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm'].some(k => !$('ov-' + k).hidden);
+const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export'].some(k => !$('ov-' + k).hidden);
 
 /* ---------- rewarded-ad mock-up (v0.4 §4.3): a clearly labelled placeholder, no real or imitation ads ---------- */
 let adTimer = 0;
@@ -869,7 +897,7 @@ function openAd() {
     if (n > 0) return;
     clearInterval(adTimer); $('ad-done').hidden = false;
     setTimeout(() => {   // reward only after the "ad" finished
-      overlay('ad', false); const e = L.adRefill(G);
+      overlay('ad', false); stamp(); const e = L.adRefill(G);
       if (e.ok) { ITEMS.forEach(([k]) => bumpBadge(k)); SFX.gift(); toast(tl('ad.granted', { n: e.each }), 2400); }
       hud(); checkStuck();
     }, 700);
@@ -893,7 +921,7 @@ function onTap(cands) {
   const tile = cands.tile, list = cands.list, primary = cands.primary;
   if (U.target) {
     const rc = U.target === 'pop' ? primary : (tile && !G.board[tile[0]][tile[1]] ? tile : null);
-    if (U.target === 'pop' && rc) { const e = L.pop(G, rc); if (e.ok) { U.target = null; wrapFx(rc[0], rc[1], e.lv); vib(20); hud(); checkStuck(); } }
+    if (U.target === 'pop' && rc) { stamp(); const e = L.pop(G, rc); if (e.ok) { U.target = null; wrapFx(rc[0], rc[1], e.lv); vib(20); hud(); checkStuck(); } }
     else if (U.target === 'drop' && rc) { U.target = null; doPlace(rc); }
     else toast(tl(U.target === 'pop' ? 't.pickBuilding' : 't.pickEmpty'));
     return;
@@ -1429,6 +1457,7 @@ function spawnBubble(content = null) {
   else if (side < .7) Object.assign(b, { x: x1 + r, y: 1000 + Math.random() * (y1 - 1000), vx: -(30 + Math.random() * 30) });
   else Object.assign(b, { x: x0 + 70 + Math.random() * (x1 - x0 - 140), y: y1 + r, vx: (Math.random() - .5) * 20 });
   b.content = content || rollFor(b);
+  if (U.screen === 'game' && !U.tut && G.log) { stamp(); L.record(G, { a: 'bspawn', kind: b.content.kind }); }
   const c = new PIXI.Container(), shell = new PIXI.Sprite(tex('bubble')), glow = new PIXI.Sprite(tex('bubble'));
   shell.anchor.set(.5); glow.anchor.set(.5); glow.blendMode = ADD(); glow.alpha = 0; shell.width = shell.height = glow.width = glow.height = r * 2;
   const icon = new PIXI.Sprite(PIXI.Texture.EMPTY); icon.anchor.set(.5); c.addChild(icon, shell, glow);
@@ -1486,7 +1515,7 @@ function popBubbleAt(b) {
     return;
   }
   if (b === U.tutBubble) tutEnd(true);
-  const dup = c.kind === 'treasure' ? gainTreasure(c.id) : false, e = L.popBubble(G, c, dup);
+  const dup = c.kind === 'treasure' ? gainTreasure(c.id) : false; stamp(); const e = L.popBubble(G, c, dup);
   if (e.kind === 'treasure') { toast(dup ? tl('t.dup', { n: e.gold }) : tl('t.newTreasure', { name: TREASURES[c.id - 1][0], rarity: tl('rarity.' + c.rarity) }), 2400, accSrc(c.id)); if (dup) addGold(e.gold); else SFX.gift(); }
   else if (e.item) fly(itemXY(e.item), () => bumpBadge(e.item));                 // icon flies to its item button
   else if (e.kind === 'gold') { fly([936, 302], () => addGold(e.gold)); floatText(`+${e.gold}`, b.sx, b.y - 20, true); }
@@ -1722,7 +1751,7 @@ $('stuck-rewind').onclick = () => useItem('rewind');
 $('stuck-end').onclick = gameOver;
 $('res-retry').onclick = () => transition('pass', newGame);
 $('res-home').onclick = () => transition('cloud', () => { overlay('result', false); show('main'); });
-$('set-home').onclick = () => transition('cloud', () => { overlay('settings', false); show('main'); });
+$('set-home').onclick = () => transition('cloud', () => { saveGame('quit'); overlay('settings', false); show('main'); });
 $('res-save').onclick = saveCard; $('res-share').onclick = shareCard;
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
@@ -1828,11 +1857,12 @@ function buildCard() {
 const shareText = () => tl('share.text', { name: NAMES[G.top], lv: G.top, score: G.score.toLocaleString('en-US') });   // no link by default (§6.4)
 // inside the claude.ai page, files go through the page's "downloads" capability (the viewer confirms); elsewhere a normal download
 const DL = window.claude?.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
-async function downloadCard() {
+const downloadCard = () => downloadFile(cardFile);
+async function downloadFile(file) {
   const dl = await DL;
-  if (dl) { try { await dl.save({ filename: cardFile.name, data: cardFile }); toast(tl('t.saved')); }
+  if (dl) { try { await dl.save({ filename: file.name, data: file }); toast(tl('t.saved')); }
     catch (e) { if (e?.code !== 'declined') toast(tl('t.saveNA')); } return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(cardFile); a.download = cardFile.name; document.body.append(a); a.click(); a.remove();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(tl('t.saved'));
 }
 function saveCard() {   // iPhone: the share sheet has "Save Image"; elsewhere a normal download
@@ -1913,6 +1943,14 @@ $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is o
   U.settings.lang = lang() === 'ko' ? 'en' : 'ko'; store.set('settings', U.settings);
   applyI18n(); tiltNote(); if (U.screen === 'game') hud(); if (U.tut) tutStep(U.tut);
 };
+/* 'Send Play Log' (11): one JSON file with the last 20 games, saved or shared by the tester */
+function openLog() { const n = store.get('games', []).length; $('log-text').textContent = tl(n ? 'log.body' : 'log.none', { n }); $('log-send').classList.toggle('dis', !n); overlay('settings', false); overlay('export'); }
+function sendLog() {
+  const games = store.get('games', []); if (!games.length) return;
+  const file = new File([JSON.stringify({ format: 'skybloom-playlog', version: 1, appVersion: APP_V, exportedAt: new Date().toISOString(), games })], `skybloom-playlog-${localDate()}.json`, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file] }).catch(() => {}); else downloadFile(file);
+}
+$('set-log').onclick = openLog; $('log-close').onclick = () => overlay('export', false); $('log-send').onclick = sendLog;
 $('set-tut').onclick = () => { overlay('settings', false); U.tut = 1; transition('bubble', () => newGame(true), [540, 1000]); };
 
 /* ======================================================================

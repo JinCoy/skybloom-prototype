@@ -71,10 +71,20 @@
   const randItem = rand => ITEM_KEYS[Math.floor(rand() * ITEM_KEYS.length)];
   const bandOf = top => { const i = CONFIG.bubbles.bands.findIndex(([hi]) => top <= hi); return i < 0 ? CONFIG.bubbles.bands.length - 1 : i; };
 
-  function newState(rand = Math.random, board = null) {
+  /* Deterministic game rng (11): the seed lives in the state as one 32-bit number `rs` (mulberry32), so the state stays plain data.
+     newState(seed) makes a seeded game; place/merge then use it unless a rand is passed. Bubbles use their own rand. */
+  function rngStep(s) { s.rs = (s.rs + 0x6D2B79F5) | 0; let t = Math.imul(s.rs ^ s.rs >>> 15, 1 | s.rs); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  const randOf = (s, rand) => rand || (s.seed != null ? () => rngStep(s) : Math.random);
+  /** Action log (Backend_Design §2.1). The UI sets s.t (ms since the game began) before an action; replay.js ignores `t`. */
+  const record = (s, e) => { s.log.push({ t: s.t || 0, ...e }); };
+  /** newState(seed | rand, board): a number is a seed; a function is used as is (tests, simulations, tutorial) and the game is not replayable. */
+  function newState(arg = Math.random, board = null) {
+    const seed = typeof arg === 'number' ? arg | 0 : null;
+    let rand = typeof arg === 'function' ? arg : null;
     const s = { board: board ? clone(board) : empty(), score: 0, items: { ...CONFIG.startItems }, combo: 0, top: 1, got: [], history: [], next: 1,
                 bandLeft: CONFIG.bubbles.bands.map(b => b[1]), bubbleItems: 0, goldBubbles: 0, gold: 0, adsUsed: 0, acted: false,
-                stats: { merges: 0, places: 0 } };
+                stats: { merges: 0, places: 0 }, seed, rs: seed || 0, t: 0, log: [] };
+    rand = rand || randOf(s);
     if (!board) for (let i = 0; i < 2; i++) { const e = empties(s.board); const [r, c] = e[Math.floor(rand() * e.length)]; s.board[r][c] = 1; }
     for (const row of s.board) for (const v of row) s.top = Math.max(s.top, v);
     s.next = rollNext(s.top, rand, s.board);
@@ -84,7 +94,8 @@
   function pushHistory(s) { s.history.push(snap(s)); if (s.history.length > CONFIG.historyLimit) s.history.shift(); s.acted = true; }
 
   /** Place the next building: random empty tile, or `at` when using Cloud Drop. */
-  function place(s, rand = Math.random, at = null) {
+  function place(s, rand, at = null) {
+    rand = randOf(s, rand);
     const e = empties(s.board);
     if (!e.length) return { ok: false, reason: 'full' };
     if (at) {
@@ -97,11 +108,13 @@
     const lv = s.next;
     s.board[r][c] = lv; s.score += pts(lv); s.combo = 0; s.top = Math.max(s.top, lv); s.stats.places++;
     s.next = rollNext(s.top, rand, s.board);
+    record(s, at ? { a: 'drop', at: [r, c] } : { a: 'place' });
     return { ok: true, type: 'place', at: [r, c], lv, viaDrop: !!at };
   }
 
   /** Move `from` into orthogonal neighbour `to` of the same level; result appears at `to`. */
-  function merge(s, from, to, rand = Math.random) {
+  function merge(s, from, to, rand) {
+    rand = randOf(s, rand);
     const [fr, fc] = from, [tr, tc] = to, b = s.board, lv = b[fr][fc];
     if (!lv || !targets(b, fr, fc).some(([r, c]) => r === tr && c === tc)) return { ok: false, reason: 'not-adjacent-same' };
     pushHistory(s);
@@ -119,6 +132,7 @@
     }
     if (s.combo % CONFIG.combo.itemEvery === 0) grants.push({ item: randItem(rand), why: 'combo', combo: s.combo });
     for (const g of grants) s.items[g.item]++;
+    record(s, { a: 'merge', from, to });
     return { ok: true, type: 'merge', from, to, lv: result, from_lv: lv, bloom, gained, combo: s.combo, mult, grants };
   }
 
@@ -128,6 +142,7 @@
     if (!s.board[r][c]) return { ok: false, reason: 'empty' };
     pushHistory(s);
     const lv = s.board[r][c]; s.board[r][c] = 0; s.items.pop--;
+    record(s, { a: 'pop', at });
     return { ok: true, type: 'pop', at, lv };
   }
 
@@ -137,6 +152,7 @@
     if (!s.history.length) return { ok: false, reason: 'nothing' };
     const left = s.items.rewind - 1, h = s.history.pop();
     Object.assign(s, { board: h.board, score: h.score, items: { ...h.items, rewind: left }, combo: h.combo, top: h.top, got: h.got, next: h.next, acted: true });
+    record(s, { a: 'rewind' });
     return { ok: true, type: 'rewind' };
   }
 
@@ -177,6 +193,7 @@
     else if (kind === 'gold') { gold = Math.max(0, Math.min(b.amount, B.goldCapPerGame - s.goldBubbles)); s.goldBubbles += gold; if (!gold) kind = 'empty'; }
     if (item) { for (const t of [s, ...s.history]) t.items[item]++; s.bubbleItems++; }
     s.gold += gold;
+    record(s, { a: 'bubble', kind: b.kind, ...(b.kind === 'item' ? { item: b.item } : b.kind === 'gold' ? { amount: b.amount } : b.kind === 'treasure' ? { id: b.id, dup: !!owned } : {}) });
     if (kind !== 'empty') s.acted = false;   // the next reward waits for another board action
     return { kind, item, id: b.id, rarity: b.rarity, gold, dup: kind === 'treasure' && owned };
   }
@@ -191,14 +208,14 @@
     if (!outOfItems(s)) return { ok: false, reason: 'has-items' };
     if (s.adsUsed >= CONFIG.ads.maxPerGame) return { ok: false, reason: 'limit' };
     for (const t of [s, ...s.history]) for (const k of ITEM_KEYS) t.items[k] += CONFIG.ads.refillPerItem;
-    s.adsUsed++;
+    s.adsUsed++; record(s, { a: 'ad' });
     return { ok: true, each: CONFIG.ads.refillPerItem, left: CONFIG.ads.maxPerGame - s.adsUsed };
   }
   const endGold = s => CONFIG.gold.endBase + s.top * CONFIG.gold.endPerLevel;
   const firstBuildGold = lv => lv * CONFIG.gold.firstBuildPerLevel;
 
   const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, isReward, bubbleCanItem, popBubble, bandOf,
-                outOfItems, canAdRefill, adRefill, menuBubble, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
+                outOfItems, canAdRefill, adRefill, menuBubble, record, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
                 spawnRange, rollNext, comboMult, newState, place, merge, pop, rewind };
   if (typeof module !== 'undefined') module.exports = api; else root.SkyLogic = api;
 })(this);

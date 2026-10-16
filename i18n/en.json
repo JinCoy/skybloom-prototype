@@ -169,5 +169,10 @@
   "set.logout": "Log out",
   "set.logoutQ": "Log out?",
   "set.logoutBody": "Your progress stays on this device.",
-  "set.cont": "Reselect After Merge"
+  "set.cont": "Reselect After Merge",
+  "set.log": "Send Play Log",
+  "log.title": "Send Play Log",
+  "log.send": "Save / Share",
+  "log.body": "Saves one file with your last {n} games: every move, bubble pop, item and ad mock-up, plus score and time. No name, e-mail or account ID is included. Send the file to whoever asked you to test.",
+  "log.none": "No games saved yet. Play a game first, then come back."
 }
