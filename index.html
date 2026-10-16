@@ -1704,7 +1704,12 @@ function buildCard() {
   c.toBlob(b => { if (b) cardFile = new File([b], `skybloom-${localDate()}.jpg`, { type: 'image/jpeg' }); }, 'image/jpeg', .9);
 }
 const shareText = () => `I built ${NAMES[G.top]} (Lv ${G.top}) in Skybloom! Score ${G.score.toLocaleString('en-US')}`;   // no link by default (§6.4)
-function downloadCard() {
+// inside the claude.ai page, files go through the page's "downloads" capability (the viewer confirms); elsewhere a normal download
+const DL = window.claude?.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+async function downloadCard() {
+  const dl = await DL;
+  if (dl) { try { await dl.save({ filename: cardFile.name, data: cardFile }); toast('Image saved.'); }
+    catch (e) { if (e?.code !== 'declined') toast('Saving is not available here. Try the test site in a browser.'); } return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(cardFile); a.download = cardFile.name; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast('Image saved.');
 }
