@@ -177,6 +177,7 @@ body {
 /* 10-2 B3: the panel slides down to a 120px strip so the whole garden preview is visible; ▲ brings it back */
 #shop-panel { transition: transform .3s cubic-bezier(.2, .8, .25, 1); }
 #shop-panel.down { transform: translateY(470px); }
+#shop-panel.down { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }   /* folded: only the arrow stays */
 #shop-panel > .tabs, #shop-panel > .shop-cards { transition: opacity .2s; }
 #shop-panel.down > .tabs, #shop-panel.down > .shop-cards { opacity: 0; pointer-events: none; }
 #shop-dim { transition: opacity .3s; }
