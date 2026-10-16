@@ -439,9 +439,12 @@ const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 2];
 // v0.4 §2.1: island, board, buildings, bubbles and effects are one "world" drawn 1.1x around the board centre; the HUD is not scaled
 const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
-const artSrc = lv => `assets/b${String(lv).padStart(2, '0')}.webp`;
+const artSrc = lv => `assets/${U && U.bset === 'candy' ? 'c' : 'b'}${String(lv).padStart(2, '0')}.webp`;
+// building image key for the active set; Candy Glass falls back to Classic until its image has loaded
+const bkey = lv => U.bset === 'candy' && IMG['c' + lv] ? 'c' + lv : 'b' + lv;
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
-const GUIDE = { 13: [220, 0, 828, 996], 14: [85, 28, 957, 992], 15: [110, 119, 937, 945], 16: [87, 24, 938, 991], 17: [99, 73, 929, 977] };
+const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [110, 119, 937, 945], b16: [87, 24, 938, 991], b17: [99, 73, 929, 977],
+  c13: [223, 16, 829, 978], c14: [92, 29, 958, 991], c15: [81, 98, 945, 957], c16: [101, 25, 925, 962], c17: [111, 49, 913, 967] };
 // island silhouette in the backgrounds (flat top + rock underside): bubbles pass behind it and cannot be tapped there
 const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935];
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
@@ -488,12 +491,15 @@ function trimCanvas(im) {   // crop transparent margins (windmill body is export
 }
 function prepareImages() {
   if (IMG.body && IMG.sails) IMG.b6 = trimCanvas(IMG.body);   // Lv6 = sail-less body + a spinning sails layer
-  for (let lv = 1; lv <= 17; lv++) {   // alpha masks so taps hit what is actually drawn, not the transparent box
-    const im = IMG['b' + lv]; if (!im) continue;
-    try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
-      MASK[lv] = { w: im.width, h: im.height, a: x.getImageData(0, 0, im.width, im.height).data }; } catch { /* box hit fallback */ }
-  }
+  for (let lv = 1; lv <= 17; lv++) maskOf('b' + lv);
 }
+function maskOf(k) {   // alpha mask so taps hit what is actually drawn, not the transparent box
+  const im = IMG[k]; if (!im || MASK[k]) return;
+  try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    MASK[k] = { w: im.width, h: im.height, a: x.getImageData(0, 0, im.width, im.height).data }; } catch { /* box hit fallback */ }
+}
+const loadSet = {};   // skins load the first time they are previewed or equipped
+function loadSkinArt(keys) { return Promise.all(keys.map(([k, src]) => IMG[k] ? null : loadSet[k] || (loadSet[k] = load(k, src).then(() => maskOf(k))))); }
 
 /* ---------- audio ---------- */
 let AC = null, musicNodes = null;
@@ -916,8 +922,8 @@ const mix3 = (w, a, b, c) => lerpColor(lerpColor(a, b, w[1] / Math.max(1e-6, w[0
 
 /* ---------- building sprite size (shared with taps) ---------- */
 function sprite(lv) {
-  const im = IMG['b' + lv]; if (!im) return null;
-  const gb = GUIDE[lv];
+  const k = bkey(lv), im = IMG[k]; if (!im) return null;
+  const gb = GUIDE[k];
   if (gb) { const s = .97 * TW / 640;   // ox/oy: offset of the drawn box from the default (centred, bottom at centre+.4TH)
     return { im, w: (gb[2] - gb[0]) * s, h: (gb[3] - gb[1]) * s, ox: ((gb[0] + gb[2]) / 2 - 512) * s, oy: (gb[3] - 820) * s - .4 * TH }; }
   const want = (HR[lv] * TH + .4 * TH) * CAL[lv];
@@ -927,10 +933,12 @@ function sprite(lv) {
 
 /* ---------- motion map: parts are clipped out of the sprite once, then animated as plain sprites ---------- */
 const BAKE = {};
+// The motion map was drawn on the Classic art. Candy Glass keeps only the overlay effects that do not copy image regions.
+const motionFor = lv => (MOTION[lv] || []).filter(p => bkey(lv)[0] === 'b' || ['sparkle', 'ripple', 'rise', 'petals'].includes(p.type));
 function bake(lv) {
-  const img = IMG['b' + lv]; if (!img) return (BAKE[lv] = []);
+  const k = bkey(lv), img = IMG[k]; if (!img) return (BAKE[k] = []);
   const W = img.width, H = img.height;
-  BAKE[lv] = (MOTION[lv] || []).map(p => {
+  BAKE[k] = motionFor(lv).map(p => {
     if (!p.poly || p.poly.length < 3) return null;
     const pts = p.poly.map(([x, y]) => [x * W, y * H]), xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
     const x0 = Math.max(0, Math.floor(Math.min(...xs))), y0 = Math.max(0, Math.floor(Math.min(...ys)));
@@ -943,14 +951,14 @@ function bake(lv) {
     }
     return b;
   });
-  return BAKE[lv];
+  return BAKE[k];
 }
 /** One building on screen: base sprite + additive glow copy (Garden Pulse / night) + its motion parts. Local units = texture px, origin = bottom centre. */
 function makeInst(lv) {
-  const T = genTextures(), base = tex('b' + lv), W = base.width, H = base.height, c = new PIXI.Container();
+  const key = bkey(lv), T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
-  const B = BAKE[lv] || bake(lv), L2 = (u, v) => [u - W / 2, v - H];
-  const parts = (MOTION[lv] || []).map((p, i) => {
+  const B = BAKE[key] || bake(lv), L2 = (u, v) => [u - W / 2, v - H];
+  const parts = motionFor(lv).map((p, i) => {
     const b = B[i], P = { p, ph: Math.random() * 6 };
     const at = (nx, ny) => L2(nx * W, ny * H);
     if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
@@ -979,7 +987,7 @@ function makeInst(lv) {
     return P;
   });
   const glow = new PIXI.Sprite(base); glow.anchor.set(.5, 1); glow.blendMode = ADD(); glow.alpha = 0; c.addChild(glow);
-  return { lv, c, glow, parts, W, H, ph: Math.random() * 10 };
+  return { lv, key, c, glow, parts, W, H, ph: Math.random() * 10 };
 }
 /** Animate one building's parts. t = motion clock (frozen under Reduce Motion), s = on-screen scale (px per texture px). */
 function updateInst(I, t, dt, s, still) {
@@ -1209,7 +1217,7 @@ function cloudFx(r, c) {   // Cloud Drop: puffs gather above the tile, then a li
 }
 function ghostOf(lv, r, c) {   // plain sprite copy of a building, placed like the board does
   const sp = sprite(lv); if (!sp || !R) return null;
-  const t = tex('b' + lv), g = new PIXI.Sprite(t), [x, y] = center(r, c); g.anchor.set(.5, 1); g.scale.set(sp.w / t.width); g.position.set(x + sp.ox, y + .4 * TH + sp.oy); return g;
+  const t = tex(bkey(lv)), g = new PIXI.Sprite(t), [x, y] = center(r, c); g.anchor.set(.5, 1); g.scale.set(sp.w / t.width); g.position.set(x + sp.ox, y + .4 * TH + sp.oy); return g;
 }
 function updateBoard(dt, now, still) {
   const inGame = U.screen === 'game', board = inGame ? G.board : SHOW, w = U.phaseW;
@@ -1256,7 +1264,7 @@ function updateBoard(dt, now, still) {
   for (const p of pieces) {
     const sp = sprite(p.lv); if (!sp) continue;
     let I = R.inst.get(p.key);
-    if (!I || I.lv !== p.lv) { if (I) I.c.destroy({ children: true }); I = makeInst(p.lv); R.inst.set(p.key, I); R.pieces.addChild(I.c); }
+    if (!I || I.lv !== p.lv || I.key !== bkey(p.lv)) { if (I) I.c.destroy({ children: true }); I = makeInst(p.lv); R.inst.set(p.key, I); R.pieces.addChild(I.c); }
     seen.add(p.key);
     const [x, y] = p.x != null ? [p.x, p.y] : center(p.r, p.c);
     let k = p.k || 1, dy = p.lift || 0, alpha = p.alpha || 1, dx = 0, kx = 1, ky = 1;
@@ -1283,7 +1291,7 @@ function updateBoard(dt, now, still) {
     I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
     I.glow.alpha = gardenPulse(x, y - 60) * .38 + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
     updateInst(I, TP, dt, s * k, still);
-    if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
+    if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, key: I.key, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
   }
   for (const [key, I] of R.inst) if (!seen.has(key)) { I.c.destroy({ children: true }); R.inst.delete(key); }
   // hint arrows and badges stay outside the colour grading so they always read clearly
@@ -1489,7 +1497,7 @@ function tileAt(x, y) {
 }
 function opaqueAt(d, x, y) {
   if (x < d.x || x > d.x + d.w || y < d.y || y > d.y + d.h) return false;
-  const m = MASK[d.lv]; if (!m) return true;
+  const m = MASK[d.key]; if (!m) return true;
   const px = Math.floor((x - d.x) / d.w * m.w), py = Math.floor((y - d.y) / d.h * m.h);
   return m.a[(py * m.w + px) * 4 + 3] > 40;
 }
@@ -1603,12 +1611,12 @@ $('res-home').onclick = () => transition('cloud', () => { overlay('result', fals
 $('set-home').onclick = () => transition('cloud', () => { overlay('settings', false); show('main'); });
 $('res-save').onclick = saveCard; $('res-share').onclick = shareCard;
 
-/* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skins are temporary recolours of the current art ---------- */
+/* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
-  board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 0xffd6ea, water: 0x6f6fe6 },
-          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 0xd6d2ff, water: 0x4f5cd8 }],
-  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Sky', gold: 800, hue: 120 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', hue: 70 }],
-  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', hue: -55 }],
+  board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 'tile_petal', water: 0x6f6fe6 },
+          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 }],
+  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default', bg: 'bg' }, { id: 'blossom', name: 'Blossom Island', gold: 800, bg: 'bg_blossom' }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', bg: 'bg_aurora' }],
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 }],
 };
 const SHOP_TABS = [['board', 'Board'], ['sky', 'Sky'], ['building', 'Buildings'], ['bubble', 'Bubbles'], ['items', 'Items']];
@@ -1617,20 +1625,25 @@ U.equip = Object.assign({ board: 'frost', sky: 'day', building: 'classic', bubbl
 let shopTab = 'board', preview = null;
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
-// hue only: in Pixi 7, chaining saturate(…, true) after hue() collapses the matrix to grey
-function hueFilter(k) { if (!k.hue) return null; const CM = PIXI.ColorMatrixFilter || PIXI.filters.ColorMatrixFilter, f = new CM(); f.hue(k.hue, false); return [f]; }
+const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bg_blossom: 'bg_blossom', bg_aurora: 'bg_aurora' };
 function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
-  R.tiles.forEach(t => t.tint = b.tile || 0xffffff); U.skinWater = b.water || null;
-  const fs = hueFilter(sk); R.bgs.forEach(s2 => s2.filters = fs);
-  R.pieces.filters = hueFilter(bu); U.skinBubble = bb.tint || null;
+  const need = [b.tile, sk.bg].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]);
+  if (bu.set === 'candy') for (let lv = 1; lv <= 17; lv++) need.push(['c' + lv, `assets/c${String(lv).padStart(2, '0')}.webp`]);
+  const missing = need.filter(([k]) => !IMG[k]);
+  if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
+  const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;
+  R.tiles.forEach(t => { t.texture = tt; t.width = tw; t.height = tt.height * tw / tt.width; });
+  U.skinWater = b.water || null;
+  R.bgs[0].texture = tex(IMG[sk.bg] ? sk.bg : 'bg');
+  const set = bu.set || null; if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
+  U.skinBubble = bb.tint || null;
 }
 function skinArt(cat, k) {
-  const css = k.hue ? `filter:hue-rotate(${k.hue}deg)` : '';
-  if (cat === 'board') return `<span class="art" style="background:${k.tile ? hex(k.tile) : '#eef7ff'}"><img src="assets/tile.webp" alt="" style="mix-blend-mode:multiply"></span>`;
-  if (cat === 'sky') return `<span class="art"><img src="assets/bg.webp" alt="" style="width:230px;height:200px;object-fit:cover;max-width:none;max-height:none;${css}"></span>`;
-  if (cat === 'building') return `<span class="art"><img src="${artSrc(12)}" alt="" style="${css}"></span>`;
+  if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="assets/${SKIN_FILES[k.tile] || 'tile'}.webp" alt=""></span>`;
+  if (cat === 'sky') return `<span class="art"><img src="assets/${SKIN_FILES[k.bg] || 'bg'}.webp" alt="" style="width:230px;height:200px;object-fit:cover;max-width:none;max-height:none"></span>`;
+  if (cat === 'building') return `<span class="art"><img src="assets/${k.set === 'candy' ? 'c' : 'b'}12.webp" alt=""></span>`;
   return `<span class="art"><span style="position:absolute;inset:30px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:170px;position:relative"></span>`;
 }
 function openShop(tab = shopTab) {
@@ -1696,7 +1709,7 @@ function buildCard() {
   const g = x.createLinearGradient(0, 1000, 0, H); g.addColorStop(0, 'rgba(191,232,255,0)'); g.addColorStop(.3, '#cdebff'); g.addColorStop(1, '#a9dcff'); x.fillStyle = g; x.fillRect(0, 1000, W, H - 1000);
   if (IMG.logo) { const lw = 420, lh = IMG.logo.height * lw / IMG.logo.width; x.drawImage(IMG.logo, (W - lw) / 2, 20, lw, lh); }
   x.fillStyle = 'rgba(255,255,255,.82)'; rrect(x, 40, 1010, 1000, 300, 44); x.fill(); x.lineWidth = 6; x.strokeStyle = '#fff'; x.stroke();
-  const top = IMG['b' + G.top]; if (top) { const s2 = Math.min(220 / top.width, 230 / top.height); x.drawImage(top, 70 + (220 - top.width * s2) / 2, 1045 + (230 - top.height * s2), top.width * s2, top.height * s2); }
+  const top = IMG[bkey(G.top)]; if (top) { const s2 = Math.min(220 / top.width, 230 / top.height); x.drawImage(top, 70 + (220 - top.width * s2) / 2, 1045 + (230 - top.height * s2), top.width * s2, top.height * s2); }
   x.textAlign = 'left'; x.fillStyle = '#2c74c4'; x.font = '800 34px Nunito, system-ui, sans-serif'; x.fillText('SCORE', 330, 1075);
   x.fillStyle = '#12326e'; x.font = '900 96px Nunito, system-ui, sans-serif'; x.fillText(G.score.toLocaleString('en-US'), 326, 1170);
   x.font = '900 44px Nunito, system-ui, sans-serif'; x.fillText(`${NAMES[G.top]} · Lv ${G.top}`, 330, 1235);
