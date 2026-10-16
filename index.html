@@ -188,7 +188,7 @@ body {
 @keyframes deny { 15% { transform: translateX(-16px); } 35% { transform: translateX(16px); } 55% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 @keyframes bought { 0% { transform: scale(.9); box-shadow: 0 0 0 0 rgba(255, 220, 80, .95); } 40% { transform: scale(1.08); box-shadow: 0 0 0 26px rgba(255, 220, 80, .0), 0 0 40px 12px rgba(255, 232, 120, .9); } 100% { transform: scale(1); } }
 @keyframes equipflash { 0% { box-shadow: 0 0 0 0 rgba(143, 224, 255, .95); } 100% { box-shadow: 0 0 0 30px rgba(143, 224, 255, 0); } }
-#shop-fold { background: url(assets/fold_arrow.webp) center / contain no-repeat; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }   /* Frutiger Aero glass arrow (Higgsfield art) */
+#shop-fold { background: url(assets/fold_arrow.webp) center / 75px auto no-repeat; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }   /* Frutiger Aero glass arrow (Higgsfield art), drawn at 50% size; the button keeps its full tap area */
 #shop-fold.up { background-image: url(assets/unfold_arrow.webp); }
 #shop-fold::before { display: none; }
 #shop-dim.off { opacity: 0; }
@@ -569,7 +569,7 @@ const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.5`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.6`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
