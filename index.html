@@ -181,6 +181,8 @@ body {
 #shop-panel > .tabs, #shop-panel > .shop-cards { transition: opacity .2s; }
 #shop-panel.down > .tabs, #shop-panel.down > .shop-cards { opacity: 0; pointer-events: none; }
 #shop-dim { transition: opacity .3s; }
+#shop-fold { background: none; border: 0; box-shadow: none; color: #1e6fd0; text-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 2px 4px rgba(10, 60, 130, .4); font-size: 80px !important; }   /* just the arrow, no box */
+#shop-fold::before { display: none; }
 #shop-dim.off { opacity: 0; }
 /* ranking */
 .rk-empty { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 30px 0; }
