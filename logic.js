@@ -20,6 +20,8 @@
                rarity: { C: 0.7, R: 0.25, L: 0.05 } },
     ads: { refillPerItem: 2, maxPerGame: 5 },              // v0.4 §4.3: rewarded ad when no item can help any more
     gold: { endBase: 10, endPerLevel: 5, firstBuildPerLevel: 10 },
+    // 11-2 speed mode: a building is placed automatically; interval = startSec x shrink^floor(time / shrinkEverySec), never below minSec. Any placement restarts the timer.
+    speed: { startSec: 10, shrinkEverySec: 30, shrink: 0.85, minSec: 3 },
     combo: { bonusPerStep: 0.1, maxMult: 2.0, itemEvery: 5 },
     milestoneLevels: [5, 7, 9, 10, 12],
     phases: { sunsetAt: 12, nightAt: 15 },
@@ -83,7 +85,7 @@
     let rand = typeof arg === 'function' ? arg : null;
     const s = { board: board ? clone(board) : empty(), score: 0, items: { ...CONFIG.startItems }, combo: 0, top: 1, got: [], history: [], next: 1,
                 bandLeft: CONFIG.bubbles.bands.map(b => b[1]), bubbleItems: 0, goldBubbles: 0, gold: 0, adsUsed: 0, acted: false,
-                stats: { merges: 0, places: 0 }, seed, rs: seed || 0, t: 0, log: [] };
+                stats: { merges: 0, places: 0 }, seed, rs: seed || 0, t: 0, log: [], mode: 'normal', nextAt: null };
     rand = rand || randOf(s);
     if (!board) for (let i = 0; i < 2; i++) { const e = empties(s.board); const [r, c] = e[Math.floor(rand() * e.length)]; s.board[r][c] = 1; }
     for (const row of s.board) for (const v of row) s.top = Math.max(s.top, v);
@@ -93,8 +95,22 @@
   const snap = s => ({ board: clone(s.board), score: s.score, items: { ...s.items }, combo: s.combo, top: s.top, got: s.got.slice(), next: s.next });
   function pushHistory(s) { s.history.push(snap(s)); if (s.history.length > CONFIG.historyLimit) s.history.shift(); s.acted = true; }
 
+  /* ---------- speed mode (11-2): play time `t` is in ms and only runs while the game is not paused ---------- */
+  const speedMs = t => { const S = CONFIG.speed; return Math.round(Math.max(S.minSec, S.startSec * S.shrink ** Math.floor(t / (S.shrinkEverySec * 1000))) * 1000); };
+  function startSpeed(s) { s.mode = 'speed'; s.nextAt = s.t + speedMs(s.t); return s; }
+  /** Run every automatic placement that is due by time t (before any action stamped t). A full board skips that turn and waits one more interval.
+      Returns the placements made, for the UI to animate. */
+  function speedAdvance(s, t) {
+    const out = [], prev = s.t;
+    for (let guard = 0; s.mode === 'speed' && s.nextAt <= t && guard < 1000; guard++) {
+      const due = s.nextAt; s.t = due;
+      const e = place(s, null, null, true);
+      if (e.ok) out.push(e); else s.nextAt = due + speedMs(due);
+    }
+    s.t = Math.max(prev, t); return out;
+  }
   /** Place the next building: random empty tile, or `at` when using Cloud Drop. */
-  function place(s, rand, at = null) {
+  function place(s, rand, at = null, auto = false) {
     rand = randOf(s, rand);
     const e = empties(s.board);
     if (!e.length) return { ok: false, reason: 'full' };
@@ -108,7 +124,8 @@
     const lv = s.next;
     s.board[r][c] = lv; s.score += pts(lv); s.combo = 0; s.top = Math.max(s.top, lv); s.stats.places++;
     s.next = rollNext(s.top, rand, s.board);
-    record(s, at ? { a: 'drop', at: [r, c] } : { a: 'place' });
+    record(s, at ? { a: 'drop', at: [r, c] } : { a: auto ? 'auto' : 'place' });
+    if (s.mode === 'speed') s.nextAt = s.t + speedMs(s.t);
     return { ok: true, type: 'place', at: [r, c], lv, viaDrop: !!at };
   }
 
@@ -215,7 +232,7 @@
   const firstBuildGold = lv => lv * CONFIG.gold.firstBuildPerLevel;
 
   const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, isReward, bubbleCanItem, popBubble, bandOf,
-                outOfItems, canAdRefill, adRefill, menuBubble, record, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
+                outOfItems, canAdRefill, adRefill, menuBubble, record, speedMs, startSpeed, speedAdvance, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
                 spawnRange, rollNext, comboMult, newState, place, merge, pop, rewind };
   if (typeof module !== 'undefined') module.exports = api; else root.SkyLogic = api;
 })(this);
