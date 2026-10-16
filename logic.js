@@ -16,11 +16,10 @@
                bands: [[5, 5], [8, 4], [12, 3], [15, 2], [17, 1]],   // [highest level in band, item quota] = 15 per game
                odds: { item: 0.6, treasure: 0.2, gold: 0.15 },        // while the band still has items (item odds x share left)
                oddsNoItem: { treasure: 0.25, gold: 0.2 },             // once the band's items are gone
-               goldAmount: [5, 15], goldCapPerGame: 100, dupTreasureGold: 10,
+               goldAmount: [5, 15], menuGold: { everyMin: 60, amount: 10 }, goldCapPerGame: 100, dupTreasureGold: 10,
                rarity: { C: 0.7, R: 0.25, L: 0.05 } },
     ads: { refillPerItem: 2, maxPerGame: 5 },              // v0.4 §4.3: rewarded ad when no item can help any more
     gold: { endBase: 10, endPerLevel: 5, firstBuildPerLevel: 10 },
-    shop: { itemPrice: 60, itemsPerGame: 3 },             // v0.4 §5.2: items for gold, a few per game (the slow path next to ads)
     combo: { bonusPerStep: 0.1, maxMult: 2.0, itemEvery: 5 },
     milestoneLevels: [5, 7, 9, 10, 12],
     phases: { sunsetAt: 12, nightAt: 15 },
@@ -74,7 +73,7 @@
 
   function newState(rand = Math.random, board = null) {
     const s = { board: board ? clone(board) : empty(), score: 0, items: { ...CONFIG.startItems }, combo: 0, top: 1, got: [], history: [], next: 1,
-                bandLeft: CONFIG.bubbles.bands.map(b => b[1]), bubbleItems: 0, goldBubbles: 0, gold: 0, adsUsed: 0, bought: 0, acted: false,
+                bandLeft: CONFIG.bubbles.bands.map(b => b[1]), bubbleItems: 0, goldBubbles: 0, gold: 0, adsUsed: 0, acted: false,
                 stats: { merges: 0, places: 0 } };
     if (!board) for (let i = 0; i < 2; i++) { const e = empties(s.board); const [r, c] = e[Math.floor(rand() * e.length)]; s.board[r][c] = 1; }
     for (const row of s.board) for (const v of row) s.top = Math.max(s.top, v);
@@ -162,6 +161,12 @@
     }
     return { kind: 'empty' };
   }
+  /** Login/main screens (10-2 A1): only empty bubbles, except one gold bubble once 60+ minutes passed since the last menu gold.
+      No stacking: it is a yes/no on the elapsed time. lastGoldAt = ms timestamp, or null before the first run (caller sets it to now). */
+  function menuBubble(now, lastGoldAt) {
+    const M = CONFIG.bubbles.menuGold;
+    return lastGoldAt != null && now - lastGoldAt >= M.everyMin * 60000 ? { kind: 'gold', amount: M.amount } : { kind: 'empty' };
+  }
   const isReward = b => b.kind !== 'empty';
   /** Apply a popped bubble to a game. Grants happen outside the action history, so Rewind never takes them back.
       An item bubble whose band quota was used up meanwhile turns empty; gold stops at the per-game cap. */
@@ -189,18 +194,11 @@
     s.adsUsed++;
     return { ok: true, each: CONFIG.ads.refillPerItem, left: CONFIG.ads.maxPerGame - s.adsUsed };
   }
-  /** Buy one item for gold during a game (the caller takes the gold). Survives Rewind like other outside grants. */
-  function buyItem(s, k) {
-    if (!ITEM_KEYS.includes(k)) return { ok: false, reason: 'unknown' };
-    if (s.bought >= CONFIG.shop.itemsPerGame) return { ok: false, reason: 'limit' };
-    for (const t of [s, ...s.history]) t.items[k]++;
-    s.bought++; return { ok: true, item: k, left: CONFIG.shop.itemsPerGame - s.bought, price: CONFIG.shop.itemPrice };
-  }
   const endGold = s => CONFIG.gold.endBase + s.top * CONFIG.gold.endPerLevel;
   const firstBuildGold = lv => lv * CONFIG.gold.firstBuildPerLevel;
 
   const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, isReward, bubbleCanItem, popBubble, bandOf,
-                outOfItems, canAdRefill, adRefill, buyItem, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
+                outOfItems, canAdRefill, adRefill, menuBubble, endGold, firstBuildGold, pts, empty, clone, empties, targets, canMerge, isStuck,
                 spawnRange, rollNext, comboMult, newState, place, merge, pop, rewind };
   if (typeof module !== 'undefined') module.exports = api; else root.SkyLogic = api;
 })(this);
