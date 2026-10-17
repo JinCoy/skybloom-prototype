@@ -12,6 +12,10 @@ import { badgePos, updateTilt } from './input.js?v=0.6.8';
    ====================================================================== */
 export const ADD = () => PIXI.BLEND_MODES.ADD;
 const TEXC = {};
+// single clouds in assets/cloud_atlas.webp: [x, y, w, h] each (03_Sprites/Ambient/make_cloud_atlas.py prints this array)
+const CLOUD_FRAMES = [[0, 0, 340, 287], [342, 0, 364, 258], [0, 289, 336, 240], [338, 289, 281, 226], [621, 289, 319, 203], [0, 531, 253, 189], [255, 531, 307, 185], [564, 531, 242, 170], [0, 722, 308, 170], [310, 722, 265, 159], [577, 722, 170, 119], [749, 722, 170, 106], [0, 894, 157, 105], [159, 894, 159, 105], [320, 894, 146, 105], [468, 894, 156, 104], [626, 894, 142, 98], [770, 894, 113, 80], [0, 1001, 172, 79], [174, 1001, 172, 76], [348, 1001, 140, 75], [490, 1001, 159, 72], [651, 1001, 142, 72], [795, 1001, 142, 71], [0, 1082, 150, 71], [152, 1082, 141, 69], [295, 1082, 118, 68], [415, 1082, 105, 50]];
+// held-still clouds: [x, y, depth 0..1] in world units; the drifting ones are random (spawnCloud)
+const STILL_CLOUDS = [[150, 235, .25], [900, 170, .6], [520, 400, .35], [985, 520, .75], [70, 610, .45], [610, 105, .15]];
 export const tex = k => TEXC[k] || (TEXC[k] = IMG[k] ? PIXI.Texture.from(IMG[k]) : PIXI.Texture.EMPTY);
 function canvasTex(w, h, paint) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return PIXI.Texture.from(c); }
 let GEN = null;
@@ -200,7 +204,21 @@ export function initRenderer() {
   const auroras = ['auroraA', 'auroraB'].map(k => { const s = new PIXI.Sprite(tex(k)); s.anchor.set(.5, 0); s.position.set(540, 0); s.blendMode = ADD(); s.alpha = 0; world.addChild(s); return s; });
   const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
-  const clouds = [cloud('cloudFar', -90, .9, .7), cloud('cloudMid', 120, .9, .8)];
+  const clouds = [];   // [0] = the foreground bank (pushed below)
+  // sky clouds: single sprites from the atlas. Some hold still, the rest drift; size, height and speed follow a random depth (big = near = faster)
+  const skyC = new PIXI.Container(); world.addChild(skyC);
+  const cloudTex = IMG.cloudAtlas ? CLOUD_FRAMES.map(([x, y, w, h]) => new PIXI.Texture(tex('cloudAtlas').baseTexture, new PIXI.Rectangle(x, y, w, h))) : [];
+  const spawnCloud = (o, x) => {
+    const d = Math.pow(Math.random(), 1.3), s = o.s;   // more distant (small, faint, slow) clouds than near ones
+    s.texture = cloudTex[Math.floor(Math.random() * cloudTex.length)]; o.d = d; s.scale.set(.6 + d * 1.0); s.alpha = .6 + d * .35;
+    o.v = 6 + d * 14; o.par = 6 + d * 24; o.y = 110 + Math.random() * 540; s.y = o.y; o.x = x;
+  };
+  const skyClouds = cloudTex.length ? [...STILL_CLOUDS.map(([x, y, d], i) => ({ x, y, d, v: 0, par: 0, still: true })), ...Array.from({ length: 8 }, () => ({ still: false }))].map((o, i) => {
+    const s = new PIXI.Sprite(cloudTex[0]); s.anchor.set(0, .5); o.s = s; o.px = 0; skyC.addChild(s);
+    if (o.still) { s.texture = cloudTex[Math.floor(Math.random() * cloudTex.length)]; s.scale.set(.6 + o.d * 1.0); s.alpha = .6 + o.d * .35; s.y = o.y; s.x = o.x; }
+    else spawnCloud(o, -150 + Math.random() * 1300);   // drifting ones start spread across the sky, not in a row
+    return o;
+  }) : [];
   // bubbles live behind the island (hole mask) and behind every building
   const bubbleLayer = new PIXI.Container(), hole = new PIXI.Graphics();
   hole.beginFill(0xffffff).drawRect(-200, -200, 1480, 2320).beginHole().drawPolygon(ISLAND).endHole().endFill();
@@ -230,7 +248,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, rays, auroras, stars, aw: 0, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, rays, auroras, stars, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -274,9 +292,13 @@ function updateSky(dt, still) {
   const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
   R.lights[0].alpha = .55 * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
   const tint = mix3(w, 0xffffff, 0xffc4b0, 0x6878b0);
-  R.clouds.forEach((c, i) => {   // far / mid / near cross the screen in 140 / 90 / 60 s
-    if (!calm) c.tilePosition.x -= 1080 / [140, 90, 60][i] * dt / c.tileScale.x;
-    c.x = -80 - T.x * [16, 32, 48][i]; c.tint = tint;   // v0.4: stronger parallax
+  const bank = R.clouds[0];   // the bottom cloud bank only drifts by itself: no tilt parallax, so it never reacts to motion
+  if (!calm) bank.tilePosition.x -= 1080 / 60 * dt / bank.tileScale.x;
+  bank.x = -80; bank.tint = tint;
+  R.skyClouds.forEach(o => {   // held-still clouds never move; drifting ones wrap around with a new random shape, size and height
+    const s = o.s; if (!o.still && !calm) { o.x -= o.v * dt; if (o.x < -s.width) R.spawnCloud(o, 1080 + 30 + Math.random() * 260); }
+    if (!o.still && !calm) o.px = T.x * o.par;   // slight tilt parallax, held when the setting turns the motion off
+    s.x = o.x - o.px; s.tint = tint;
   });
   // sun rays turn slowly and shimmer in the day; aurora fades in at night and with the Aurora Sky skin; stars twinkle at night
   R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = .2 * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9));
