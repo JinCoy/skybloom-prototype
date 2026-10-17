@@ -6,6 +6,7 @@ import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.2';
 import { updateBubbles } from './bubbles.js?v=0.7.2';
 import { updateFx } from './drawfx.js?v=0.7.2';
 import { badgePos, updateTilt } from './input.js?v=0.7.2';
+import { perfGuard } from './perfguard.js?v=0.7.2';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -273,6 +274,7 @@ function frame() {
   if (FPS) { FPS.ms.push(app.ticker.deltaMS); if (now - FPS.t > 500) { const a = FPS.ms.slice().sort((x, y) => x - y), avg = a.reduce((x, y) => x + y, 0) / a.length;
     FPS.el.textContent = `${(1000 / avg).toFixed(0)} fps · p95 ${a[Math.floor(a.length * .95)].toFixed(1)} ms`; FPS.ms = []; FPS.t = now; } }
   TM += dt; if (!still) TP += dt; if (ambient()) AT += dt;
+  perfGuard(app.ticker.deltaMS);
   if (U.screen === 'game' && G.meta && !G.meta.over && !paused()) { U.playMs += dt * 1000; tickSpeed(); }
   speedRing();
   updatePhase(dt); updateTilt(dt);
