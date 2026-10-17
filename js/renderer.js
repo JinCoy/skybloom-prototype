@@ -223,7 +223,8 @@ export function initRenderer() {
   // bubbles live behind the island (hole mask) and behind every building
   const bubbleLayer = new PIXI.Container(), hole = new PIXI.Graphics();
   hole.beginFill(0xffffff).drawRect(-200, -200, 1480, 2320).beginHole().drawPolygon(ISLAND).endHole().endFill();
-  world.addChild(bubbleLayer, hole); bubbleLayer.mask = hole;
+  if (IMG.skyMask) { const sm = new PIXI.Sprite(tex('skyMask')); sm.width = 1080; sm.height = 1920; world.addChild(bubbleLayer, sm); bubbleLayer.mask = sm; }   // exact island outline (alpha mask)
+  else { world.addChild(bubbleLayer, hole); bubbleLayer.mask = hole; }
   // board water spilling over the front edges + mist
   const falls = new PIXI.Container(); world.addChild(falls);
   const fallStrips = FALLS.map(([x, y]) => [0, 1, 2].map(i => { const s = new PIXI.TilingSprite(tex('flow'), 26 - i * 4, 48); s.tileScale.set(.12); s.base = [x, y - 6 + i * 48, 26 - i * 4, [.95, .7, .35][i]]; falls.addChild(s); return s; }));

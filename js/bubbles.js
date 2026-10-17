@@ -1,5 +1,5 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ISLAND, ITEMS, L, TREASURES, U, WS, accSrc, store, tl, toScreen, toWorld } from './core.js?v=0.7.1';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.1';
 import { SFX, vib } from './audio.js?v=0.7.1';
 import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.1';
 import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.1';
@@ -9,7 +9,7 @@ import * as TM from './telemetry.js?v=0.7.1';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
-export const inIsland = (x, y) => { let inside = false; for (let i = 0, j = ISLAND.length - 2; i < ISLAND.length; j = i, i += 2) { const xi = ISLAND[i], yi = ISLAND[i + 1], xj = ISLAND[j], yj = ISLAND[j + 1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; } return inside; };
+export const inIsland = islandAt;   // alpha mask of the island (core.js)
 // menus (10-2 A1): empty bubbles only, plus one gold bubble per hour (never two on screen); in a game the rules live in logic.js
 export const rollFor = () => {
   if (U.screen === 'game') return L.rollBubble(Math.random, G);

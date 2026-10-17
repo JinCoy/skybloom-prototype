@@ -70,6 +70,19 @@ export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [1
 // all five skies are drawn on the exact board geometry (03_Sprites/_guides/guide_BG_island_v2.png: diamond 60..1020 x 760..1240), so no offset is needed
 // silhouette traced from the day sky (rim + rock underside incl. the waterfall mist), world units
 export const ISLAND = [540, 754, 1000, 956, 1056, 990, 1061, 1008, 1000, 1200, 900, 1330, 700, 1450, 548, 1495, 400, 1440, 190, 1330, 80, 1180, 14, 1010, 23, 981, 63, 952];
+// island test for bubbles (hidden and untappable behind the island): reads assets/sky_mask.webp (alpha 0 = island, 540x960 for the 1080x1920 world),
+// built by 03_Sprites/_guides/make_sky_mask.py; falls back to the coarse ISLAND polygon until the mask has loaded
+let MASK_A = null;
+function skyMaskData() {
+  if (MASK_A || !IMG.skyMask) return MASK_A;
+  const c = document.createElement('canvas'); c.width = IMG.skyMask.width; c.height = IMG.skyMask.height; const x = c.getContext('2d'); x.drawImage(IMG.skyMask, 0, 0);
+  return MASK_A = { w: c.width, h: c.height, a: x.getImageData(0, 0, c.width, c.height).data };
+}
+export function islandAt(x, y) {
+  const m = skyMaskData();
+  if (m) { const i = Math.floor(x * m.w / 1080), j = Math.floor(y * m.h / 1920); return i < 0 || j < 0 || i >= m.w || j >= m.h ? false : m.a[(j * m.w + i) * 4 + 3] < 128; }
+  let inside = false; for (let i = 0, j = ISLAND.length - 2; i < ISLAND.length; j = i, i += 2) { const xi = ISLAND[i], yi = ISLAND[i + 1], xj = ISLAND[j], yj = ISLAND[j + 1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside; } return inside;
+}
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
 const BOARD = [540, 760, 1020, 1000, 540, 1240, 60, 1000];
 export const FALLS = [[180, 1060], [300, 1120], [420, 1180], [660, 1180], [780, 1120], [900, 1060]];
@@ -113,7 +126,7 @@ export function applyI18n() {
 /* ---------- images ---------- */
 export const IMG = {}, MASK = {};
 const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = src; });
-const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudAtlas: 'cloud_atlas2',   // the file name changes with every new atlas layout: a phone with the old atlas cached must never pair it with new frame coordinates
+const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', skyMask: 'sky_mask', cloudAtlas: 'cloud_atlas2',   // the file name changes with every new atlas layout: a phone with the old atlas cached must never pair it with new frame coordinates
   cloudNear: 'cloud_near', auroraA: 'aurora_main', auroraB: 'aurora_accent',
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
