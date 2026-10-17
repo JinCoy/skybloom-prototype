@@ -2,8 +2,9 @@
    Rules: nothing is stored or created before the tester agrees; a recorder failure never reaches the game (every entry point is wrapped);
    the game rules (logic.js) are untouched — the public rule functions are wrapped from here to see their results.
    Queue = IndexedDB 'skybloom-telemetry'. Export = one zip (events.ndjson + manifest.json + device_contexts.json + snapshots.json).
-   Imports only core.js, so every other module may import this one without a cycle; main.js hands over the few functions it needs (bind). */
-import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.17';
+   Imports only core.js and age.js, so every other module may import this one without a cycle; main.js hands over the few functions it needs (bind). */
+import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.18';
+import { adult } from './age.js?v=0.7.18';   // child mode (under 13, or age not answered yet): nothing is recorded, asked or stored here
 
 const CONSENT_V = 'c1', PROTOCOL_V = 'p1', LSK = 'skybloom.tm.', ITEMS = ['rewind', 'pop', 'drop'];
 const CAP = 20000, LIMIT_MS = +((/[?&]tlimit=(\d+)/.exec(location.search) || [])[1] || 1200000);
@@ -430,7 +431,7 @@ function startSession(reason) {
   saveMeta();
 }
 async function start() {
-  if (T.on) return;
+  if (T.on || !adult()) return;
   db = await idbOpen(); await loadMeta();
   if (!db) { T.health.storage++; T.complete = false; }
   T.on = true; T.fg = !document.hidden; T.lastFrame = now();
@@ -439,13 +440,14 @@ async function start() {
 }
 export function boot() {
   safe(() => {
+    if (!adult()) { if (ls.get('consent') || ls.get('declined')) withdraw().then(() => ls.del('declined')); return; }   // child mode: wipe anything an earlier session stored, ask nothing
     const c = ls.get('consent');
     if (c && c.v === CONSENT_V) { T.c = c; start(); }
     else if (!ls.get('declined')) openConsent();
   });
 }
 export function openConsent() {
-  const p = $('cs-panel'); if (!p) return;
+  const p = $('cs-panel'); if (!p || !adult()) return;
   p.innerHTML = `<h2 style="font-size:60px">${tl('tm.consent.title')}</h2><div class="cap" style="letter-spacing:.02em;font-size:30px;line-height:1.42;color:var(--navy);text-align:left;white-space:pre-line">${tl('tm.consent.body')}</div>
     <div style="display:flex;gap:26px;margin-top:6px"><button class="gel ghost" id="cs-no" style="position:relative;width:360px;height:120px;font-size:40px">${tl('tm.consent.no')}</button><button class="gel aqua" id="cs-yes" style="position:relative;width:420px;height:120px;font-size:44px">${tl('tm.consent.yes')}</button></div>`;
   $('ov-consent').hidden = false;
@@ -553,7 +555,7 @@ export function leaveResult(next) {   // the result screen is being left: ask on
   if (!asked) next();
 }
 export function openFeedback(kind, done) {
-  const p = $('fb-panel'); if (!p) { done && done(); return; }
+  const p = $('fb-panel'); if (!p || !adult()) { done && done(); return; }
   const fb = { clarity: 0, comfort: 0, items: { rewind: '', pop: '', drop: '' }, category: 'controls' };
   const five = k => [1, 2, 3, 4, 5].map(n => `<button class="gel ghost tmq" data-k="${k}" data-v="${n}" style="position:relative;width:110px;height:84px;font-size:40px">${n}</button>`).join('');
   const OPT = ['not_seen', 'seen_not_used', 'used_understood', 'used_confused', 'not_applicable'];
@@ -561,9 +563,9 @@ export function openFeedback(kind, done) {
   const q = key => `<div style="width:100%;text-align:left;font:800 30px/1.25 var(--font);color:var(--navy)">${tl(key)}</div>`;
   p.innerHTML = kind === 'issue'
     ? `<h2 style="font-size:60px">${tl('tm.issue.title')}</h2><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${['controls', 'items', 'readability', 'performance', 'other'].map(c => `<button class="gel ghost tmq" data-c="${c}" style="position:relative;height:84px;padding:0 24px;font-size:34px">${tl('tm.cat.' + c)}</button>`).join('')}</div>
-       <textarea id="fb-text" maxlength="500" rows="4" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 30px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:14px;box-sizing:border-box;user-select:text"></textarea>`
+       <textarea id="fb-text" maxlength="500" rows="4" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 30px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:14px;box-sizing:border-box;user-select:text"></textarea><div style="width:100%;text-align:left;font:700 24px/1.3 var(--font);color:var(--navy)">${tl('tm.fb.hint')}</div>`
     : `<h2 style="font-size:60px">${tl('tm.fb.title')}</h2>${q('tm.fb.q1')}<div style="display:flex;gap:10px">${five('clarity')}</div>${q('tm.fb.q2')}${ITEMS.map(row).join('')}${q('tm.fb.q3')}<div style="display:flex;gap:10px">${five('comfort')}</div>
-       <textarea id="fb-text" maxlength="500" rows="2" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 28px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:12px;box-sizing:border-box;user-select:text"></textarea>`;
+       <textarea id="fb-text" maxlength="500" rows="2" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 28px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:12px;box-sizing:border-box;user-select:text"></textarea><div style="width:100%;text-align:left;font:700 24px/1.3 var(--font);color:var(--navy)">${tl('tm.fb.hint')}</div>`;
   p.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:26px;margin-top:6px"><button class="gel ghost" id="fb-skip" style="position:relative;width:340px;height:104px;font-size:40px">${tl(kind === 'issue' ? 'set.close' : 'tm.fb.skip')}</button><button class="gel aqua" id="fb-send" style="position:relative;width:340px;height:104px;font-size:42px">${tl('tm.fb.send')}</button></div>`);
   const setOn = (btn, group) => p.querySelectorAll(group).forEach(b => { b.classList.toggle('aqua', b === btn); b.classList.toggle('ghost', b !== btn); });
   p.querySelectorAll('.tmq').forEach(b => { b.onclick = () => {

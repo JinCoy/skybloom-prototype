@@ -239,5 +239,13 @@
   "tm.log.join": "테스트 참여하기",
   "tm.log.withdraw": "삭제하고 그만두기",
   "tm.log.withdrawQ": "한 번 더 누르면 모두 지워요",
-  "tm.log.withdrawn": "지웠어요. 기록을 끕니다."
+  "tm.log.withdrawn": "지웠어요. 기록을 끕니다.",
+  "age.title": "먼저 하나만 물어볼게요",
+  "age.body": "태어난 달과 해를 알려 주세요.\n앱을 맞게 준비하는 데만 쓰고, 생년월일은 저장하지 않아요.",
+  "age.month": "월",
+  "age.year": "년",
+  "age.ok": "계속",
+  "age.err": "월과 년을 모두 골라 주세요.",
+  "age.child.log": "이 기기에서는 플레이 기록을 사용할 수 없어요.",
+  "tm.fb.hint": "이름, 연락처 같은 개인정보는 적지 마세요."
 }

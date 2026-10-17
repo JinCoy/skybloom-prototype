@@ -1,11 +1,12 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.17';
-import { music } from './audio.js?v=0.7.17';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.17';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.17';
-import { app } from './renderer.js?v=0.7.17';
-import { enableSensor, sensorOn } from './input.js?v=0.7.17';
-import * as TM from './telemetry.js?v=0.7.17';
+import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.18';
+import { music } from './audio.js?v=0.7.18';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.18';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.18';
+import { app } from './renderer.js?v=0.7.18';
+import { enableSensor, sensorOn } from './input.js?v=0.7.18';
+import * as TM from './telemetry.js?v=0.7.18';
+import { adult } from './age.js?v=0.7.18';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
@@ -129,6 +130,9 @@ $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is o
 let withdrawAsk = 0;
 function renderLog() {
   const on = TM.active(), s = TM.summary(), n = store.get('games', []).length;
+  if (!adult()) {   // child mode: no recording, no survey, no file to send
+    $('log-text').textContent = tl('age.child.log'); $('log-send').classList.add('dis'); $('log-issue').hidden = $('log-withdraw').hidden = $('log-join').hidden = true; withdrawAsk = 0; return;
+  }
   $('log-text').textContent = on ? tl(s.events ? 'tm.log.body' : 'tm.log.none', { n: s.runs, e: s.events.toLocaleString('en-US') }) : tl(n ? 'log.body' : 'log.none', { n }) + '\n\n' + tl('tm.log.off');
   $('log-send').classList.toggle('dis', on ? !s.events : !n);
   $('log-issue').hidden = $('log-withdraw').hidden = !on; $('log-join').hidden = on;
@@ -136,6 +140,7 @@ function renderLog() {
 }
 function openLog() { overlay('settings', false); renderLog(); overlay('export'); }
 async function sendLog() {
+  if (!adult()) return;
   let file;
   if (TM.active()) { const b = await TM.buildBundle(); if (!b || !b.events) return; file = b.file; }
   else { const games = store.get('games', []); if (!games.length) return;

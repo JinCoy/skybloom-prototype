@@ -1,16 +1,17 @@
 /* Skybloom module: main (split from index.html in step 12; code unchanged) */
-import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.7.17';
-import { SND } from './audio.js?v=0.7.17';
-import { fit, hud, show, toast, transition } from './ui.js?v=0.7.17';
-import { addGold, busy, openAd } from './game.js?v=0.7.17';
-import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.7.17';
-import { R, WTL, app, initRenderer } from './renderer.js?v=0.7.17';
-import { bubbleAt, inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.7.17';
-import { badgePos, candidates, enableSensor } from './input.js?v=0.7.17';
-import { applySkins } from './shop.js?v=0.7.17';
-import { cardFile } from './screens.js?v=0.7.17';
-import { startEditor } from './editor.js?v=0.7.17';
-import { bind, boot, loaded } from './telemetry.js?v=0.7.17';
+import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.7.18';
+import { SND } from './audio.js?v=0.7.18';
+import { fit, hud, show, toast, transition } from './ui.js?v=0.7.18';
+import { addGold, busy, openAd } from './game.js?v=0.7.18';
+import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.7.18';
+import { R, WTL, app, initRenderer } from './renderer.js?v=0.7.18';
+import { bubbleAt, inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.7.18';
+import { badgePos, candidates, enableSensor } from './input.js?v=0.7.18';
+import { applySkins } from './shop.js?v=0.7.18';
+import { cardFile } from './screens.js?v=0.7.18';
+import { startEditor } from './editor.js?v=0.7.18';
+import { bind, boot, loaded } from './telemetry.js?v=0.7.18';
+import { ask } from './age.js?v=0.7.18';
 
 bind({ busy, candidates, bubbleAt, inIsland });   // the play-log recorder (telemetry.js) reads these but never changes them
 
@@ -49,7 +50,7 @@ function start(data) {
     if (U.settings.tilt && !reduce() && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') enableSensor();
     if (data && data.G && data.G.board) { set_G(data.G); U.phaseTop = data.phaseTop || 0; show(data.screen || 'game'); }
     else show('login');
-    hud(); boot();   // recording starts only if the tester has agreed (a first-time tester is asked now)
+    hud(); ask(boot);   // first the neutral age screen; recording starts only for 13+ who have agreed (a first-time tester is asked after it)
   });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});

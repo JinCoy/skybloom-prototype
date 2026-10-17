@@ -1,16 +1,16 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.17';
-import { SFX, vib } from './audio.js?v=0.7.17';
-import { bumpBadge, hud, overlay, show, toast } from './ui.js?v=0.7.17';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.17';
-import { R, startDrop } from './renderer.js?v=0.7.17';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.17';
-import { buildCard } from './screens.js?v=0.7.17';
-import * as TM from './telemetry.js?v=0.7.17';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.18';
+import { SFX, vib } from './audio.js?v=0.7.18';
+import { bumpBadge, hud, overlay, show, toast } from './ui.js?v=0.7.18';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.18';
+import { R, startDrop } from './renderer.js?v=0.7.18';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.18';
+import { buildCard } from './screens.js?v=0.7.18';
+import * as TM from './telemetry.js?v=0.7.18';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
-const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'stuck', 'consent', 'feedback'];
+const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'stuck', 'age', 'consent', 'feedback'];
 export const paused = () => PAUSE_OV.some(k => !$('ov-' + k).hidden);
 export const bestNow = () => U.mode === 'speed' ? U.bestSpeed : U.best;
 export function stamp() { tickSpeed(); G.t = Math.max(G.t, Math.round(U.playMs)); }   // action log time = play time
@@ -175,7 +175,7 @@ export function useItem(k) {
   if (k === 'drop' && !L.empties(G.board).length) { toast(tl('t.noEmptyDrop')); SFX.bad(); return; }
   U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
 }
-export const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'consent', 'feedback'].some(k => !$('ov-' + k).hidden);
+export const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback'].some(k => !$('ov-' + k).hidden);
 
 /* ---------- rewarded-ad mock-up (v0.4 §4.3): a clearly labelled placeholder, no real or imitation ads ---------- */
 let adTimer = 0;

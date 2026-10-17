@@ -239,5 +239,13 @@
   "tm.log.join": "Join the test",
   "tm.log.withdraw": "Delete and withdraw",
   "tm.log.withdrawQ": "Tap again to delete everything",
-  "tm.log.withdrawn": "Deleted. Recording is off."
+  "tm.log.withdrawn": "Deleted. Recording is off.",
+  "age.title": "One quick question",
+  "age.body": "When were you born?\nThis sets the app up for you. We don't save your birth date.",
+  "age.month": "Month",
+  "age.year": "Year",
+  "age.ok": "Continue",
+  "age.err": "Please choose both month and year.",
+  "age.child.log": "Play-log recording is not available on this device.",
+  "tm.fb.hint": "Please don't write names, contact details or other personal information."
 }
