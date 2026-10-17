@@ -1,5 +1,5 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, bgDy, bkey, center, reduce, same } from './core.js?v=0.6.6';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bgDy, bkey, center, reduce, same } from './core.js?v=0.6.6';
 import { SFX, vib } from './audio.js?v=0.6.6';
 import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.6.6';
 import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.6.6';
@@ -19,6 +19,8 @@ export function genTextures() {
   if (GEN) return GEN;
   const radial = (stops) => (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); };
   GEN = {
+    rays: canvasTex(512, 512, (x, w, h) => { x.translate(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.7, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g;
+      for (let i = 0; i < 9; i++) for (let k = 0; k < 5; k++) { const a = i * Math.PI * 2 / 9 + .17 * (i % 2), hw = (.1 + .05 * (i % 3)) * (1 - k * .18); x.globalAlpha = .22; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, w / 2, a - hw, a + hw); x.closePath(); x.fill(); } }),   // sun rays: 9 beams, each 5 stacked wedges = soft edges
     glow: canvasTex(256, 256, radial([[0, 'rgba(255,255,255,1)'], [.35, 'rgba(255,255,255,.45)'], [1, 'rgba(255,255,255,0)']])),
     dot: canvasTex(32, 32, radial([[0, 'rgba(255,255,255,1)'], [.5, 'rgba(255,255,255,.5)'], [1, 'rgba(255,255,255,0)']])),
     star: canvasTex(64, 64, (x) => { x.translate(32, 32); x.fillStyle = '#fff'; x.shadowColor = '#fff'; x.shadowBlur = 8;
@@ -193,6 +195,10 @@ export function initRenderer() {
   const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; s.y = bgDy(k); world.addChild(s); return s; });   // bgDy: island art lines up with the board (core.js)
   const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
+  // ambient sky objects (frozen by the 'Background Motion' setting): sun rays, aurora (two additive layers), stars; the clouds are below
+  const rays = new PIXI.Sprite(T.rays); rays.anchor.set(.5); rays.position.set(980, 40); rays.width = rays.height = 2400; rays.blendMode = ADD(); rays.alpha = 0; world.addChild(rays);
+  const auroras = ['auroraA', 'auroraB'].map(k => { const s = new PIXI.Sprite(tex(k)); s.anchor.set(.5, 0); s.position.set(540, 0); s.blendMode = ADD(); s.alpha = 0; world.addChild(s); return s; });
+  const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
   const clouds = [cloud('cloudFar', -90, .9, .7), cloud('cloudMid', 120, .9, .8)];
   // bubbles live behind the island (hole mask) and behind every building
@@ -224,7 +230,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, rays, auroras, stars, aw: 0, clouds, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -234,7 +240,7 @@ export function initRenderer() {
 }
 
 /* ---------- per-frame ---------- */
-let TM = 0, TP = 0;
+let TM = 0, TP = 0, AT = 0;   // AT: ambient-object clock, runs only while Background Motion is on
 export function tickParts(dt) { TP += dt; return TP; }   // editor preview clock   // TM: ambient clock, TP: building-part clock (frozen under Reduce Motion)
 const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0-1)
   [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
@@ -246,7 +252,7 @@ function frame() {
   const dt = Math.min(app.ticker.deltaMS, 50) / 1000, now = performance.now(), still = reduce();
   if (FPS) { FPS.ms.push(app.ticker.deltaMS); if (now - FPS.t > 500) { const a = FPS.ms.slice().sort((x, y) => x - y), avg = a.reduce((x, y) => x + y, 0) / a.length;
     FPS.el.textContent = `${(1000 / avg).toFixed(0)} fps · p95 ${a[Math.floor(a.length * .95)].toFixed(1)} ms`; FPS.ms = []; FPS.t = now; } }
-  TM += dt; if (!still) TP += dt;
+  TM += dt; if (!still) TP += dt; if (ambient()) AT += dt;
   if (U.screen === 'game' && G.meta && !G.meta.over && !paused()) { U.playMs += dt * 1000; tickSpeed(); }
   speedRing();
   updatePhase(dt); updateTilt(dt);
@@ -263,17 +269,22 @@ function updatePhase(dt) {
   const sum = w[0] + w[1] + w[2]; for (let i = 0; i < 3; i++) w[i] /= sum;
 }
 function updateSky(dt, still) {
-  const w = U.phaseW, T = U.tilt;
+  const w = U.phaseW, T = U.tilt, calm = !ambient();
   R.bgs[0].alpha = 1; R.bgs[1].alpha = w[1] + w[2]; R.bgs[2].alpha = w[2] / Math.max(1e-6, w[1] + w[2]);
-  const breathe = still ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
+  const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
   R.lights[0].alpha = .55 * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
   const tint = mix3(w, 0xffffff, 0xffc4b0, 0x6878b0);
   R.clouds.forEach((c, i) => {   // far / mid / near cross the screen in 140 / 90 / 60 s
-    if (!still) c.tilePosition.x -= 1080 / [140, 90, 60][i] * dt / c.tileScale.x;
+    if (!calm) c.tilePosition.x -= 1080 / [140, 90, 60][i] * dt / c.tileScale.x;
     c.x = -80 - T.x * [16, 32, 48][i]; c.tint = tint;   // v0.4: stronger parallax
   });
+  // sun rays turn slowly and shimmer in the day; aurora fades in at night and with the Aurora Sky skin; stars twinkle at night
+  R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = .2 * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9));
+  R.aw += ((U.equip?.sky === 'aurora' ? .7 : w[2] * .55) - R.aw) * Math.min(1, dt * 2);   // ponytail: the aurora skin art already has a painted aurora, so it only gets .7 until that skin is redrawn
+  R.auroras.forEach((s, i) => { const t = AT * (i ? -.8 : 1); s.x = 540 + Math.sin(t * .21 + i * 2) * 26; s.scale.set(1 + .03 * Math.sin(t * .17 + i), 1 + .05 * Math.sin(t * .13 + 1 + i)); s.alpha = R.aw * (i ? .7 : .9) * (.7 + .3 * Math.sin(t * .5 + i * 1.3)); });
+  R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
   // fireflies at night
-  R.fireflies.forEach((f, i) => { f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(TM * 2 + i))); });
+  R.fireflies.forEach((f, i) => { if (!calm) f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(AT * 2 + i))); });
   // water sloshes after the tilt (spring), then flows toward the low side
   const tx = still ? 0 : T.x, ty = still ? 0 : T.y;
   WTL.vx += ((tx - WTL.x) * 36 - WTL.vx * 6) * dt; WTL.vy += ((ty - WTL.y) * 36 - WTL.vy * 6) * dt; WTL.x += WTL.vx * dt; WTL.y += WTL.vy * dt;
