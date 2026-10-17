@@ -446,12 +446,27 @@ body {
       <div class="dim"></div>
       <div class="glass panel" style="top:420px;gap:24px">
         <h2 data-i18n="log.title">Send Play Log</h2>
-        <div class="cap" id="log-text" style="letter-spacing:.02em;font-size:34px;line-height:1.4;color:var(--navy)"></div>
+        <div class="cap" id="log-text" style="letter-spacing:.02em;font-size:34px;line-height:1.4;color:var(--navy);white-space:pre-line"></div>
         <div style="display:flex;gap:30px;margin-top:10px">
           <button class="gel ghost" id="log-close" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="set.close">Close</button>
           <button class="gel aqua" id="log-send" style="position:relative;width:340px;height:120px;font-size:46px" data-i18n="log.send">Save / Share</button>
         </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">
+          <button class="gel ghost" id="log-issue" style="position:relative;height:84px;padding:0 28px;font-size:32px" hidden data-i18n="tm.log.issue">Report an issue</button>
+          <button class="gel ghost" id="log-join" style="position:relative;height:84px;padding:0 28px;font-size:32px" hidden data-i18n="tm.log.join">Join the test</button>
+          <button class="gel ghost" id="log-withdraw" style="position:relative;height:84px;padding:0 28px;font-size:32px" hidden>Delete and withdraw</button>
+        </div>
       </div>
+    </div>
+
+    <div class="layer" id="ov-consent" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" id="cs-panel" style="top:170px;gap:22px"></div>
+    </div>
+
+    <div class="layer" id="ov-feedback" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" id="fb-panel" style="top:90px;max-height:1740px;overflow-y:auto;gap:16px"></div>
     </div>
 
     <div class="glass" id="toast" style="opacity:0;pointer-events:none" role="status"></div>
@@ -480,5 +495,6 @@ body {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
 <script src="logic.js?v=0.5.1"></script>
+<script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.6.1"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.6.6"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

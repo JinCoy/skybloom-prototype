@@ -1,11 +1,12 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.6.1';
-import { SFX, vib } from './audio.js?v=0.6.1';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.6.1';
-import { addGold } from './game.js?v=0.6.1';
-import { addFxXY } from './fx.js?v=0.6.1';
-import { R, tex } from './renderer.js?v=0.6.1';
-import { down } from './input.js?v=0.6.1';
+import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.6.6';
+import { SFX, vib } from './audio.js?v=0.6.6';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.6.6';
+import { addGold } from './game.js?v=0.6.6';
+import { addFxXY } from './fx.js?v=0.6.6';
+import { R, tex } from './renderer.js?v=0.6.6';
+import { down } from './input.js?v=0.6.6';
+import * as TM from './telemetry.js?v=0.6.6';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -88,7 +89,7 @@ $('ov-shop').addEventListener('click', e => {
     if (U.gold < k.gold) { toast(tl('shop.noGold')); SFX.bad(); denyShop(card); return; }
     addGold(-k.gold); U.owned[shopTab].push(k.id); store.set('owned', U.owned); SFX.gift(); U.shopFx = { id: k.id, kind: 'bought' };
   } else if (e.target.closest('[data-equip]')) U.shopFx = { id: k.id, kind: 'equip' };
-  if (e.target.closest('[data-buy]') || e.target.closest('[data-equip]')) { U.equip[shopTab] = k.id; store.set('equip', U.equip); }
+  if (e.target.closest('[data-buy]') || e.target.closest('[data-equip]')) { TM.setting('skin_' + shopTab, U.equip[shopTab], k.id); U.equip[shopTab] = k.id; store.set('equip', U.equip); }
   preview[shopTab] = k.id; openShop(shopTab);
 });
 

@@ -112,14 +112,14 @@ export function applyI18n() {
 
 /* ---------- images ---------- */
 export const IMG = {}, MASK = {};
-const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = res; i.src = src; });
+const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = src; });
 const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near',
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.5.9`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.6.6`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)

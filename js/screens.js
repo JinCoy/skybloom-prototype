@@ -1,10 +1,11 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.6.1';
-import { music } from './audio.js?v=0.6.1';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.6.1';
-import { localDate, newGame, tutStep } from './game.js?v=0.6.1';
-import { app } from './renderer.js?v=0.6.1';
-import { enableSensor, sensorOn } from './input.js?v=0.6.1';
+import { $, APP_V, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.6.6';
+import { music } from './audio.js?v=0.6.6';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.6.6';
+import { localDate, newGame, tutStep } from './game.js?v=0.6.6';
+import { app } from './renderer.js?v=0.6.6';
+import { enableSensor, sensorOn } from './input.js?v=0.6.6';
+import * as TM from './telemetry.js?v=0.6.6';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
@@ -114,23 +115,39 @@ $('set-logout').onclick = () => overlay('confirm');
 $('cf-no').onclick = () => overlay('confirm', false);
 $('cf-yes').onclick = () => SkyAuth.signOut().then(() => { overlay('confirm', false); overlay('settings', false); transition('cloud', () => show('login')); });
 for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
-  U.settings[k] = !U.settings[k]; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings);
+  const was = U.settings[k]; U.settings[k] = !was; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings); TM.setting(k, was, U.settings[k]);
   if (k === 'music') music(U.settings.music);
   if (k === 'tilt' && U.settings.tilt) enableSensor().then(tiltNote);
   tiltNote(); hud(); if (k === 'reduce' && U.tut === 1) tutStep(1);
 });
 $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is on screen
-  U.settings.lang = lang() === 'ko' ? 'en' : 'ko'; store.set('settings', U.settings);
+  const was = lang(); U.settings.lang = was === 'ko' ? 'en' : 'ko'; store.set('settings', U.settings); TM.setting('lang', was, U.settings.lang);
   applyI18n(); tiltNote(); $('main-speed-best').textContent = tl('speed.best', { n: U.bestSpeed.toLocaleString('en-US') }); if (U.screen === 'game') hud(); if (U.tut) tutStep(U.tut);
 };
-/* 'Send Play Log' (11): one JSON file with the last 20 games, saved or shared by the tester */
-function openLog() { const n = store.get('games', []).length; $('log-text').textContent = tl(n ? 'log.body' : 'log.none', { n }); $('log-send').classList.toggle('dis', !n); overlay('settings', false); overlay('export'); }
-function sendLog() {
-  const games = store.get('games', []); if (!games.length) return;
-  const file = new File([JSON.stringify({ format: 'skybloom-playlog', version: 1, appVersion: APP_V, exportedAt: new Date().toISOString(), games })], `skybloom-playlog-${localDate()}.json`, { type: 'application/json' });
+/* 'Send Play Log': while recording (13-1) one zip with everything recorded on this device (telemetry.js); otherwise the old v1 file with the last 20 games */
+let withdrawAsk = 0;
+function renderLog() {
+  const on = TM.active(), s = TM.summary(), n = store.get('games', []).length;
+  $('log-text').textContent = on ? tl(s.events ? 'tm.log.body' : 'tm.log.none', { n: s.runs, e: s.events.toLocaleString('en-US') }) : tl(n ? 'log.body' : 'log.none', { n }) + '\n\n' + tl('tm.log.off');
+  $('log-send').classList.toggle('dis', on ? !s.events : !n);
+  $('log-issue').hidden = $('log-withdraw').hidden = !on; $('log-join').hidden = on;
+  $('log-withdraw').textContent = tl('tm.log.withdraw'); withdrawAsk = 0;
+}
+function openLog() { overlay('settings', false); renderLog(); overlay('export'); }
+async function sendLog() {
+  let file;
+  if (TM.active()) { const b = await TM.buildBundle(); if (!b || !b.events) return; file = b.file; }
+  else { const games = store.get('games', []); if (!games.length) return;
+    file = new File([JSON.stringify({ format: 'skybloom-playlog', version: 1, appVersion: APP_V, exportedAt: new Date().toISOString(), games })], `skybloom-playlog-${localDate()}.json`, { type: 'application/json' }); }
   if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file] }).catch(() => {}); else downloadFile(file);
 }
 $('set-log').onclick = openLog; $('log-close').onclick = () => overlay('export', false); $('log-send').onclick = sendLog;
+$('log-issue').onclick = () => TM.openFeedback('issue');
+$('log-join').onclick = () => { overlay('export', false); TM.openConsent(); };
+$('log-withdraw').onclick = async () => {   // two taps within 6 s: delete the queue, the ids and the consent, and stop recording
+  if (!withdrawAsk || Date.now() - withdrawAsk > 6000) { withdrawAsk = Date.now(); $('log-withdraw').textContent = tl('tm.log.withdrawQ'); return; }
+  await TM.withdraw(); renderLog(); toast(tl('tm.log.withdrawn'), 3000);
+};
 $('set-tut').onclick = () => { overlay('settings', false); U.tut = 1; transition('bubble', () => newGame(true), [540, 1000]); };
 
 

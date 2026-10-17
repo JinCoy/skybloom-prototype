@@ -1,10 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ISLAND, ITEMS, L, TREASURES, U, WS, accSrc, store, tl, toScreen, toWorld } from './core.js?v=0.6.1';
-import { SFX, vib } from './audio.js?v=0.6.1';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.6.1';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.6.1';
-import { addFxXY, floatText } from './fx.js?v=0.6.1';
-import { ADD, R, genTextures, lerpColor, mix3, tex } from './renderer.js?v=0.6.1';
+import { $, G, ISLAND, ITEMS, L, TREASURES, U, WS, accSrc, store, tl, toScreen, toWorld } from './core.js?v=0.6.6';
+import { SFX, vib } from './audio.js?v=0.6.6';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.6.6';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.6.6';
+import { addFxXY, floatText } from './fx.js?v=0.6.6';
+import { ADD, R, genTextures, lerpColor, mix3, tex } from './renderer.js?v=0.6.6';
+import * as TM from './telemetry.js?v=0.6.6';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -68,6 +69,7 @@ export function bubbleAt(x, y) {
 }
 const SHOP_BTN = [215, 1425];   // centre of the Shop button on the main screen
 export function popBubbleAt(b) {
+  TM.bubbleTap(b);   // play log: tell the recorder this bubble was tapped, not missed
   const iconTex = b.icon.texture, iconScale = b.icon.scale.x;   // read before the bubble is destroyed
   removeBubble(b); addFxXY('bubble', b.sx, b.y + 30); SFX.bubble(); vib(10);
   const inGame = U.screen === 'game', c = b.content;
@@ -75,16 +77,16 @@ export function popBubbleAt(b) {
   if (!inGame) {   // login / main: empty bubbles, and the hourly gold one (it flies to the Shop button on the main screen)
     if (c.kind === 'gold' && L.menuBubble(Date.now(), U.menuGoldAt).kind === 'gold') {
       U.menuGoldAt = Date.now(); store.set('menuGoldAt', U.menuGoldAt); floatText(`+${c.amount}`, b.sx, b.y - 20, true);
-      if (U.screen === 'main') fly(SHOP_BTN, () => { addGold(c.amount); const sb = $('main-shop'); sb.classList.remove('bump'); void sb.offsetWidth; sb.classList.add('bump'); });
-      else addGold(c.amount);
+      if (U.screen === 'main') fly(SHOP_BTN, () => { addGold(c.amount, 'menu_gold'); const sb = $('main-shop'); sb.classList.remove('bump'); void sb.offsetWidth; sb.classList.add('bump'); });
+      else addGold(c.amount, 'menu_gold');
     }
     return;
   }
   if (b === U.tutBubble) tutEnd(true);
   const dup = c.kind === 'treasure' ? gainTreasure(c.id) : false; stamp(); const e = L.popBubble(G, c, dup);
-  if (e.kind === 'treasure') { toast(dup ? tl('t.dup', { n: e.gold }) : tl('t.newTreasure', { name: TREASURES[c.id - 1][0], rarity: tl('rarity.' + c.rarity) }), 2400, accSrc(c.id)); if (dup) addGold(e.gold); else SFX.gift(); }
+  if (e.kind === 'treasure') { toast(dup ? tl('t.dup', { n: e.gold }) : tl('t.newTreasure', { name: TREASURES[c.id - 1][0], rarity: tl('rarity.' + c.rarity) }), 2400, accSrc(c.id)); if (dup) addGold(e.gold, 'dup_treasure_gold'); else SFX.gift(); }
   else if (e.item) fly(itemXY(e.item), () => bumpBadge(e.item));                 // icon flies to its item button
-  else if (e.kind === 'gold') { fly([936, 302], () => addGold(e.gold)); floatText(`+${e.gold}`, b.sx, b.y - 20, true); }
+  else if (e.kind === 'gold') { fly([936, 302], () => addGold(e.gold, 'bubble')); floatText(`+${e.gold}`, b.sx, b.y - 20, true); }
   hud();
 }
 

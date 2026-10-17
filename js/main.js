@@ -1,15 +1,18 @@
 /* Skybloom module: main (split from index.html in step 12; code unchanged) */
-import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.6.1';
-import { SND } from './audio.js?v=0.6.1';
-import { fit, hud, show, toast, transition } from './ui.js?v=0.6.1';
-import { addGold, openAd } from './game.js?v=0.6.1';
-import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.6.1';
-import { R, WTL, app, initRenderer } from './renderer.js?v=0.6.1';
-import { inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.6.1';
-import { badgePos, candidates, enableSensor } from './input.js?v=0.6.1';
-import { applySkins } from './shop.js?v=0.6.1';
-import { cardFile } from './screens.js?v=0.6.1';
-import { startEditor } from './editor.js?v=0.6.1';
+import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.6.6';
+import { SND } from './audio.js?v=0.6.6';
+import { fit, hud, show, toast, transition } from './ui.js?v=0.6.6';
+import { addGold, busy, openAd } from './game.js?v=0.6.6';
+import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.6.6';
+import { R, WTL, app, initRenderer } from './renderer.js?v=0.6.6';
+import { bubbleAt, inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.6.6';
+import { badgePos, candidates, enableSensor } from './input.js?v=0.6.6';
+import { applySkins } from './shop.js?v=0.6.6';
+import { cardFile } from './screens.js?v=0.6.6';
+import { startEditor } from './editor.js?v=0.6.6';
+import { bind, boot, loaded } from './telemetry.js?v=0.6.6';
+
+bind({ busy, candidates, bubbleAt, inIsland });   // the play-log recorder (telemetry.js) reads these but never changes them
 
 // local QA only: ?debug exposes state, a merge log and a frame-time probe (query strings never reach the shared page)
 if (location.search.includes('debug')) {
@@ -40,13 +43,13 @@ function start(data) {
   fit();
   if (!window.PIXI) { toast('The graphics library could not load. Check your connection and reload.', 60000); return; }
   Promise.all(loading).then(() => document.fonts && document.fonts.ready).then(() => {
-    prepareImages(); applyI18n();
+    loaded(performance.now()); prepareImages(); applyI18n();
     if (EDITOR) { startEditor(); return; }
     initRenderer(); applySkins();
     if (U.settings.tilt && !reduce() && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') enableSensor();
     if (data && data.G && data.G.board) { set_G(data.G); U.phaseTop = data.phaseTop || 0; show(data.screen || 'game'); }
     else show('login');
-    hud();
+    hud(); boot();   // recording starts only if the tester has agreed (a first-time tester is asked now)
   });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
