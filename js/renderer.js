@@ -26,6 +26,7 @@ export function genTextures() {
   GEN = {
     rays: canvasTex(512, 512, (x, w, h) => { x.translate(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.7, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g;
       for (let i = 0; i < 9; i++) for (let k = 0; k < 5; k++) { const a = i * Math.PI * 2 / 9 + .17 * (i % 2), hw = (.1 + .05 * (i % 3)) * (1 - k * .18); x.globalAlpha = .22; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, w / 2, a - hw, a + hw); x.closePath(); x.fill(); } }),   // sun rays: 9 beams, each 5 stacked wedges = soft edges
+    dusk: canvasTex(8, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.55, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }),   // vertical fade: darkens the sky behind the aurora
     glow: canvasTex(256, 256, radial([[0, 'rgba(255,255,255,1)'], [.35, 'rgba(255,255,255,.45)'], [1, 'rgba(255,255,255,0)']])),
     dot: canvasTex(32, 32, radial([[0, 'rgba(255,255,255,1)'], [.5, 'rgba(255,255,255,.5)'], [1, 'rgba(255,255,255,0)']])),
     star: canvasTex(64, 64, (x) => { x.translate(32, 32); x.fillStyle = '#fff'; x.shadowColor = '#fff'; x.shadowBlur = 8;
@@ -202,7 +203,10 @@ export function initRenderer() {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
   // ambient sky objects (frozen by the 'Background Motion' setting): sun rays, aurora (two additive layers), stars; the clouds are below
   const rays = new PIXI.Sprite(T.rays); rays.anchor.set(.5); rays.position.set(980, 40); rays.width = rays.height = 2400; rays.blendMode = ADD(); rays.alpha = 0; world.addChild(rays);
-  const auroras = ['auroraA', 'auroraB'].map(k => { const s = new PIXI.Sprite(tex(k)); s.anchor.set(.5, 0); s.position.set(540, 0); s.blendMode = ADD(); s.alpha = 0; world.addChild(s); return s; });
+  // aurora: three additive layers (soft veil, ray curtain, thin ribbons), each a 14x7 mesh whose vertices ripple slowly (updateAurora), so the light unfurls and writhes instead of just fading
+  const dusk = new PIXI.Sprite(T.dusk); dusk.width = 1080; dusk.height = 1300; dusk.tint = 0x040a3a; dusk.alpha = 0; world.addChild(dusk);   // Aurora Sky: a deep-blue shade behind the lights so they stand out
+  const AU = [['auroraV', 1, 14, .5], ['auroraC', 1.2, 24, .85], ['auroraR', .9, 18, .75]];   // texture, strength, ripple amplitude (px), base alpha
+  const auroras = IMG.auroraV ? AU.map(([k, , amp, a], i) => { const m = new PIXI.SimplePlane(tex(k), 14, 7); m.width = 1080; m.height = 1056; m.y = -50; m.blendMode = ADD(); m.alpha = 0; m.base = Float32Array.from(m.geometry.getBuffer('aVertexPosition').data); m.amp = amp; m.a0 = a; m.i = i; world.addChild(m); return m; }) : [];
   const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
   const clouds = [];   // [0] = the foreground bank (pushed below)
@@ -251,7 +255,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, rays, auroras, stars, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, rays, dusk, auroras, stars, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -291,11 +295,12 @@ function updatePhase(dt) {
   const sum = w[0] + w[1] + w[2]; for (let i = 0; i < 3; i++) w[i] /= sum;
 }
 function updateSky(dt, still) {
-  const w = U.phaseW, T = U.tilt, calm = !ambient();
+  const w = U.phaseW, T = U.tilt, calm = !ambient(), skin = U.equip?.sky, aur = skin === 'aurora';
   R.bgs[0].alpha = 1; R.bgs[1].alpha = w[1] + w[2]; R.bgs[2].alpha = w[2] / Math.max(1e-6, w[1] + w[2]);
   const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
-  R.lights[0].alpha = .55 * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
-  const tint = mix3(w, 0xffffff, 0xffc4b0, 0x6878b0);
+  R.lights[0].tint = skin === 'blossom' ? 0xffd0e6 : aur ? 0x9fe8ff : 0xfff6d0;   // the sun glow follows the sky skin: pink for Blossom, a faint cool glow for Aurora
+  R.lights[0].alpha = .55 * (aur ? .18 : 1) * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
+  const tint = mix3(w, aur ? 0xa9b6ee : skin === 'blossom' ? 0xfff0f8 : 0xffffff, 0xffc4b0, 0x6878b0);   // clouds take the sky skin's colour (cool violet for Aurora Sky)
   const bank = R.clouds[0];   // the bottom cloud bank only drifts by itself: no tilt parallax, so it never reacts to motion
   if (!calm) bank.tilePosition.x -= 1080 / 60 * dt / bank.tileScale.x;
   bank.x = -80; bank.tint = tint;
@@ -305,10 +310,20 @@ function updateSky(dt, still) {
     s.x = o.x - o.px; s.tint = tint;
   });
   // sun rays turn slowly and shimmer in the day; aurora fades in at night and with the Aurora Sky skin; stars twinkle at night
-  R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = .2 * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9));
-  R.aw += ((U.equip?.sky === 'aurora' ? 1 : w[2] * .55) - R.aw) * Math.min(1, dt * 2);
-  R.auroras.forEach((s, i) => { const t = AT * (i ? -.8 : 1); s.x = 540 + Math.sin(t * .21 + i * 2) * 26; s.scale.set(1 + .03 * Math.sin(t * .17 + i), 1 + .05 * Math.sin(t * .13 + 1 + i)); s.alpha = R.aw * (i ? .7 : .9) * (.7 + .3 * Math.sin(t * .5 + i * 1.3)); });
-  R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
+  R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = (aur ? 0 : .2) * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9)); R.rays.tint = skin === 'blossom' ? 0xffd2e8 : 0xffffff;
+  R.aw += ((aur ? w[0] + .6 * w[2] + .25 * w[1] : w[2] * .55) - R.aw) * Math.min(1, dt * 2);   // aurora skin: always there (a little less under sunset/night skies); other skies: only at night
+  R.dusk.alpha = .55 * Math.min(1, R.aw) * (aur ? 1 : .5);   // (R.aw already blends the skin / night weights)
+  R.auroras.forEach(m => {   // slow ripples (periods 9-25 s, a few px to ~20 px) that travel along the curtain; the lower edge moves most; brightness breathes with another period
+    const b = m.base, d = m.geometry.getBuffer('aVertexPosition'), v = d.data, t = AT, A = m.amp, i = m.i;
+    for (let k = 0; k < v.length; k += 2) {
+      const x = b[k], y = b[k + 1], low = .35 + .65 * (y / 1056);
+      v[k] = x + A * .5 * Math.sin(t * .23 + y * .006 + i * 2.1) * low;
+      v[k + 1] = y + A * low * (Math.sin(t * .31 + x * .0065 + i * 1.7) + .6 * Math.sin(t * .47 - x * .011 + i * 3.1));
+    }
+    d.update();
+    m.alpha = R.aw * m.a0 * (.78 + .22 * Math.sin(t * .42 + i * 2.3) + .08 * Math.sin(t * 1.1 + i));
+  });
+  R.stars.forEach(o => { o.s.alpha = Math.max(w[2], aur ? w[0] * .85 : 0) * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
   // fireflies at night
   R.fireflies.forEach((f, i) => { if (!calm) f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(AT * 2 + i))); });
   // water sloshes after the tilt (spring), then flows toward the low side
