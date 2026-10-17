@@ -20,6 +20,19 @@ const STILL_CLOUDS = [[150, 235, .25], [900, 170, .6], [520, 400, .35], [985, 52
 export const tex = k => TEXC[k] || (TEXC[k] = IMG[k] ? PIXI.Texture.from(IMG[k]) : PIXI.Texture.EMPTY);
 function canvasTex(w, h, paint) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return PIXI.Texture.from(c); }
 let GEN = null;
+function petalTex(kind) {   // Blossom Island sky petals: 4 shapes (0 cherry petal with a notch, 1 round petal, 2 narrow folded petal, 3 small pale petal), 64x64, drawn upright (tip up), centred
+  return canvasTex(64, 64, (x) => {
+    const g = (y0, y1, a, b) => { const q = x.createLinearGradient(0, y0, 0, y1); q.addColorStop(0, a); q.addColorStop(1, b); return q; };
+    x.translate(32, 32); x.lineJoin = 'round';
+    if (kind === 0) { x.beginPath(); x.moveTo(0, 26); x.bezierCurveTo(-26, 14, -22, -14, -11, -24); x.quadraticCurveTo(-4, -20, 0, -14); x.quadraticCurveTo(4, -20, 11, -24); x.bezierCurveTo(22, -14, 26, 14, 0, 26); x.fillStyle = g(-24, 26, '#fff6fa', '#ffb3d0'); }
+    else if (kind === 1) { x.beginPath(); x.ellipse(0, 0, 21, 25, 0, 0, Math.PI * 2); x.fillStyle = g(-25, 25, '#ffe4ef', '#ffc1d9'); }
+    else if (kind === 2) { x.beginPath(); x.moveTo(0, 28); x.bezierCurveTo(-18, 14, -14, -16, 3, -28); x.bezierCurveTo(16, -12, 14, 16, 0, 28); x.fillStyle = g(-28, 28, '#ffd9e8', '#ff9fc3'); }
+    else { x.beginPath(); x.ellipse(0, 2, 13, 21, 0, 0, Math.PI * 2); x.fillStyle = g(-21, 23, '#ffffff', '#ffa6c8'); }
+    x.fill(); x.strokeStyle = 'rgba(255,140,185,.55)'; x.lineWidth = 1.6; x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 20); x.quadraticCurveTo(kind === 2 ? 5 : -2, 2, 0, -14); x.stroke();   // centre vein / highlight
+    if (kind === 2) { x.fillStyle = 'rgba(255,120,170,.28)'; x.beginPath(); x.moveTo(3, -28); x.bezierCurveTo(16, -12, 14, 16, 0, 28); x.bezierCurveTo(6, 8, 6, -14, 3, -28); x.fill(); }   // the folded half is a shade darker
+  });
+}
 export function genTextures() {
   if (GEN) return GEN;
   const radial = (stops) => (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); };
@@ -208,7 +221,9 @@ export function initRenderer() {
   const AU = [['auroraV', 1, 16, .22, 1], ['auroraC', 1.2, 30, .45, 1], ['auroraR', .9, 24, .4, 1], ['auroraC', 1.2, 26, .24, -.8]];   // texture, -, ripple amplitude (px), base alpha, time direction; the 2nd curtain copy waves the other way, so its ray streaks drift across the first one's and the rays shimmer
   const auroras = IMG.auroraV ? AU.map(([k, , amp, a, dir], i) => { const m = new PIXI.SimplePlane(tex(k), 28, 10); m.width = 1080; m.height = 1056; m.y = -50; m.blendMode = ADD(); m.alpha = 0; m.base = Float32Array.from(m.geometry.getBuffer('aVertexPosition').data); m.amp = amp; m.a0 = a; m.i = i; m.dir = dir; world.addChild(m); return m; }) : [];
   const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
-  const petals = Array.from({ length: 12 }, () => { const s = new PIXI.Sprite(T.petal); s.anchor.set(.5); s.alpha = 0; s.scale.set(.55 + Math.random() * .5); world.addChild(s); return { s, x: Math.random() * 1080, y: Math.random() * 1920, v: 38 + Math.random() * 32, f: .5 + Math.random() * .8, p: Math.random() * 6.28 }; });   // Blossom Island: a few pink petals drift down the sky
+  const PT = [0, 1, 2, 3].map(petalTex);   // Blossom Island: petals drift down the sky, under the bubbles (bubbleLayer is added later, so a bubble in front of a petal can still be popped)
+  const petals = Array.from({ length: 14 }, (_, i) => { const s = new PIXI.Sprite(PT[i % 4]); s.anchor.set(.5); s.alpha = 0; return { s, k: .55 + Math.random() * .4, ph: Math.random() * 6.28, w: .5 + Math.random() * .5, A: 38 + Math.random() * 40, v: 20 + Math.random() * 14, mode: i % 3, vx: 0, vxT: 0, t: Math.random() * 3, x: Math.random() * 1080, y: Math.random() * 1960 - 40 }; });
+  petals.forEach(o => world.addChild(o.s));
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
   const clouds = [];   // [0] = the foreground bank (pushed below)
   // sky clouds: single sprites from the atlas. Some hold still, the rest drift; size, height and speed follow a random depth (big = near = faster)
@@ -266,6 +281,7 @@ export function initRenderer() {
 }
 
 /* ---------- per-frame ---------- */
+let PETAL_GUST = 6, PETAL_WIND = 0, PETAL_DIR = 1;   // breeze timer for the sky petals
 let TM = 0, TP = 0, AT = 0;   // AT: ambient-object clock, runs only while Background Motion is on
 export function tickParts(dt) { TP += dt; return TP; }   // editor preview clock   // TM: ambient clock, TP: building-part clock (frozen under Reduce Motion)
 const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0-1)
@@ -325,7 +341,21 @@ function updateSky(dt, still) {
   });
   R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
   R.pw += ((skin === 'blossom' && !calm ? 1 : 0) - R.pw) * Math.min(1, dt * 2);   // petals fall and sway only on the Blossom Island skin while Background Motion is on
-  R.petals.forEach(o => { if (!calm) { o.y += o.v * dt; o.x -= o.v * .3 * dt; if (o.y > 1960 || o.x < -40) { o.y = -40; o.x = 60 + Math.random() * 1040; } } o.s.position.set(o.x + Math.sin(AT * o.f + o.p) * 20, o.y); o.s.rotation = AT * o.f + o.p; o.s.alpha = R.pw * .6; });
+  PETAL_WIND = Math.max(0, PETAL_WIND - dt) || 0; if (!calm && R.pw > .5 && (PETAL_GUST -= dt) <= 0) { PETAL_GUST = 14 + Math.random() * 10; PETAL_WIND = 3.5; PETAL_DIR = Math.random() < .5 ? -1 : 1; }
+  const gust = PETAL_DIR * 55 * Math.sin(Math.PI * Math.min(1, PETAL_WIND / 3.5));   // an occasional breeze (every 14-24 s, 3.5 s long) pushes every petal sideways
+  R.petals.forEach(o => {   // slow and never straight: 0 = pendulum swing (a leaf rocking to and fro), 1 = glide (falls, slides sideways, turns back), 2 = drift (wide lazy S-curve); all fall 20-34 px/s
+    const s = o.s;
+    if (!calm) {
+      let vy = o.v, tilt;
+      if (o.mode === 0) { o.ph += o.w * dt; const c = Math.cos(o.ph); o.vx = o.A * o.w * c; vy *= 1 - .45 * Math.abs(c); tilt = -.5 * c; }
+      else if (o.mode === 1) { if ((o.t -= dt) <= 0) { o.t = 2 + Math.random() * 2.5; o.vxT = (Math.random() < .5 ? -1 : 1) * (22 + Math.random() * 34); } o.vx += (o.vxT - o.vx) * Math.min(1, dt * 1.3); vy *= 1 - .55 * Math.abs(o.vx) / 56; tilt = o.vx / 90; o.ph += dt; }
+      else { o.ph += o.w * .55 * dt; o.vx = o.A * 1.3 * o.w * .55 * Math.cos(o.ph) + 8 * Math.sin(o.ph * 2.3); vy *= .8 + .2 * Math.sin(o.ph * 2); tilt = o.vx / 70; }
+      o.x += (o.vx + gust * (.6 + o.k)) * dt; o.y += vy * dt; s.rotation += ((tilt + gust / 260) - s.rotation) * Math.min(1, dt * 2.5);
+      s.scale.set(o.k * (.45 + .55 * Math.abs(Math.cos(o.ph * 1.7 + o.w * 4))), o.k);   // a slow flip, like a petal turning over
+      if (o.y > 1980) { o.y = -50; o.x = Math.random() * 1080; } if (o.x < -80) o.x += 1240; else if (o.x > 1160) o.x -= 1240;
+    }
+    s.position.set(o.x, o.y); s.alpha = R.pw * .85;
+  });
   // fireflies at night
   R.fireflies.forEach((f, i) => { if (!calm) f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(AT * 2 + i))); });
   // water sloshes after the tilt (spring), then flows toward the low side
