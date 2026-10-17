@@ -85,7 +85,7 @@ export function islandAt(x, y) {
 }
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
 const BOARD = [540, 760, 1020, 1000, 540, 1240, 60, 1000];
-export const FALLS = [[180, 1060], [300, 1120], [420, 1180], [660, 1180], [780, 1120], [900, 1060]];
+export const FALLS = [[152, 1060], [284, 1120], [420, 1180], [660, 1180], [804, 1120], [928, 1060]];   // x of the 4 outer falls follows the painted waterfalls of the sky art (they sat 17-28 px inside before)
 
 /* ---------- storage (optional) ---------- */
 export const store = {
