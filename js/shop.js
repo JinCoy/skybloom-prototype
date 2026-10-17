@@ -27,6 +27,7 @@ const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bg_blosso
 export function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
+  U.skyShown = sk.id;   // the sky on screen (a shop preview too): the sky objects in renderer.js follow it, not only the equipped skin
   const need = [b.tile, sk.bg].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]);
   const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);
   const missing = need.filter(([k]) => !IMG[k]);

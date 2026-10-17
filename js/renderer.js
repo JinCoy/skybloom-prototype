@@ -295,7 +295,7 @@ function updatePhase(dt) {
   const sum = w[0] + w[1] + w[2]; for (let i = 0; i < 3; i++) w[i] /= sum;
 }
 function updateSky(dt, still) {
-  const w = U.phaseW, T = U.tilt, calm = !ambient(), skin = U.equip?.sky, aur = skin === 'aurora';
+  const w = U.phaseW, T = U.tilt, calm = !ambient(), skin = U.skyShown ?? U.equip?.sky, aur = skin === 'aurora';
   R.bgs[0].alpha = 1; R.bgs[1].alpha = w[1] + w[2]; R.bgs[2].alpha = w[2] / Math.max(1e-6, w[1] + w[2]);
   const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
   R.lights[0].tint = skin === 'blossom' ? 0xffd0e6 : aur ? 0x9fe8ff : 0xfff6d0;   // the sun glow follows the sky skin: pink for Blossom, a faint cool glow for Aurora
