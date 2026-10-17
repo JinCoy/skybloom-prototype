@@ -100,6 +100,9 @@ $('tr-detail').addEventListener('click', e => { if (e.target.closest('[data-deta
 
 /* ---------- settings ---------- */
 const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-hints', cont: 'set-cont', tilt: 'set-tilt', ambient: 'set-ambient', reduce: 'set-reduce' };
+function ambientTog() {   // Reduce Motion forces Background Motion off: show the switch off and dimmed (a disabled button takes no taps) while it is on; the saved choice returns when Reduce Motion is turned off
+  const b = $('set-ambient'), on = U.settings.reduce; b.disabled = on; b.setAttribute('aria-checked', !on && U.settings.ambient);
+}
 function tiltNote() {
   $('tilt-note').textContent = tl(U.settings.reduce ? 'tilt.reduce' : !U.settings.tilt ? 'tilt.off' : sensorOn && U.tilt.src === 'sensor' ? 'tilt.sensor' : 'tilt.fallback');
 }
@@ -107,7 +110,7 @@ function acctLabel() {   // 10-2 C1: "Guest · …a1b2" (last 4 of the guest id)
   const u = SkyAuth.currentUser(); return !u || u.provider === 'guest' ? tl('rank.guest') + (u ? ' · …' + u.id.slice(-4) : '') : u.provider;
 }
 export function openSettings() {
-  for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); tiltNote();
+  for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); ambientTog(); tiltNote();
   $('acct-who').textContent = acctLabel(); $('set-logout').hidden = U.screen === 'game';   // no log-out mid-game: the board would be lost
   overlay('settings');
 }
@@ -118,7 +121,7 @@ for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
   const was = U.settings[k]; U.settings[k] = !was; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings); TM.setting(k, was, U.settings[k]);
   if (k === 'music') music(U.settings.music);
   if (k === 'tilt' && U.settings.tilt) enableSensor().then(tiltNote);
-  tiltNote(); hud(); if (k === 'reduce' && U.tut === 1) tutStep(1);
+  ambientTog(); tiltNote(); hud(); if (k === 'reduce' && U.tut === 1) tutStep(1);
 });
 $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is on screen
   const was = lang(); U.settings.lang = was === 'ko' ? 'en' : 'ko'; store.set('settings', U.settings); TM.setting('lang', was, U.settings.lang);
