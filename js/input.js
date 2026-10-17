@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.11';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.11';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.11';
-import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.11';
-import { drawn } from './renderer.js?v=0.7.11';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.11';
-import { closeShop, openShop } from './shop.js?v=0.7.11';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.11';
-import * as TM from './telemetry.js?v=0.7.11';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.12';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.12';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.12';
+import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.12';
+import { drawn } from './renderer.js?v=0.7.12';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.12';
+import { closeShop, openShop } from './shop.js?v=0.7.12';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.12';
+import * as TM from './telemetry.js?v=0.7.12';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
