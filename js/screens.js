@@ -1,11 +1,11 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.16';
-import { music } from './audio.js?v=0.7.16';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.16';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.16';
-import { app } from './renderer.js?v=0.7.16';
-import { enableSensor, sensorOn } from './input.js?v=0.7.16';
-import * as TM from './telemetry.js?v=0.7.16';
+import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.17';
+import { music } from './audio.js?v=0.7.17';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.17';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.17';
+import { app } from './renderer.js?v=0.7.17';
+import { enableSensor, sensorOn } from './input.js?v=0.7.17';
+import * as TM from './telemetry.js?v=0.7.17';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
@@ -103,14 +103,12 @@ const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-h
 function ambientTog() {   // Reduce Motion forces Background Motion off: show the switch off and dimmed (a disabled button takes no taps) while it is on; the saved choice returns when Reduce Motion is turned off
   const b = $('set-ambient'), on = U.settings.reduce; b.disabled = on; b.setAttribute('aria-checked', !on && U.settings.ambient);
 }
-function tiltNote() {
-  $('tilt-note').textContent = tl(U.settings.reduce ? 'tilt.reduce' : !U.settings.tilt ? 'tilt.off' : sensorOn && U.tilt.src === 'sensor' ? 'tilt.sensor' : 'tilt.fallback');
-}
+function verNote() { $('app-ver').textContent = 'v' + VER; }   // the module version under the settings, taken from the ?v= the game was loaded with, so it follows every release by itself
 function acctLabel() {   // 10-2 C1: "Guest · …a1b2" (last 4 of the guest id); Google / Apple show up with the server in step 12+
   const u = SkyAuth.currentUser(); return !u || u.provider === 'guest' ? tl('rank.guest') + (u ? ' · …' + u.id.slice(-4) : '') : u.provider;
 }
 export function openSettings() {
-  for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); ambientTog(); tiltNote();
+  for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); ambientTog(); verNote();
   $('acct-who').textContent = acctLabel(); $('set-logout').hidden = U.screen === 'game';   // no log-out mid-game: the board would be lost
   overlay('settings');
 }
@@ -120,12 +118,12 @@ $('cf-yes').onclick = () => SkyAuth.signOut().then(() => { overlay('confirm', fa
 for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
   const was = U.settings[k]; U.settings[k] = !was; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings); TM.setting(k, was, U.settings[k]);
   if (k === 'music') music(U.settings.music);
-  if (k === 'tilt' && U.settings.tilt) enableSensor().then(tiltNote);
-  ambientTog(); tiltNote(); hud(); if (k === 'reduce' && U.tut === 1) tutStep(1);
+  if (k === 'tilt' && U.settings.tilt) enableSensor();
+  ambientTog(); verNote(); hud(); if (k === 'reduce' && U.tut === 1) tutStep(1);
 });
 $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is on screen
   const was = lang(); U.settings.lang = was === 'ko' ? 'en' : 'ko'; store.set('settings', U.settings); TM.setting('lang', was, U.settings.lang);
-  applyI18n(); tiltNote(); $('main-speed-best').textContent = tl('speed.best', { n: U.bestSpeed.toLocaleString('en-US') }); if (U.screen === 'game') hud(); if (U.tut) tutStep(U.tut);
+  applyI18n(); verNote(); $('main-speed-best').textContent = tl('speed.best', { n: U.bestSpeed.toLocaleString('en-US') }); if (U.screen === 'game') hud(); if (U.tut) tutStep(U.tut);
 };
 /* 'Send Play Log': while recording (13-1) one zip with everything recorded on this device (telemetry.js); otherwise the old v1 file with the last 20 games */
 let withdrawAsk = 0;

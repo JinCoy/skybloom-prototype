@@ -3,7 +3,7 @@
    the game rules (logic.js) are untouched — the public rule functions are wrapped from here to see their results.
    Queue = IndexedDB 'skybloom-telemetry'. Export = one zip (events.ndjson + manifest.json + device_contexts.json + snapshots.json).
    Imports only core.js, so every other module may import this one without a cycle; main.js hands over the few functions it needs (bind). */
-import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.16';
+import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.17';
 
 const CONSENT_V = 'c1', PROTOCOL_V = 'p1', LSK = 'skybloom.tm.', ITEMS = ['rewind', 'pop', 'drop'];
 const CAP = 20000, LIMIT_MS = +((/[?&]tlimit=(\d+)/.exec(location.search) || [])[1] || 1200000);
