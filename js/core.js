@@ -67,7 +67,10 @@ export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [1
   e13: [244, 19, 792, 996], e14: [33, 69, 1001, 977], e15: [116, 55, 915, 958], e16: [202, 23, 836, 1006], e17: [62, 35, 962, 984],
   g13: [241, 35, 783, 992], g14: [131, 92, 910, 989], g15: [111, 64, 915, 984], g16: [113, 122, 913, 947], g17: [67, 138, 962, 956] };
 // island silhouette in the backgrounds (flat top + rock underside): bubbles pass behind it and cannot be tapped there
-export const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935];
+// BG_DY: the island art sits this many px (world units) higher than the board diamond in the backgrounds' own frame, so every background layer and the island silhouette are drawn BG_DY lower
+// (measured on bg.webp: glass plate apex y~740, front apex y~1205 -> centre ~972, the board's centre is CY=1000)
+export const BG_DY = 28;
+export const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935].map((v, i) => i % 2 ? v + BG_DY : v);
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
 const BOARD = [540, 760, 1020, 1000, 540, 1240, 60, 1000];
 export const FALLS = [[180, 1060], [300, 1120], [420, 1180], [660, 1180], [780, 1120], [900, 1060]];

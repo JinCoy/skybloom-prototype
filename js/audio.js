@@ -1,5 +1,5 @@
 /* Skybloom module: audio (split from index.html in step 12; code unchanged) */
-import { U } from './core.js?v=0.6.0';
+import { U } from './core.js?v=0.6.1';
 
 /* ---------- audio ---------- */
 export let AC = null, musicNodes = null;

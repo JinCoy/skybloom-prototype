@@ -1,15 +1,15 @@
 /* Skybloom module: main (split from index.html in step 12; code unchanged) */
-import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.6.0';
-import { SND } from './audio.js?v=0.6.0';
-import { fit, hud, show, toast, transition } from './ui.js?v=0.6.0';
-import { addGold, openAd } from './game.js?v=0.6.0';
-import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.6.0';
-import { R, WTL, app, initRenderer } from './renderer.js?v=0.6.0';
-import { inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.6.0';
-import { badgePos, candidates, enableSensor } from './input.js?v=0.6.0';
-import { applySkins } from './shop.js?v=0.6.0';
-import { cardFile } from './screens.js?v=0.6.0';
-import { startEditor } from './editor.js?v=0.6.0';
+import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.6.1';
+import { SND } from './audio.js?v=0.6.1';
+import { fit, hud, show, toast, transition } from './ui.js?v=0.6.1';
+import { addGold, openAd } from './game.js?v=0.6.1';
+import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.6.1';
+import { R, WTL, app, initRenderer } from './renderer.js?v=0.6.1';
+import { inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.6.1';
+import { badgePos, candidates, enableSensor } from './input.js?v=0.6.1';
+import { applySkins } from './shop.js?v=0.6.1';
+import { cardFile } from './screens.js?v=0.6.1';
+import { startEditor } from './editor.js?v=0.6.1';
 
 // local QA only: ?debug exposes state, a merge log and a frame-time probe (query strings never reach the shared page)
 if (location.search.includes('debug')) {
