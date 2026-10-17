@@ -114,7 +114,7 @@ export function applyI18n() {
 /* ---------- images ---------- */
 export const IMG = {}, MASK = {};
 const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = src; });
-const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near',
+const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', cloudFar: 'cloud_far', cloudMid: 'cloud_mid', cloudNear: 'cloud_near', auroraA: 'aurora_main', auroraB: 'aurora_accent',
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
