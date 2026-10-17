@@ -1,7 +1,7 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.15';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.15';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.15';
+import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.16';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.16';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.16';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;

@@ -1,12 +1,12 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.15';
-import { SFX, vib } from './audio.js?v=0.7.15';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.15';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.15';
-import { updateBubbles } from './bubbles.js?v=0.7.15';
-import { updateFx } from './drawfx.js?v=0.7.15';
-import { badgePos, updateTilt } from './input.js?v=0.7.15';
-import { perfGuard } from './perfguard.js?v=0.7.15';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.16';
+import { SFX, vib } from './audio.js?v=0.7.16';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.16';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.16';
+import { updateBubbles } from './bubbles.js?v=0.7.16';
+import { updateFx } from './drawfx.js?v=0.7.16';
+import { badgePos, updateTilt } from './input.js?v=0.7.16';
+import { perfGuard } from './perfguard.js?v=0.7.16';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
