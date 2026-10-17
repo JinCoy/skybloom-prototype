@@ -1,11 +1,11 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.6';
-import { music } from './audio.js?v=0.7.6';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.6';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.6';
-import { app } from './renderer.js?v=0.7.6';
-import { enableSensor, sensorOn } from './input.js?v=0.7.6';
-import * as TM from './telemetry.js?v=0.7.6';
+import { $, APP_V, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.7';
+import { music } from './audio.js?v=0.7.7';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.7';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.7';
+import { app } from './renderer.js?v=0.7.7';
+import { enableSensor, sensorOn } from './input.js?v=0.7.7';
+import * as TM from './telemetry.js?v=0.7.7';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
