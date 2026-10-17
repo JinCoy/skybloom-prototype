@@ -126,7 +126,8 @@ export function applyI18n() {
 /* ---------- images ---------- */
 export const IMG = {}, MASK = {};
 const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = src; });
-const ASSETS = { logo: 'logo', bg: 'bg', bg1: 'bg_sunset', bg2: 'bg_night', tile: 'tile', skyMask: 'sky_mask', cloudAtlas: 'cloud_atlas2',   // the file name changes with every new atlas layout: a phone with the old atlas cached must never pair it with new frame coordinates
+const ASSETS = { logo: 'logo', bg: 'sky_day_0', bg1: 'sky_day_1', bg2: 'sky_day_2',   // the default skin's Day / Sunset / Night skies (the other skins load theirs in shop.js applySkins)
+  tile: 'tile', skyMask: 'sky_mask', cloudAtlas: 'cloud_atlas2',   // the file name changes with every new atlas layout: a phone with the old atlas cached must never pair it with new frame coordinates
   cloudNear: 'cloud_near', auroraV: 'aurora_veil', auroraC: 'aurora_curtain', auroraR: 'aurora_ribbon',
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));

@@ -12,7 +12,7 @@ import * as TM from './telemetry.js?v=0.7.7';
 const SKINS = {
   board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 'tile_petal', water: 0x6f6fe6 },
           { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 }],
-  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default', bg: 'bg' }, { id: 'blossom', name: 'Blossom Island', gold: 800, bg: 'bg_blossom' }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', bg: 'bg_aurora' }],
+  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99' }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night
   building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' },
               { id: 'eco', name: 'Eco Campus', cash: '$2.99', set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', cash: '$2.99', set: 'aqua' }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 }],
@@ -28,26 +28,27 @@ function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -
 }
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
-const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bg_blossom: 'bg_blossom', bg_aurora: 'bg_aurora' };
+const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star' };
+const skyKeys = id => [0, 1, 2].map(n => `sky_${id}_${n}`);
 export function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
   U.skyShown = sk.id;   // the sky on screen (a shop preview too): the sky objects in renderer.js follow it, not only the equipped skin
-  const need = [b.tile, sk.bg].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]);
+  const need = [b.tile].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]).concat(skyKeys(sk.id).map(k => [k, `assets/${k}.webp`]));
   const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;
   R.tiles.forEach(t => { t.texture = tt; t.width = tw; t.height = tt.height * tw / tt.width; });
   U.skinWater = b.water || null;
-  R.bgs[0].texture = tex(IMG[sk.bg] ? sk.bg : 'bg');
+  skyKeys(sk.id).forEach((k, n) => { R.bgs[n].texture = tex(IMG[k] ? k : ['bg', 'bg1', 'bg2'][n]); });   // until a skin's skies are loaded the default ones stay
   const set = bu.set || null; set_NAMES(NAMES_BY[set] || NAMES_BASE);
   if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
   U.skinBubble = bb.tint || null;
 }
 function skinArt(cat, k) {
   if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="assets/${SKIN_FILES[k.tile] || 'tile'}.webp" alt=""></span>`;
-  if (cat === 'sky') return `<span class="art"><img src="assets/${SKIN_FILES[k.bg] || 'bg'}.webp" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
+  if (cat === 'sky') return `<span class="art"><img src="assets/sky_${k.id}_0.webp" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
   if (cat === 'building') return `<span class="art"><img src="assets/${SET_PRE[k.set] || 'b'}12.webp" alt=""></span>`;
   return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:130px;position:relative"></span>`;
 }

@@ -300,7 +300,7 @@ function updateSky(dt, still) {
   const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
   R.lights[0].tint = skin === 'blossom' ? 0xffd0e6 : aur ? 0x9fe8ff : 0xfff6d0;   // the sun glow follows the sky skin: pink for Blossom, a faint cool glow for Aurora
   R.lights[0].alpha = .55 * (aur ? .18 : 1) * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;
-  const tint = mix3(w, aur ? 0x8f9bd8 : skin === 'blossom' ? 0xfff0f8 : 0xffffff, 0xffc4b0, 0x6878b0);   // clouds take the sky skin's colour (cool violet for Aurora Sky)
+  const tint = mix3(w, aur ? 0xe0f0ff : skin === 'blossom' ? 0xfff0f8 : 0xffffff, 0xffc4b0, 0x6878b0);   // clouds take the sky skin's colour (cool violet for Aurora Sky)
   const bank = R.clouds[0];   // the bottom cloud bank only drifts by itself: no tilt parallax, so it never reacts to motion
   if (!calm) bank.tilePosition.x -= 1080 / 60 * dt / bank.tileScale.x;
   bank.x = -80; bank.tint = tint;
@@ -311,9 +311,7 @@ function updateSky(dt, still) {
   });
   // sun rays turn slowly and shimmer in the day; aurora fades in at night and with the Aurora Sky skin; stars twinkle at night
   R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = (aur ? 0 : .2) * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9)); R.rays.tint = skin === 'blossom' ? 0xffd2e8 : 0xffffff;
-  R.aw += ((aur ? w[0] + .6 * w[2] + .25 * w[1] : w[2] * .55) - R.aw) * Math.min(1, dt * 2);   // aurora skin: always there (a little less under sunset/night skies); other skies: only at night
-  R.bgs[0].tint = aur ? 0xc2cbf0 : 0xffffff;   // Aurora Sky: the painted twilight is dimmed a little (easier on the eyes)
-  R.dusk.alpha = .8 * Math.min(1, R.aw) * (aur ? 1 : .5);   // (R.aw already blends the skin / night weights)
+  R.aw += ((aur ? .15 * w[0] + .5 * w[1] + .8 * w[2] : 0) - R.aw) * Math.min(1, dt * 2);   // the animated aurora belongs to the Aurora Sky skin only (a faint one by day, stronger at dusk and night); the other skins' skies are painted calm
   R.auroras.forEach(m => {   // waves travel along the curtain (periods 5-11 s, wavelengths ~240 and ~450 px) and the rays sway sideways; the lower edge moves most; brightness breathes gently
     const b = m.base, d = m.geometry.getBuffer('aVertexPosition'), v = d.data, t = AT * m.dir, A = m.amp, i = m.i;
     for (let k = 0; k < v.length; k += 2) {
@@ -324,7 +322,7 @@ function updateSky(dt, still) {
     d.update();
     m.alpha = R.aw * m.a0 * (.85 + .15 * Math.sin(AT * .6 + i * 2.3));
   });
-  R.stars.forEach(o => { o.s.alpha = Math.max(w[2], aur ? w[0] * .85 : 0) * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
+  R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
   // fireflies at night
   R.fireflies.forEach((f, i) => { if (!calm) f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(AT * 2 + i))); });
   // water sloshes after the tilt (spring), then flows toward the low side
