@@ -1,11 +1,11 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.6.9';
-import { SFX, vib } from './audio.js?v=0.6.9';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.6.9';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.6.9';
-import { updateBubbles } from './bubbles.js?v=0.6.9';
-import { updateFx } from './drawfx.js?v=0.6.9';
-import { badgePos, updateTilt } from './input.js?v=0.6.9';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.0';
+import { SFX, vib } from './audio.js?v=0.7.0';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.0';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.0';
+import { updateBubbles } from './bubbles.js?v=0.7.0';
+import { updateFx } from './drawfx.js?v=0.7.0';
+import { badgePos, updateTilt } from './input.js?v=0.7.0';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
