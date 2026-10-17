@@ -1,5 +1,5 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, CX, CY, IMG, bgDy, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.6.7';
+import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.6.7';
 import { SFX, vib } from './audio.js?v=0.6.7';
 import { hud, overlay, sheet, toast } from './ui.js?v=0.6.7';
 import { addGold } from './game.js?v=0.6.7';
@@ -34,7 +34,7 @@ export function applySkins(sel = U.equip) {
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;
   R.tiles.forEach(t => { t.texture = tt; t.width = tw; t.height = tt.height * tw / tt.width; });
   U.skinWater = b.water || null;
-  const skyKey = IMG[sk.bg] ? sk.bg : 'bg'; R.bgs[0].texture = tex(skyKey); R.bgs[0].y = bgDy(skyKey);
+  R.bgs[0].texture = tex(IMG[sk.bg] ? sk.bg : 'bg');
   const set = bu.set || null; set_NAMES(NAMES_BY[set] || NAMES_BASE);
   if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
   U.skinBubble = bb.tint || null;

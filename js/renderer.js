@@ -1,5 +1,5 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bgDy, bkey, center, reduce, same } from './core.js?v=0.6.7';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.6.7';
 import { SFX, vib } from './audio.js?v=0.6.7';
 import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.6.7';
 import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.6.7';
@@ -192,7 +192,7 @@ export function initRenderer() {
   const T = genTextures(), S = app.stage;
   const world = new PIXI.Container(); world.pivot.set(CX, CY); world.position.set(CX, CY); world.scale.set(WS); S.addChild(world);
   // sky: three time-of-day backgrounds cross-fade
-  const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; s.y = bgDy(k); world.addChild(s); return s; });   // bgDy: island art lines up with the board (core.js)
+  const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; world.addChild(s); return s; });   // every sky is drawn on the board geometry (core.js ISLAND note)
   const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
   // ambient sky objects (frozen by the 'Background Motion' setting): sun rays, aurora (two additive layers), stars; the clouds are below
@@ -280,7 +280,7 @@ function updateSky(dt, still) {
   });
   // sun rays turn slowly and shimmer in the day; aurora fades in at night and with the Aurora Sky skin; stars twinkle at night
   R.rays.rotation = .35 + .12 * Math.sin(AT * Math.PI * 2 / 40); R.rays.alpha = .2 * w[0] * (.75 + .25 * Math.sin(AT * Math.PI * 2 / 9));
-  R.aw += ((U.equip?.sky === 'aurora' ? .7 : w[2] * .55) - R.aw) * Math.min(1, dt * 2);   // ponytail: the aurora skin art already has a painted aurora, so it only gets .7 until that skin is redrawn
+  R.aw += ((U.equip?.sky === 'aurora' ? 1 : w[2] * .55) - R.aw) * Math.min(1, dt * 2);
   R.auroras.forEach((s, i) => { const t = AT * (i ? -.8 : 1); s.x = 540 + Math.sin(t * .21 + i * 2) * 26; s.scale.set(1 + .03 * Math.sin(t * .17 + i), 1 + .05 * Math.sin(t * .13 + 1 + i)); s.alpha = R.aw * (i ? .7 : .9) * (.7 + .3 * Math.sin(t * .5 + i * 1.3)); });
   R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
   // fireflies at night
