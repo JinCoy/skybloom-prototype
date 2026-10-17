@@ -39,7 +39,6 @@ export function genTextures() {
   GEN = {
     rays: canvasTex(512, 512, (x, w, h) => { x.translate(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.7, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g;
       for (let i = 0; i < 9; i++) for (let k = 0; k < 5; k++) { const a = i * Math.PI * 2 / 9 + .17 * (i % 2), hw = (.1 + .05 * (i % 3)) * (1 - k * .18); x.globalAlpha = .22; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, w / 2, a - hw, a + hw); x.closePath(); x.fill(); } }),   // sun rays: 9 beams, each 5 stacked wedges = soft edges
-    dusk: canvasTex(8, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.55, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }),   // vertical fade: darkens the sky behind the aurora
     glow: canvasTex(256, 256, radial([[0, 'rgba(255,255,255,1)'], [.35, 'rgba(255,255,255,.45)'], [1, 'rgba(255,255,255,0)']])),
     dot: canvasTex(32, 32, radial([[0, 'rgba(255,255,255,1)'], [.5, 'rgba(255,255,255,.5)'], [1, 'rgba(255,255,255,0)']])),
     star: canvasTex(64, 64, (x) => { x.translate(32, 32); x.fillStyle = '#fff'; x.shadowColor = '#fff'; x.shadowBlur = 8;
@@ -217,7 +216,6 @@ export function initRenderer() {
   // ambient sky objects (frozen by the 'Background Motion' setting): sun rays, aurora (two additive layers), stars; the clouds are below
   const rays = new PIXI.Sprite(T.rays); rays.anchor.set(.5); rays.position.set(980, 40); rays.width = rays.height = 2400; rays.blendMode = ADD(); rays.alpha = 0; world.addChild(rays);
   // aurora: three additive layers (soft veil, ray curtain, thin ribbons), each a 28x10 mesh whose vertices ripple (see updateSky), so the light unfurls and writhes instead of just fading
-  const dusk = new PIXI.Sprite(T.dusk); dusk.width = 1080; dusk.height = 1300; dusk.tint = 0x040a3a; dusk.alpha = 0; world.addChild(dusk);   // Aurora Sky: a deep-blue shade behind the lights so they stand out
   const AU = [['auroraV', 1, 16, .22, 1], ['auroraC', 1.2, 30, .45, 1], ['auroraR', .9, 24, .4, 1], ['auroraC', 1.2, 26, .24, -.8]];   // texture, -, ripple amplitude (px), base alpha, time direction; the 2nd curtain copy waves the other way, so its ray streaks drift across the first one's and the rays shimmer
   const auroras = IMG.auroraV ? AU.map(([k, , amp, a, dir], i) => { const m = new PIXI.SimplePlane(tex(k), 28, 10); m.width = 1080; m.height = 1056; m.y = -50; m.blendMode = ADD(); m.alpha = 0; m.base = Float32Array.from(m.geometry.getBuffer('aVertexPosition').data); m.amp = amp; m.a0 = a; m.i = i; m.dir = dir; world.addChild(m); return m; }) : [];
   const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
@@ -271,7 +269,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, rays, dusk, auroras, stars, petals, pw: 0, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, rays, auroras, stars, petals, pw: 0, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
