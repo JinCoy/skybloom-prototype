@@ -1,12 +1,12 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.19';
-import { SFX, vib } from './audio.js?v=0.7.19';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.19';
-import { addGold } from './game.js?v=0.7.19';
-import { addFxXY } from './fx.js?v=0.7.19';
-import { R, tex } from './renderer.js?v=0.7.19';
-import { down } from './input.js?v=0.7.19';
-import * as TM from './telemetry.js?v=0.7.19';
+import { $, av, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.20';
+import { SFX, vib } from './audio.js?v=0.7.20';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.20';
+import { addGold } from './game.js?v=0.7.20';
+import { addFxXY } from './fx.js?v=0.7.20';
+import { R, tex } from './renderer.js?v=0.7.20';
+import { down } from './input.js?v=0.7.20';
+import * as TM from './telemetry.js?v=0.7.20';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -15,7 +15,11 @@ const SKINS = {
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
   building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' },
               { id: 'eco', name: 'Eco Campus', cash: '$2.99', set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', cash: '$2.99', set: 'aqua' }],
-  bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 }],
+  bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 },
+            // art = own bubble picture (empty bubbles only; item / treasure / gold bubbles keep the clear one so their colour still reads); pop = pop-ring colour; wob = squash amplitude (default .025); cycle = colour drifts slowly
+            { id: 'lime', name: 'Lime Slime', gold: 300, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },
+            { id: 'grape', name: 'Grape Console', gold: 300, art: 'bubble_grape', pop: 0xa070e0, wob: .012 }, { id: 'luna', name: 'Luna Blue', gold: 300, art: 'bubble_luna', pop: 0x5a90f0 },
+            { id: 'opal', name: 'Opal Mystic', gold: 300, art: 'bubble_opal', pop: 0xe0c8ff, cycle: true }],
 };
 const SHOP_TABS = ['board', 'sky', 'building', 'bubble'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
 U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));
@@ -28,13 +32,13 @@ function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -
 }
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
-const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star' };
+const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
 const skyKeys = id => [0, 1, 2].map(n => `sky_${id}_${n}`);
 export function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
   U.skyShown = sk.id;   // the sky on screen (a shop preview too): the sky objects in renderer.js follow it, not only the equipped skin
-  const need = [b.tile].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]).concat(skyKeys(sk.id).map(k => [k, `assets/${k}.webp`]));
+  const need = [b.tile, bb.art].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]).concat(skyKeys(sk.id).map(k => [k, `assets/${k}.webp`]));
   const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
@@ -44,12 +48,13 @@ export function applySkins(sel = U.equip) {
   skyKeys(sk.id).forEach((k, n) => { R.bgs[n].texture = tex(IMG[k] ? k : ['bg', 'bg1', 'bg2'][n]); });   // until a skin's skies are loaded the default ones stay
   const set = bu.set || null; set_NAMES(NAMES_BY[set] || NAMES_BASE);
   if (U.bset !== set) { U.bset = set; for (const I of R.inst.values()) I.c.destroy({ children: true }); R.inst.clear(); }
-  U.skinBubble = bb.tint || null;
+  U.skinBubble = bb.tint || null; U.skinBubbleArt = IMG[bb.art] ? bb.art : null; U.skinPop = bb.pop || null; U.skinWob = bb.wob ?? .025; U.skinCycle = !!bb.cycle;
 }
 function skinArt(cat, k) {
   if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="${av(`assets/${SKIN_FILES[k.tile] || 'tile'}.webp`)}" alt=""></span>`;
   if (cat === 'sky') return `<span class="art"><img src="${av(`assets/sky_${k.id}_${k.thumb ?? 0}.webp`)}" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
   if (cat === 'building') return `<span class="art"><img src="${av(`assets/${SET_PRE[k.set] || 'b'}12.webp`)}" alt=""></span>`;
+  if (k.art) return `<span class="art"><img src="${av(`assets/${SKIN_FILES[k.art]}.webp`)}" alt="" style="width:130px;position:relative"></span>`;
   return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="${av('assets/bubble.webp')}" alt="" style="width:130px;position:relative"></span>`;
 }
 function setShopDown(down, animate = true) {

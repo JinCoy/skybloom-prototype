@@ -1,8 +1,8 @@
 /* Skybloom module: drawfx (split from index.html in step 12; code unchanged) */
-import { CX, CY, U, reduce } from './core.js?v=0.7.19';
-import { SFX } from './audio.js?v=0.7.19';
-import { freeParts, parts } from './fx.js?v=0.7.19';
-import { ADD, R, ease, genTextures } from './renderer.js?v=0.7.19';
+import { CX, CY, U, reduce } from './core.js?v=0.7.20';
+import { SFX } from './audio.js?v=0.7.20';
+import { freeParts, parts } from './fx.js?v=0.7.20';
+import { ADD, R, ease, genTextures } from './renderer.js?v=0.7.20';
 
 /* ---------- effects drawing ---------- */
 const ring = (g, x, y, R0, w, col, a) => { if (a > .01 && R0 > 1) g.lineStyle(w, col, a).drawEllipse(x, y, R0, R0 * .5); };
@@ -35,7 +35,7 @@ const FXDRAW = {
     for (const s2 of f.spr) { const sw = t * 1.6; s2.alpha = .6 * a; s2.position.set(s2.home[0] + Math.sin(sw * 4) * 18 * t, s2.home[1] - 40 * ease(t)); }
   },
   splash(f, t, g) { ring(g, f.x, f.y, 120 * ease(t), 7, 0xc8f2ff, 1 - t); ring(g, f.x, f.y, 70 * ease(Math.max(0, t - .15)), 4, 0xffffff, .8 * (1 - t)); },
-  bubble(f, t, g) { ring(g, f.x, f.y, 90 * ease(t), 8, 0xa0ebff, 1 - t); },
+  bubble(f, t, g) { ring(g, f.x, f.y, 90 * ease(t), 8, U.skinPop || 0xa0ebff, 1 - t); },
   burst(f, t, g) { ring(g, f.x, f.y, 360 * ease(t), 16, 0xffe678, 1 - t); },
   clouddrop(f, t, g) {   // puffs drift together above the tile, a light column joins cloud and tile, then the cloud thins
     const gather = ease(Math.min(1, t / .45)), fade = t > .7 ? 1 - (t - .7) / .3 : 1;
@@ -63,7 +63,7 @@ export function updateFx(dt, now) {
     FXDRAW[f.type]?.(f, t, g);
     for (const p of f.parts) {
       p.x += p.vx * f60; p.y += p.vy * f60; p.vy += p.g * f60; const a = 1 - t;
-      if (p.kind === 'drop') g.lineStyle(3, 0xffffff, .95 * a).beginFill(0xaae6ff, .25 * a).drawCircle(p.x, p.y, p.r).endFill();
+      if (p.kind === 'drop') g.lineStyle(3, 0xffffff, .95 * a).beginFill(p.col || 0xaae6ff, .25 * a).drawCircle(p.x, p.y, p.r).endFill();
       else if (p.kind === 'petal') { p.spin += .08 * f60; p.vx *= .99; g.lineStyle(0).beginFill(0xffc6de, .9 * a).drawEllipse(p.x + Math.sin(p.spin) * 6, p.y, p.r * (.6 + .4 * Math.abs(Math.cos(p.spin))), p.r * .55).endFill(); }
       else if (p.kind === 'spray') g.lineStyle(0).beginFill(0xd8f6ff, .9 * a).drawCircle(p.x, p.y, p.r * .6).endFill();
       else g.lineStyle(0).beginFill(f.tier >= 2 || f.type === 'bloom' || f.type === 'burst' ? 0xfff3a0 : 0xffffff, a).drawCircle(p.x, p.y, p.r * .5).endFill();

@@ -1,7 +1,7 @@
 /* Skybloom module: fx (split from index.html in step 12; code unchanged) */
-import { CX, CY, G, U, center, reduce } from './core.js?v=0.7.19';
-import { SFX } from './audio.js?v=0.7.19';
-import { R, ghostOf, tex } from './renderer.js?v=0.7.19';
+import { CX, CY, G, U, center, reduce } from './core.js?v=0.7.20';
+import { SFX } from './audio.js?v=0.7.20';
+import { R, ghostOf, tex } from './renderer.js?v=0.7.20';
 
 /* ---------- effects data (spec §7). Each fx: { type, x, y, t0, life, tier, parts, spr } ---------- */
 export const MAX_PARTS = 300;   // spec §8 particle budget
@@ -15,13 +15,13 @@ export function parts(f, n, kind, o = {}) {
   for (let i = 0; i < n; i++) {
     const a = o.up ? -Math.PI / 2 + (Math.random() - .5) * (o.cone || 1.2) : Math.random() * Math.PI * 2, sp = (o.speed || 5) * (.4 + Math.random());
     f.parts.push({ x: f.x + (o.spread ? (Math.random() - .5) * o.spread : 0), y: f.y + (o.dy ?? -30),
-      vx: Math.cos(a) * sp * (o.flat ? 1.4 : 1), vy: Math.sin(a) * sp * (o.flat ? .45 : .7) - (o.lift ?? 2.5), r: (o.r || 6) * (.6 + Math.random() * .8), kind, g: o.g ?? .12, spin: Math.random() * 6 });
+      vx: Math.cos(a) * sp * (o.flat ? 1.4 : 1), vy: Math.sin(a) * sp * (o.flat ? .45 : .7) - (o.lift ?? 2.5), r: (o.r || 6) * (.6 + Math.random() * .8), kind, g: o.g ?? .12, spin: Math.random() * 6, col: o.col });
   }
 }
 export function addFxXY(type, x, y, tier = 0) {
   if (reduce() && type !== 'rewind') return null;
   const f = { type, x, y, t0: performance.now(), life: type === 'merge' ? FX_LIFE.merge[tier] : FX_LIFE[type] || 600, parts: [], spr: [], tier };
-  if (type === 'bubble') parts(f, 14, 'drop', { r: 14, speed: 4 });
+  if (type === 'bubble') parts(f, 14, 'drop', { r: 14, speed: 4, col: U.skinPop });
   if (type === 'burst') parts(f, 60, 'spark', { speed: 9 });
   U.fx.push(f); return f;
 }

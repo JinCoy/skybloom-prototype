@@ -1,12 +1,12 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.19';
-import { SFX, vib } from './audio.js?v=0.7.19';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.19';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.19';
-import { updateBubbles } from './bubbles.js?v=0.7.19';
-import { updateFx } from './drawfx.js?v=0.7.19';
-import { badgePos, updateTilt } from './input.js?v=0.7.19';
-import { perfGuard } from './perfguard.js?v=0.7.19';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.20';
+import { SFX, vib } from './audio.js?v=0.7.20';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.20';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.20';
+import { updateBubbles } from './bubbles.js?v=0.7.20';
+import { updateFx } from './drawfx.js?v=0.7.20';
+import { badgePos, updateTilt } from './input.js?v=0.7.20';
+import { perfGuard } from './perfguard.js?v=0.7.20';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -60,7 +60,7 @@ export function genTextures() {
   };
   return GEN;
 }
-const hsl = (h, s = .75, l = .7) => { const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); };
+export const hsl = (h, s = .75, l = .7) => { const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); };
 export const lerpColor = (a, b, t) => { const c = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255], A = c(a), B = c(b); return A.map((v, i) => Math.round(v + (B[i] - v) * t)).reduce((s, v) => (s << 8) | v, 0); };
 export const mix3 = (w, a, b, c) => lerpColor(lerpColor(a, b, w[1] / Math.max(1e-6, w[0] + w[1])), c, w[2]);
 

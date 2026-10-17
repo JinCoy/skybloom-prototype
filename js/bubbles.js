@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.19';
-import { SFX, vib } from './audio.js?v=0.7.19';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.19';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.19';
-import { addFxXY, floatText } from './fx.js?v=0.7.19';
-import { ADD, R, genTextures, lerpColor, mix3, tex } from './renderer.js?v=0.7.19';
-import * as TM from './telemetry.js?v=0.7.19';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.20';
+import { SFX, vib } from './audio.js?v=0.7.20';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.20';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.20';
+import { addFxXY, floatText } from './fx.js?v=0.7.20';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.20';
+import * as TM from './telemetry.js?v=0.7.20';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -54,8 +54,9 @@ export function updateBubbles(dt, now, still) {
       const dx = b.x - o.x, dy = b.y - o.y, d = Math.hypot(dx, dy) || 1, min = b.r + o.r; if (d < min) { b.x += dx / d * (min - d) * .5; b.y += dy / d * (min - d) * .5; } }
     const sway = still ? 0 : Math.sin(b.t * 1.3 + b.ph) * b.amp;
     b.sx = b.x + sway; b.c.position.set(b.sx, b.y);
-    const wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * .025; b.shell.scale.set(b.r * 2 / b.shell.texture.width * (1 + wob), b.r * 2 / b.shell.texture.width * (1 - wob));
-    b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : U.skinBubble ? lerpColor(U.skinBubble, tint, .25) : tint;
+    const art = b.color ? tex('bubble') : tex(U.skinBubbleArt || 'bubble'); if (b.shell.texture !== art) b.shell.texture = art;   // skin art only on empty bubbles: a coloured one keeps the clear shell so its meaning reads
+    const wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * (U.skinWob ?? .025); b.shell.scale.set(b.r * 2 / b.shell.texture.width * (1 + wob), b.r * 2 / b.shell.texture.width * (1 - wob));
+    b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : U.skinCycle && !still ? lerpColor(hsl((now / 40 + b.ph * 60) % 360, .45, .88), tint, .25) : U.skinBubble ? lerpColor(U.skinBubble, tint, .25) : tint;
     b.glow.tint = b.color || 0xffffff; b.glow.alpha = Math.max(w[2] * .5, b.color ? .3 : 0);   // coloured bubbles glow a little so the colour reads
     if (b.y < toWorld([0, 0])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
   }
