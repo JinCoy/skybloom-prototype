@@ -556,21 +556,23 @@ export function leaveResult(next) {   // the result screen is being left: ask on
 }
 export function openFeedback(kind, done) {
   const p = $('fb-panel'); if (!p || !age13()) { done && done(); return; }
-  const fb = { clarity: 0, comfort: 0, items: { rewind: '', pop: '', drop: '' }, category: 'controls' };
+  const fb = { clarity: 0, comfort: 0, bubble: '', use: { rewind: 0, pop: 0, drop: 0 }, category: 'controls' };
   const five = k => [1, 2, 3, 4, 5].map(n => `<button class="gel ghost tmq" data-k="${k}" data-v="${n}" style="position:relative;width:110px;height:84px;font-size:40px">${n}</button>`).join('');
-  const OPT = ['not_seen', 'seen_not_used', 'used_understood', 'used_confused', 'not_applicable'];
-  const row = k => `<div style="width:100%;text-align:left"><div style="font:800 30px/1.2 var(--font);color:var(--navy)">${tl('item.' + k)}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${OPT.map(o => `<button class="gel ghost tmq" data-i="${k}" data-v="${o}" style="position:relative;height:66px;padding:0 16px;font-size:26px">${tl('tm.fb.o.' + o)}</button>`).join('')}</div></div>`;
+  const BOPT = ['not_seen', 'seen_not_used', 'used_understood', 'used_confused'];   // the old item answers, now asked once for the bubbles
+  const bubbleQ = `<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">${BOPT.map(o => `<button class="gel ghost tmq" data-b="${o}" style="position:relative;height:66px;padding:0 16px;font-size:26px">${tl('tm.fb.b.' + o)}</button>`).join('')}</div>`;
+  const rate = k => `<div style="display:flex;align-items:center;justify-content:space-between;width:100%"><div style="font:800 30px/1.2 var(--font);color:var(--navy)">${tl('item.' + k)}</div><div style="display:flex;gap:8px">${[1, 2, 3, 4, 5].map(n => `<button class="gel ghost tmq" data-u="${k}" data-v="${n}" style="position:relative;width:96px;height:76px;font-size:36px">${n}</button>`).join('')}</div></div>`;
   const q = key => `<div style="width:100%;text-align:left;font:800 30px/1.25 var(--font);color:var(--navy)">${tl(key)}</div>`;
   p.innerHTML = kind === 'issue'
     ? `<h2 style="font-size:60px">${tl('tm.issue.title')}</h2><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${['controls', 'items', 'readability', 'performance', 'other'].map(c => `<button class="gel ghost tmq" data-c="${c}" style="position:relative;height:84px;padding:0 24px;font-size:34px">${tl('tm.cat.' + c)}</button>`).join('')}</div>
        <textarea id="fb-text" maxlength="500" rows="4" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 30px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:14px;box-sizing:border-box;user-select:text"></textarea><div style="width:100%;text-align:left;font:700 24px/1.3 var(--font);color:var(--navy)">${tl('tm.fb.hint')}</div>`
-    : `<h2 style="font-size:60px">${tl('tm.fb.title')}</h2>${q('tm.fb.q1')}<div style="display:flex;gap:10px">${five('clarity')}</div>${q('tm.fb.q2')}${ITEMS.map(row).join('')}${q('tm.fb.q3')}<div style="display:flex;gap:10px">${five('comfort')}</div>
+    : `<h2 style="font-size:60px">${tl('tm.fb.title')}</h2>${q('tm.fb.q1')}<div style="display:flex;gap:10px">${five('clarity')}</div>${q('tm.fb.q2')}${bubbleQ}${q('tm.fb.q2i')}${ITEMS.map(rate).join('')}${q('tm.fb.q3')}<div style="display:flex;gap:10px">${five('comfort')}</div>
        <textarea id="fb-text" maxlength="500" rows="2" placeholder="${tl('tm.fb.comment')}" style="width:100%;font:700 28px/1.3 var(--font);border-radius:24px;border:4px solid var(--rim);padding:12px;box-sizing:border-box;user-select:text"></textarea><div style="width:100%;text-align:left;font:700 24px/1.3 var(--font);color:var(--navy)">${tl('tm.fb.hint')}</div>`;
   p.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:26px;margin-top:6px"><button class="gel ghost" id="fb-skip" style="position:relative;width:340px;height:104px;font-size:40px">${tl(kind === 'issue' ? 'set.close' : 'tm.fb.skip')}</button><button class="gel aqua" id="fb-send" style="position:relative;width:340px;height:104px;font-size:42px">${tl('tm.fb.send')}</button></div>`);
   const setOn = (btn, group) => p.querySelectorAll(group).forEach(b => { b.classList.toggle('aqua', b === btn); b.classList.toggle('ghost', b !== btn); });
   p.querySelectorAll('.tmq').forEach(b => { b.onclick = () => {
     if (b.dataset.k) { fb[b.dataset.k] = +b.dataset.v; setOn(b, `[data-k="${b.dataset.k}"]`); }
-    else if (b.dataset.i) { fb.items[b.dataset.i] = b.dataset.v; setOn(b, `[data-i="${b.dataset.i}"]`); }
+    else if (b.dataset.u) { fb.use[b.dataset.u] = +b.dataset.v; setOn(b, `[data-u="${b.dataset.u}"]`); }
+    else if (b.dataset.b) { fb.bubble = b.dataset.b; setOn(b, '[data-b]'); }
     else if (b.dataset.c) { fb.category = b.dataset.c; setOn(b, '[data-c]'); }
   }; });
   const close = () => { $('ov-feedback').hidden = true; done && done(); };
@@ -579,7 +581,7 @@ export function openFeedback(kind, done) {
     safe(() => {
       const txt = ($('fb-text').value || '').trim().slice(0, 500);
       emit('feedback_submitted', { feedback_id: `${T.pid}.f${++T.gseq}`, feedback_kind: kind === 'issue' ? 'issue_marker' : 'post_run', related_event_id: T.lastId, category: kind === 'issue' ? fb.category : 'other',
-        answers: kind === 'issue' ? {} : { controls_clarity: fb.clarity || null, items: Object.fromEntries(ITEMS.map(k => [k, fb.items[k] || null])), comfort: fb.comfort || null }, comment: txt || null }, { ia: null });
+        answers: kind === 'issue' ? {} : { survey_v: 2, controls_clarity: fb.clarity || null, bubble: fb.bubble || null, item_usefulness: Object.fromEntries(ITEMS.map(k => [k, fb.use[k] || null])), comfort: fb.comfort || null }, comment: txt || null }, { ia: null });
     });
     close();
   };
