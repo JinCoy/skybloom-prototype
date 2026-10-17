@@ -207,7 +207,8 @@ export function initRenderer() {
   const clouds = [];   // [0] = the foreground bank (pushed below)
   // sky clouds: single sprites from the atlas. Some hold still, the rest drift; size, height and speed follow a random depth (big = near = faster)
   const skyC = new PIXI.Container(); world.addChild(skyC);
-  const cloudTex = IMG.cloudAtlas ? CLOUD_FRAMES.map(([x, y, w, h]) => new PIXI.Texture(tex('cloudAtlas').baseTexture, new PIXI.Rectangle(x, y, w, h))) : [];
+  const at = tex('cloudAtlas'), fits = IMG.cloudAtlas && CLOUD_FRAMES.every(([x, y, w, h]) => x + w <= at.width && y + h <= at.height);   // a mismatched atlas must not take the whole renderer down
+  const cloudTex = fits ? CLOUD_FRAMES.map(([x, y, w, h]) => new PIXI.Texture(at.baseTexture, new PIXI.Rectangle(x, y, w, h))) : [];
   const spawnCloud = (o, x) => {
     const d = Math.pow(Math.random(), 1.3), s = o.s;   // more distant (small, faint, slow) clouds than near ones
     s.texture = cloudTex[Math.floor(Math.random() * cloudTex.length)]; o.d = d; s.scale.set(.6 + d * 1.0); s.alpha = .6 + d * .35;
