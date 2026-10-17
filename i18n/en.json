@@ -241,11 +241,12 @@
   "tm.log.withdrawQ": "Tap again to delete everything",
   "tm.log.withdrawn": "Deleted. Recording is off.",
   "age.title": "One quick question",
-  "age.body": "When were you born?\nThis sets the app up for you. We don't save your birth date.",
-  "age.month": "Month",
-  "age.year": "Year",
+  "age.body": "Which group are you in?\nThis sets the app up for you. We don't ask for your birthday: only the group is kept, on this device.",
   "age.ok": "Continue",
-  "age.err": "Please choose both month and year.",
+  "age.err": "Please choose one.",
   "age.child.log": "Play-log recording is not available on this device.",
-  "tm.fb.hint": "Please don't write names, contact details or other personal information."
+  "tm.fb.hint": "Please don't write names, contact details or other personal information.",
+  "age.g.u13": "Under 13",
+  "age.g.t13": "13–17",
+  "age.g.a18": "18 or older"
 }

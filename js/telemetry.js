@@ -3,8 +3,8 @@
    the game rules (logic.js) are untouched — the public rule functions are wrapped from here to see their results.
    Queue = IndexedDB 'skybloom-telemetry'. Export = one zip (events.ndjson + manifest.json + device_contexts.json + snapshots.json).
    Imports only core.js and age.js, so every other module may import this one without a cycle; main.js hands over the few functions it needs (bind). */
-import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.18';
-import { adult } from './age.js?v=0.7.18';   // child mode (under 13, or age not answered yet): nothing is recorded, asked or stored here
+import { $, APP_V, G, L, U, tl, toWorld } from './core.js?v=0.7.19';
+import { age13 } from './age.js?v=0.7.19';   // child mode (under 13, or age not answered yet): nothing is recorded, asked or stored here
 
 const CONSENT_V = 'c1', PROTOCOL_V = 'p1', LSK = 'skybloom.tm.', ITEMS = ['rewind', 'pop', 'drop'];
 const CAP = 20000, LIMIT_MS = +((/[?&]tlimit=(\d+)/.exec(location.search) || [])[1] || 1200000);
@@ -431,7 +431,7 @@ function startSession(reason) {
   saveMeta();
 }
 async function start() {
-  if (T.on || !adult()) return;
+  if (T.on || !age13()) return;
   db = await idbOpen(); await loadMeta();
   if (!db) { T.health.storage++; T.complete = false; }
   T.on = true; T.fg = !document.hidden; T.lastFrame = now();
@@ -440,14 +440,14 @@ async function start() {
 }
 export function boot() {
   safe(() => {
-    if (!adult()) { if (ls.get('consent') || ls.get('declined')) withdraw().then(() => ls.del('declined')); return; }   // child mode: wipe anything an earlier session stored, ask nothing
+    if (!age13()) { if (ls.get('consent') || ls.get('declined')) withdraw().then(() => ls.del('declined')); return; }   // child mode: wipe anything an earlier session stored, ask nothing
     const c = ls.get('consent');
     if (c && c.v === CONSENT_V) { T.c = c; start(); }
     else if (!ls.get('declined')) openConsent();
   });
 }
 export function openConsent() {
-  const p = $('cs-panel'); if (!p || !adult()) return;
+  const p = $('cs-panel'); if (!p || !age13()) return;
   p.innerHTML = `<h2 style="font-size:60px">${tl('tm.consent.title')}</h2><div class="cap" style="letter-spacing:.02em;font-size:30px;line-height:1.42;color:var(--navy);text-align:left;white-space:pre-line">${tl('tm.consent.body')}</div>
     <div style="display:flex;gap:26px;margin-top:6px"><button class="gel ghost" id="cs-no" style="position:relative;width:360px;height:120px;font-size:40px">${tl('tm.consent.no')}</button><button class="gel aqua" id="cs-yes" style="position:relative;width:420px;height:120px;font-size:44px">${tl('tm.consent.yes')}</button></div>`;
   $('ov-consent').hidden = false;
@@ -555,7 +555,7 @@ export function leaveResult(next) {   // the result screen is being left: ask on
   if (!asked) next();
 }
 export function openFeedback(kind, done) {
-  const p = $('fb-panel'); if (!p || !adult()) { done && done(); return; }
+  const p = $('fb-panel'); if (!p || !age13()) { done && done(); return; }
   const fb = { clarity: 0, comfort: 0, items: { rewind: '', pop: '', drop: '' }, category: 'controls' };
   const five = k => [1, 2, 3, 4, 5].map(n => `<button class="gel ghost tmq" data-k="${k}" data-v="${n}" style="position:relative;width:110px;height:84px;font-size:40px">${n}</button>`).join('');
   const OPT = ['not_seen', 'seen_not_used', 'used_understood', 'used_confused', 'not_applicable'];
