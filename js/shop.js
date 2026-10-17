@@ -1,12 +1,12 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.6';
-import { SFX, vib } from './audio.js?v=0.7.6';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.6';
-import { addGold } from './game.js?v=0.7.6';
-import { addFxXY } from './fx.js?v=0.7.6';
-import { R, tex } from './renderer.js?v=0.7.6';
-import { down } from './input.js?v=0.7.6';
-import * as TM from './telemetry.js?v=0.7.6';
+import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.7';
+import { SFX, vib } from './audio.js?v=0.7.7';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.7';
+import { addGold } from './game.js?v=0.7.7';
+import { addFxXY } from './fx.js?v=0.7.7';
+import { R, tex } from './renderer.js?v=0.7.7';
+import { down } from './input.js?v=0.7.7';
+import * as TM from './telemetry.js?v=0.7.7';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -20,7 +20,12 @@ const SKINS = {
 const SHOP_TABS = ['board', 'sky', 'building', 'bubble'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
 U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));
 U.equip = Object.assign({ board: 'frost', sky: 'day', building: 'classic', bubble: 'rainbow' }, store.get('equip', {}));
-let shopTab = 'board', preview = null, shopDown = false;
+let shopTab = 'board', preview = null, shopDown = false, phaseTimer = 0;
+function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -> Night every 5 s; other tabs / closed shop follow the real game phase
+  if (!on) { clearInterval(phaseTimer); phaseTimer = 0; U.shopPhase = null; return; }
+  if (phaseTimer) return;
+  U.shopPhase = 0; phaseTimer = setInterval(() => { U.shopPhase = (U.shopPhase + 1) % 3; }, 5000);
+}
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
 const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bg_blossom: 'bg_blossom', bg_aurora: 'bg_aurora' };
@@ -76,10 +81,10 @@ export function openShop(tab = shopTab) {
     const act = eq ? `<span class="act done">${tl('shop.equipped')}</span>` : own ? `<span class="act eq" data-equip>${tl('shop.equip')}</span>` : k.cash ? `<span class="act cash" data-cash>${k.cash}</span>` : `<span class="act buy" data-buy>${coin}${k.gold}</span>`;
     return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${k.name}</span><span class="sub">${k.sub ? tl('shop.default') : k.cash ? tl('shop.premium') : ''}</span>${act}</button>`;
   }).join('');
-  applySkins(preview); overlay('shop'); shopFx();
+  cyclePhase(tab === 'sky'); applySkins(preview); overlay('shop'); shopFx();
   $('scr-' + U.screen).style.visibility = 'hidden';   // the garden stays visible for previews, the HUD steps aside
 }
-export function closeShop() { preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
+export function closeShop() { cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
 $('ov-shop').addEventListener('click', e => {
   if (e.target.id === 'shop-dim') { setShopDown(!shopDown); return; }   // 10-2b: a background tap folds / unfolds the panel like the arrow; only ✕ closes the shop
   const tb = e.target.closest('[data-shop-tab]'); if (tb) { openShop(tb.dataset.shopTab); return; }

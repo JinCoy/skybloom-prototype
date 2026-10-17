@@ -1,12 +1,12 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.6';
-import { SFX, vib } from './audio.js?v=0.7.6';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.6';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.6';
-import { updateBubbles } from './bubbles.js?v=0.7.6';
-import { updateFx } from './drawfx.js?v=0.7.6';
-import { badgePos, updateTilt } from './input.js?v=0.7.6';
-import { perfGuard } from './perfguard.js?v=0.7.6';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.7';
+import { SFX, vib } from './audio.js?v=0.7.7';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.7';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.7';
+import { updateBubbles } from './bubbles.js?v=0.7.7';
+import { updateFx } from './drawfx.js?v=0.7.7';
+import { badgePos, updateTilt } from './input.js?v=0.7.7';
+import { perfGuard } from './perfguard.js?v=0.7.7';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -289,7 +289,7 @@ function frame() {
 }
 function updatePhase(dt) {
   if (U.screen === 'game') U.phaseTop = Math.max(U.phaseTop, G.top);   // best building this game: Rewind does not undo a sunset
-  const tgt = U.screen === 'game' ? (U.phaseTop >= 15 ? 2 : U.phaseTop >= 12 ? 1 : 0) : 0;   // spec §6.5 + §11 #6 (menus stay Day)
+  const tgt = U.shopPhase ?? (U.screen === 'game' ? (U.phaseTop >= 15 ? 2 : U.phaseTop >= 12 ? 1 : 0) : 0);   // spec §6.5 + §11 #6 (menus stay Day)
   const w = U.phaseW, k = Math.min(1, dt / 3);   // 3 s cross-fade
   for (let i = 0; i < 3; i++) w[i] += ((i === tgt ? 1 : 0) - w[i]) * Math.min(1, k * 3);
   const sum = w[0] + w[1] + w[2]; for (let i = 0; i < 3; i++) w[i] /= sum;
