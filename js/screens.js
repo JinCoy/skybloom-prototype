@@ -99,7 +99,7 @@ $('col-grid').addEventListener('click', e => {
 $('tr-detail').addEventListener('click', e => { if (e.target.closest('[data-detail-close]')) $('tr-detail').hidden = true; });
 
 /* ---------- settings ---------- */
-const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-hints', cont: 'set-cont', tilt: 'set-tilt', reduce: 'set-reduce' };
+const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-hints', cont: 'set-cont', tilt: 'set-tilt', ambient: 'set-ambient', reduce: 'set-reduce' };
 function tiltNote() {
   $('tilt-note').textContent = tl(U.settings.reduce ? 'tilt.reduce' : !U.settings.tilt ? 'tilt.off' : sensorOn && U.tilt.src === 'sensor' ? 'tilt.sensor' : 'tilt.fallback');
 }

@@ -92,13 +92,14 @@ export const U = {
   gold: store.get('gold', 0),    // v0.4 §5.1 wallet (this device)
   menuGoldAt: store.get('menuGoldAt', null),   // 10-2 A1: when the last menu gold bubble was popped (first run: the hour counts from now)
   // iOS only grants motion access from a tap, so there Tilt starts off and the first switch-on asks for permission
-  settings: Object.assign({ music: false, sfx: true, vib: true, hints: true, tilt: typeof window.DeviceOrientationEvent?.requestPermission !== 'function', reduce: false, cont: false }, store.get('settings', {})),
+  settings: Object.assign({ music: false, sfx: true, vib: true, hints: true, tilt: typeof window.DeviceOrientationEvent?.requestPermission !== 'function', reduce: false, ambient: true, cont: false }, store.get('settings', {})),
   sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, fx: [], floats: [], flies: [], shake: 0, shakeAmp: 0, nope: null,
   celebQueue: [], toldNoPair: false, phaseTop: 0, phaseW: [1, 0, 0], bubbles: [], nextBubble: 0, tilt: { x: 0, y: 0, tx: 0, ty: 0, src: 'none', at: 0 },
 };
 if (U.menuGoldAt == null) { U.menuGoldAt = Date.now(); store.set('menuGoldAt', U.menuGoldAt); }
 if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && store.get('settings', null) == null) U.settings.reduce = true;
 export const reduce = () => U.settings.reduce;
+export const ambient = () => U.settings.ambient && !U.settings.reduce;   // background objects (clouds, aurora, sun rays, stars, fireflies) move only while this is true; Reduce Motion forces it off
 
 /* ---------- words (v0.5 §3.2): i18n/en.json, i18n/ko.json; building and treasure names stay English ---------- */
 const I18N = { en: {}, ko: {} };
