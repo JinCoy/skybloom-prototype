@@ -70,6 +70,7 @@ export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [1
 // BG_DY: the island art sits this many px (world units) higher than the board diamond in the backgrounds' own frame, so every background layer and the island silhouette are drawn BG_DY lower
 // (measured on bg.webp: glass plate apex y~740, front apex y~1205 -> centre ~972, the board's centre is CY=1000)
 export const BG_DY = 28;
+export const bgDy = k => k === 'bg' ? 0 : BG_DY;   // the day sky was redrawn on the exact board geometry (guide_BG_island_v2); the other skies still need BG_DY until they are redrawn
 export const ISLAND = [540, 700, 1066, 935, 1050, 1015, 905, 1160, 705, 1335, 540, 1400, 375, 1335, 175, 1160, 30, 1015, 14, 935].map((v, i) => i % 2 ? v + BG_DY : v);
 // board outline (outer tile corners) and the grout outlets where board water falls over the front edges
 const BOARD = [540, 760, 1020, 1000, 540, 1240, 60, 1000];

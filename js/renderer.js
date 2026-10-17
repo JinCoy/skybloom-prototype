@@ -1,5 +1,5 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, BG_DY, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, bkey, center, reduce, same } from './core.js?v=0.6.6';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, bgDy, bkey, center, reduce, same } from './core.js?v=0.6.6';
 import { SFX, vib } from './audio.js?v=0.6.6';
 import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.6.6';
 import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.6.6';
@@ -190,7 +190,7 @@ export function initRenderer() {
   const T = genTextures(), S = app.stage;
   const world = new PIXI.Container(); world.pivot.set(CX, CY); world.position.set(CX, CY); world.scale.set(WS); S.addChild(world);
   // sky: three time-of-day backgrounds cross-fade
-  const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; s.y = BG_DY; world.addChild(s); return s; });   // BG_DY: island art lines up with the board (core.js)
+  const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; s.y = bgDy(k); world.addChild(s); return s; });   // bgDy: island art lines up with the board (core.js)
   const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
