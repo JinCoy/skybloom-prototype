@@ -208,6 +208,7 @@ export function initRenderer() {
   const AU = [['auroraV', 1, 16, .22, 1], ['auroraC', 1.2, 30, .45, 1], ['auroraR', .9, 24, .4, 1], ['auroraC', 1.2, 26, .24, -.8]];   // texture, -, ripple amplitude (px), base alpha, time direction; the 2nd curtain copy waves the other way, so its ray streaks drift across the first one's and the rays shimmer
   const auroras = IMG.auroraV ? AU.map(([k, , amp, a, dir], i) => { const m = new PIXI.SimplePlane(tex(k), 28, 10); m.width = 1080; m.height = 1056; m.y = -50; m.blendMode = ADD(); m.alpha = 0; m.base = Float32Array.from(m.geometry.getBuffer('aVertexPosition').data); m.amp = amp; m.a0 = a; m.i = i; m.dir = dir; world.addChild(m); return m; }) : [];
   const stars = Array.from({ length: 28 }, (_, i) => { const s = new PIXI.Sprite(T.star); s.anchor.set(.5); s.blendMode = ADD(); s.alpha = 0; s.position.set(40 + Math.random() * 1000, 40 + Math.random() * 760); s.scale.set(.18 + Math.random() * .22); world.addChild(s); return { s, p: Math.random() * 6.28, f: .5 + Math.random() * 1.2 }; });
+  const petals = Array.from({ length: 12 }, () => { const s = new PIXI.Sprite(T.petal); s.anchor.set(.5); s.alpha = 0; s.scale.set(.55 + Math.random() * .5); world.addChild(s); return { s, x: Math.random() * 1080, y: Math.random() * 1920, v: 38 + Math.random() * 32, f: .5 + Math.random() * .8, p: Math.random() * 6.28 }; });   // Blossom Island: a few pink petals drift down the sky
   const cloud = (k, y, sc, alpha) => { const t = tex(k), s = new PIXI.TilingSprite(t, 1240, t.height * sc); s.tileScale.set(sc); s.y = y; s.alpha = alpha; world.addChild(s); return s; };
   const clouds = [];   // [0] = the foreground bank (pushed below)
   // sky clouds: single sprites from the atlas. Some hold still, the rest drift; size, height and speed follow a random depth (big = near = faster)
@@ -255,7 +256,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, rays, dusk, auroras, stars, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { world, bgs, lights, rays, dusk, auroras, stars, petals, pw: 0, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -323,6 +324,8 @@ function updateSky(dt, still) {
     m.alpha = R.aw * m.a0 * (.85 + .15 * Math.sin(AT * .6 + i * 2.3));
   });
   R.stars.forEach(o => { o.s.alpha = w[2] * .9 * Math.max(0, .25 + .75 * Math.sin(AT * o.f + o.p)); });
+  R.pw += ((skin === 'blossom' && !calm ? 1 : 0) - R.pw) * Math.min(1, dt * 2);   // petals fall and sway only on the Blossom Island skin while Background Motion is on
+  R.petals.forEach(o => { if (!calm) { o.y += o.v * dt; o.x -= o.v * .3 * dt; if (o.y > 1960 || o.x < -40) { o.y = -40; o.x = 60 + Math.random() * 1040; } } o.s.position.set(o.x + Math.sin(AT * o.f + o.p) * 20, o.y); o.s.rotation = AT * o.f + o.p; o.s.alpha = R.pw * .6; });
   // fireflies at night
   R.fireflies.forEach((f, i) => { if (!calm) f.a += dt * (.15 + (i % 5) * .03); f.s.position.set(540 + Math.cos(f.a) * f.r, f.y + Math.sin(f.a * 1.7) * 30); f.s.alpha = w[2] * (.4 + .6 * Math.max(0, Math.sin(AT * 2 + i))); });
   // water sloshes after the tilt (spring), then flows toward the low side
