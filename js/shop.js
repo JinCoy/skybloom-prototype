@@ -1,5 +1,5 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.15';
+import { $, av, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.15';
 import { SFX, vib } from './audio.js?v=0.7.15';
 import { hud, overlay, sheet, toast } from './ui.js?v=0.7.15';
 import { addGold } from './game.js?v=0.7.15';
@@ -47,10 +47,10 @@ export function applySkins(sel = U.equip) {
   U.skinBubble = bb.tint || null;
 }
 function skinArt(cat, k) {
-  if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="assets/${SKIN_FILES[k.tile] || 'tile'}.webp" alt=""></span>`;
-  if (cat === 'sky') return `<span class="art"><img src="assets/sky_${k.id}_${k.thumb ?? 0}.webp" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
-  if (cat === 'building') return `<span class="art"><img src="assets/${SET_PRE[k.set] || 'b'}12.webp" alt=""></span>`;
-  return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="assets/bubble.webp" alt="" style="width:130px;position:relative"></span>`;
+  if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="${av(`assets/${SKIN_FILES[k.tile] || 'tile'}.webp`)}" alt=""></span>`;
+  if (cat === 'sky') return `<span class="art"><img src="${av(`assets/sky_${k.id}_${k.thumb ?? 0}.webp`)}" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
+  if (cat === 'building') return `<span class="art"><img src="${av(`assets/${SET_PRE[k.set] || 'b'}12.webp`)}" alt=""></span>`;
+  return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="${av('assets/bubble.webp')}" alt="" style="width:130px;position:relative"></span>`;
 }
 function setShopDown(down, animate = true) {
   shopDown = down; const p = $('shop-panel'); p.style.transition = animate && !reduce() ? '' : 'none';   // Reduce Motion: change at once

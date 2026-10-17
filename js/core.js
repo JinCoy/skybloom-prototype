@@ -1,5 +1,7 @@
 /* Skybloom module: core (split from index.html in step 12; code unchanged) */
 
+const VER = new URL(import.meta.url).searchParams.get('v') || '0';   // the module version from the ?v= this file was imported with: every asset URL carries it, so a new version never pairs old cached art with new code
+export const av = s => s.includes('?') ? s : `${s}?v=${VER}`;
 export const L = window.SkyLogic;
 export const $ = id => document.getElementById(id);
 export const EDITOR = location.search.includes('editor') || location.hash === '#editor';
@@ -12,7 +14,7 @@ export let NAMES = NAMES_BASE;
 export const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.25, 2.3, 2.35, 2.4, 2.45];
 export const CAL = [0, 1.35, 1.25, 1.15, 1.15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 export const TW = 240, TH = 120, CX = 540, CY = 1000;
-export const ITEMS = [['rewind', 'Rewind', 'assets/item1.webp'], ['pop', 'Bubble Pop', 'assets/item2.webp'], ['drop', 'Cloud Drop', 'assets/item3.webp']];
+export const ITEMS = [['rewind', 'Rewind', av('assets/item1.webp')], ['pop', 'Bubble Pop', av('assets/item2.webp')], ['drop', 'Cloud Drop', av('assets/item3.webp')]];
 export const TREASURES = [   // spec §4.3, ids 1-12 (rarity lives in logic.js)
   ['Glass Marble', 'A glass marble holding a little piece of sky.'], ['Paper Boat', 'A paper boat that drifted down the water paths.'],
   ['Dandelion Puff', 'A dandelion puff, ready for a wish.'], ['Seashell Charm', 'A tiny seashell charm from a faraway shore.'],
@@ -20,7 +22,7 @@ export const TREASURES = [   // spec §4.3, ids 1-12 (rarity lives in logic.js)
   ['Glass Butterfly', 'A glass butterfly that catches the light.'], ['Sun Catcher', 'A sun catcher that scatters little rainbows.'],
   ['Bubble Wand', 'A rainbow wand for blowing bubbles.'], ['Mini Balloon', 'A tiny hot-air balloon.'],
   ['Rainbow Feather', 'A feather painted in every colour of the rainbow.'], ['Crystal Koi', 'A crystal koi that swims through the sky.']];
-export const accSrc = id => `assets/acc${String(id).padStart(2, '0')}.webp`;
+export const accSrc = id => av(`assets/acc${String(id).padStart(2, '0')}.webp`);
 /* Main-screen garden (10-3, style "Maximum" chosen): 13 buildings, a random showcase every visit. Slots are [row, col, minLv, maxLv]; the picks must be distinct,
    descend toward the front along each diagonal (tall buildings behind, small in front: nothing hides anything), and include at least 3 clearly moving buildings.
    The back corner (0,0) never gets a tall one (the logo). The left-corner slot (3,0) and the upper slot (0,2) swapped their level ranges after the first review. */
@@ -58,7 +60,7 @@ export const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 
 export const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 export const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 export const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g' };   // building set -> image key / file prefix; Classic is 'b'
-export const artSrc = lv => `assets/${(U && SET_PRE[U.bset]) || 'b'}${String(lv).padStart(2, '0')}.webp`;
+export const artSrc = lv => av(`assets/${(U && SET_PRE[U.bset]) || 'b'}${String(lv).padStart(2, '0')}.webp`);
 // building image key for the active set; the other sets fall back to Classic until its image has loaded
 export const bkey = lv => { const p = SET_PRE[U.bset]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
@@ -125,7 +127,7 @@ export function applyI18n() {
 
 /* ---------- images ---------- */
 export const IMG = {}, MASK = {};
-const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = src; });
+const load = (k, src) => new Promise(res => { const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => { window.__tmAsset?.(src); res(); }; i.src = av(src); });
 const ASSETS = { logo: 'logo', bg: 'sky_day_0', bg1: 'sky_day_1', bg2: 'sky_day_2',   // the default skin's Day / Sunset / Night skies (the other skins load theirs in shop.js applySkins)
   tile: 'tile', skyMask: 'sky_mask', cloudAtlas: 'cloud_atlas2',   // the file name changes with every new atlas layout: a phone with the old atlas cached must never pair it with new frame coordinates
   cloudNear: 'cloud_near', auroraV: 'aurora_veil', auroraC: 'aurora_curtain', auroraR: 'aurora_ribbon',
