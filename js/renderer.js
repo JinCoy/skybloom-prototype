@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.33';
-import { sbLocked } from './sandbox.js?v=0.7.33';
-import { SFX, vib } from './audio.js?v=0.7.33';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.33';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.33';
-import { updateBubbles } from './bubbles.js?v=0.7.33';
-import { updateFx } from './drawfx.js?v=0.7.33';
-import { badgePos, updateTilt } from './input.js?v=0.7.33';
-import { perfGuard } from './perfguard.js?v=0.7.33';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.34';
+import { sbLocked } from './sandbox.js?v=0.7.34';
+import { SFX, vib } from './audio.js?v=0.7.34';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.34';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.34';
+import { updateBubbles } from './bubbles.js?v=0.7.34';
+import { updateFx } from './drawfx.js?v=0.7.34';
+import { badgePos, updateTilt } from './input.js?v=0.7.34';
+import { perfGuard } from './perfguard.js?v=0.7.34';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -84,7 +84,36 @@ export const BAKE = {};
 /* Which motion parts a building set uses: Classic ('b') all of them; Candy ('c') shares Classic's silhouette so the same map fits (checked on an overlay sheet), except the windmill's spinning sails (no sails layer in
    the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
 const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
-const motionFor = lv => (MOTION[lv] || []).filter(p => { const k = bkey(lv)[0]; return k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type); });
+const motionFor = lv => {
+  const k = bkey(lv)[0]; if (k === 'e' && MOTION_E[lv]) return MOTION_E[lv].filter(p => !p.need || IMG[p.need]);   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
+  return (MOTION[lv] || []).filter(p => k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type));
+};
+/* Baked frames shared by every copy of a building: the region in N hue-shifted copies (colour-cycling lights), and a sphere in N rotation steps (hologram globe). */
+const FRAMES = {};
+function hueShift(cv, deg) {   // standard hue-rotation matrix on the pixels (no canvas filter: Safari lacks it)
+  const o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height; const x = o.getContext('2d'); x.drawImage(cv, 0, 0);
+  const d = x.getImageData(0, 0, o.width, o.height), a = d.data, r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), q = v => v < 0 ? 0 : v > 255 ? 255 : v;
+  const m = [.213 + c * .787 - s * .213, .715 - c * .715 - s * .715, .072 - c * .072 + s * .928, .213 - c * .213 + s * .143, .715 + c * .285 + s * .140, .072 - c * .072 - s * .283, .213 - c * .213 - s * .787, .715 - c * .715 + s * .715, .072 + c * .928 + s * .072];
+  for (let i = 0; i < a.length; i += 4) { const R0 = a[i], G0 = a[i + 1], B0 = a[i + 2]; a[i] = q(R0 * m[0] + G0 * m[1] + B0 * m[2]); a[i + 1] = q(R0 * m[3] + G0 * m[4] + B0 * m[5]); a[i + 2] = q(R0 * m[6] + G0 * m[7] + B0 * m[8]); }
+  x.putImageData(d, 0, 0); return o;
+}
+function hueFrames(key, i, cv, n) { const id = `${key}:h${i}`; return FRAMES[id] || (FRAMES[id] = Array.from({ length: n }, (_, k) => PIXI.Texture.from(k ? hueShift(cv, k * 360 / n) : cv))); }
+function globeFrames(key, i, img, W, H, p, n = 16) {   // a flat picture of a globe turned into a rotating sphere: longitude shifts, the middle moves fastest
+  const id = `${key}:g${i}`; if (FRAMES[id]) return FRAMES[id];
+  const [cx, cy, rr] = [p.c[0] * W, p.c[1] * H, p.r * W], R = Math.max(4, Math.round(rr)), S = R * 2;
+  const src = document.createElement('canvas'); src.width = S; src.height = S; const sx = src.getContext('2d'); sx.drawImage(img, cx - R, cy - R, S, S, 0, 0, S, S);
+  const sd = sx.getImageData(0, 0, S, S).data;
+  return FRAMES[id] = Array.from({ length: n }, (_, k) => {
+    const cvs = document.createElement('canvas'); cvs.width = S; cvs.height = S; const x = cvs.getContext('2d'), out = x.createImageData(S, S), o = out.data, th = k * Math.PI * 2 / n;
+    for (let y = 0; y < S; y++) for (let xx = 0; xx < S; xx++) {
+      const u = (xx + .5 - R) / R, v = (y + .5 - R) / R; if (u * u + v * v > 1) continue;
+      let ph2 = Math.asin(u) + th; ph2 = ((ph2 + Math.PI / 2) % Math.PI + Math.PI) % Math.PI - Math.PI / 2;   // wrap on the visible half
+      const su = Math.min(S - 1, Math.max(0, Math.round(R + Math.sin(ph2) * R - .5))), si = (y * S + su) * 4, oi = (y * S + xx) * 4;
+      o[oi] = sd[si]; o[oi + 1] = sd[si + 1]; o[oi + 2] = sd[si + 2]; o[oi + 3] = sd[si + 3];
+    }
+    x.putImageData(out, 0, 0); return PIXI.Texture.from(cvs);
+  });
+}
 const JELLY = { sway: 3, bob: 3, squish: .04 };
 const jelly = p => p.type === 'spin' ? { ...p, tex: 'sails_c', pt: [.484, .128], size: 1 }   // Candy windmill: its own sails, hub at the pink orb of the Candy body
   : p.type in JELLY ? { ...p, amp: (p.amp ?? JELLY[p.type]) * 1.3 } : p;   // Candy is jelly: a little more give
@@ -99,8 +128,8 @@ function bake(lv) {
     const b = { x0, y0, x1, y1, pts };
     if (p.type !== 'flow') {
       const c = document.createElement('canvas'); c.width = Math.max(1, x1 - x0); c.height = Math.max(1, y1 - y0);
-      const x = c.getContext('2d'); x.beginPath(); pts.forEach(([a, bb], i) => i ? x.lineTo(a - x0, bb - y0) : x.moveTo(a - x0, bb - y0)); x.closePath(); x.clip(); x.drawImage(img, -x0, -y0);
-      b.tex = PIXI.Texture.from(c);
+      const x = c.getContext('2d'); x.beginPath(); pts.forEach(([a, bb], i) => i ? x.lineTo(a - x0, bb - y0) : x.moveTo(a - x0, bb - y0)); x.closePath(); x.clip(); x.drawImage((p.src && IMG[p.src]) || img, -x0, -y0);   // src: cut the part out of another picture (the building without the train, versus the original with it)
+      b.tex = PIXI.Texture.from(c); b.cv = c;
     }
     return b;
   });
@@ -134,6 +163,17 @@ export function makeInst(lv) {
       P.dots = Array.from({ length: 4 }, () => { const s = new PIXI.Sprite(tex('bubble')); s.anchor.set(.5); c.addChild(s); return s; });
     } else if (p.type === 'petals') {
       P.dots = Array.from({ length: 6 }, () => { const s = new PIXI.Sprite(T.petal); s.anchor.set(.5); c.addChild(s); return s; });
+    } else if (p.type === 'hue' && b && b.cv) {   // lights that cycle through colours: the region in 6 hue-shifted copies, cross-faded
+      P.hs = hueFrames(key, i, b.cv, 6).map(t => { const s = new PIXI.Sprite(t); s.position.set(...L2(b.x0, b.y0)); s.alpha = 0; s.visible = false; c.addChild(s); return s; });
+    } else if (p.type === 'bubbles') {   // small bubbles rising through a water column
+      P.dots = Array.from({ length: p.n || 8 }, () => { const s = new PIXI.Sprite(tex('bubble')); s.anchor.set(.5); c.addChild(s); return s; });
+    } else if (p.type === 'jet') {   // fountain: drops thrown up and falling back in arcs
+      P.dots = Array.from({ length: p.n || 14 }, () => { const s = new PIXI.Sprite(T.dot); s.anchor.set(.5); s.tint = 0xe6f7ff; c.addChild(s); return s; });
+    } else if (p.type === 'orbit') { P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g);
+    } else if (p.type === 'globe' && IMG[key]) {   // hologram globe turning
+      P.fr = globeFrames(key, i, IMG[key], W, H, p); P.s = new PIXI.Sprite(P.fr[0]); P.s.anchor.set(.5); P.s.position.set(...at(...p.c)); c.addChild(P.s);
+    } else if (p.type === 'slide' && b) {   // a part (the train) running back and forth along a line; its picture is cut out of the building
+      const s = new PIXI.Sprite(b.tex); P.s = s; s.position.set(...L2(b.x0, b.y0)); P.x0 = s.x; P.y0 = s.y; c.addChild(s);
     } else if (p.type === 'spin' && IMG[p.tex]) {
       const s = new PIXI.Sprite(tex(p.tex)); s.anchor.set(.5); s.position.set(...at(...p.pt)); s.scale.set((p.size || 1) * W / s.texture.width); c.addChild(s); P.s = s;
     }
@@ -162,7 +202,8 @@ export function updateInst(I, t, dt, s, still) {
       }
       case 'flow': {
         if (!still) P.off += (p.speed || 60) / s * dt;
-        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: P.fc, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
+        const ft = waterTex('flow'), da = (p.dir ?? 90) * Math.PI / 180;   // dir: angle the water runs along (90 = down, 0 = right)
+        P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: P.fc, matrix: new PIXI.Matrix().scale(.32, .32).translate((Math.cos(da) * P.off) % (ft.width * .32), (Math.sin(da) * P.off) % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
         break;
       }
       case 'sparkle': P.stars.forEach((st, i) => { const a = Math.max(0, Math.sin(t * 1.9 + i * 2.1 + ph)) ** 6 * .9; st.alpha = still ? .35 : a; st.visible = st.alpha > .02; st.scale.set((.25 + .35 * st.alpha) / s * .7); st.rotation = t * .4; }); break;
@@ -174,6 +215,30 @@ export function updateInst(I, t, dt, s, still) {
       }
       case 'rise': P.dots.forEach((d, i) => { const q = (t * .45 + i / 4 + ph) % 1; d.position.set((p.pt[0] - .5) * W + Math.sin(q * 7 + i) * 5 / s, (p.pt[1] - 1) * H - q * 70 / s); d.alpha = still ? 0 : (1 - q) * .85; d.scale.set((8 + i * 2) / s / d.texture.width * (0.6 + q)); }); break;
       case 'petals': { const [a, b2, c2, d2] = p.box; P.dots.forEach((d, i) => { const q = (t * .12 + i / 6 + ph) % 1; d.position.set(((a + (c2 - a) * ((i * .37 + .1) % 1)) - .5) * W + Math.sin(q * 9 + i) * 10 / s, (b2 + (d2 - b2) * q - 1) * H); d.alpha = still ? 0 : Math.sin(q * Math.PI) * .9; d.rotation = q * 7 + i; d.scale.set(1 / s * .8); }); break; }
+      case 'hue': {   // colour wheel: lower copy opaque, the next one fades in over it
+        const n = P.hs.length, pos = (t / (p.period || 12) + ph / TAU) % 1 * n, i0 = Math.floor(pos) % n, i1 = (i0 + 1) % n, f = pos - Math.floor(pos);
+        P.hs.forEach(s => { s.visible = false; });
+        const lo = Math.min(i0, i1), hi = Math.max(i0, i1), aHi = i0 < i1 ? f : 1 - f;
+        P.hs[lo].visible = true; P.hs[lo].alpha = p.alpha ?? 1; P.hs[hi].visible = true; P.hs[hi].alpha = aHi * (p.alpha ?? 1);
+        break;
+      }
+      case 'bubbles': { const [bx0, by0, bx1, by1] = p.box;
+        P.dots.forEach((d, i) => { const q = (t * (p.speed || .25) + i / P.dots.length + ph * .1) % 1, k = i * .618 % 1;
+          d.position.set((bx0 + (bx1 - bx0) * (.12 + .76 * k) - .5) * W + Math.sin(q * 7 + i * 2) * 3 / s, (by1 - (by1 - by0) * q - 1) * H);
+          d.alpha = still ? 0 : Math.sin(q * Math.PI) * .85; d.scale.set((4 + (i % 3) * 2.5) / s / d.texture.width * 2); });
+        break; }
+      case 'jet': { const [jx, jy] = [(p.pt[0] - .5) * W, (p.pt[1] - 1) * H], jh = (p.h || .12) * H, sp = (p.spread || .05) * W;
+        P.dots.forEach((d, i) => { const q = (t * (p.speed || .7) + i / P.dots.length + ph * .1) % 1, vx = ((i * .618) % 1 - .5) * 2 * sp;
+          d.position.set(jx + vx * q, jy - jh * 4 * q * (1 - q)); d.alpha = still ? 0 : Math.sin(q * Math.PI) * .9; d.scale.set((5 + (i % 3) * 2) / s / d.texture.width * 2); });
+        break; }
+      case 'orbit': {   // a thin glowing ring with a bright dot running round it
+        const g = P.g, cx = (p.pt[0] - .5) * W, cy = (p.pt[1] - 1) * H, rx = (p.rx || .2) * W, ry = (p.ry || .06) * W, rot = (p.rot || 0) * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
+        const at2 = a => [cx + rx * Math.cos(a) * cr - ry * Math.sin(a) * sr, cy + rx * Math.cos(a) * sr + ry * Math.sin(a) * cr]; g.clear().lineStyle(1.5 / s, 0xc8f6ff, .4);
+        for (let k = 0; k <= 40; k++) { const [x, y] = at2(k / 40 * TAU); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+        if (!still) { const [dx, dy] = at2(TAU * (t / (p.period || 5) + ph / TAU)); g.lineStyle(0).beginFill(0xffffff, .95).drawCircle(dx, dy, 2.6 / s).endFill(); }
+        break; }
+      case 'globe': if (P.s && !still) { const n = P.fr.length, k = Math.floor((t / (p.period || 8) + ph / TAU) % 1 * n) % n; if (k !== P.k) { P.k = k; P.s.texture = P.fr[k]; } } break;
+      case 'slide': if (P.s) { const m = still ? 0 : Math.sin(TAU * t / (p.period || 8) + ph); P.s.x = P.x0 + (p.dx || 0) * W * m; P.s.y = P.y0 + (p.dy || 0) * H * m; } break;
       case 'spin': if (P.s && !still) P.s.rotation += (p.speed || .7) * dt; break;
     }
   }
