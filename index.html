@@ -449,15 +449,15 @@ body {
         <div class="row"><span data-i18n="set.ambient">Background Motion</span><button class="tog" role="switch" id="set-ambient" aria-label="Background Motion" data-i18n-aria="set.ambient"></button></div>
         <div class="row"><span data-i18n="set.reduce">Reduce Motion</span><button class="tog" role="switch" id="set-reduce" aria-label="Reduce Motion" data-i18n-aria="set.reduce"></button></div>
         <div class="row"><span data-i18n="set.lang">Language</span><button class="gel ghost" id="set-lang" style="position:relative;height:78px;padding:0 34px;font-size:38px" data-i18n="set.langValue">English</button></div>
+        <div class="row" id="set-acct"><span style="display:flex;flex-direction:column;gap:8px;min-width:0"><small data-i18n="set.account" style="font:800 26px/1 var(--font);color:var(--blue)">Account</small><b id="acct-who" style="font:900 38px/1.1 var(--font)"></b></span>
+          <button class="gel ghost" id="set-logout" style="position:relative;height:78px;padding:0 30px;font-size:34px;flex:none" data-i18n="set.logout">Log out</button></div>
         <div style="display:flex;gap:14px;width:100%">
           <button class="gel aqua" id="set-tut" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.tutorial">Replay Tutorial</button>
           <button class="gel aqua" id="set-log" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.log">Send Play Log</button>
         </div>
-        <div class="row" id="set-acct"><span style="display:flex;flex-direction:column;gap:8px;min-width:0"><small data-i18n="set.account" style="font:800 26px/1 var(--font);color:var(--blue)">Account</small><b id="acct-who" style="font:900 38px/1.1 var(--font)"></b></span>
-          <button class="gel ghost" id="set-logout" style="position:relative;height:78px;padding:0 30px;font-size:34px;flex:none" data-i18n="set.logout">Log out</button></div>
         <div class="cap" id="app-ver" style="letter-spacing:.02em;font-size:28px;line-height:1.35;color:var(--blue)"></div>
+        <button class="gel aqua" data-close style="position:relative;width:100%;height:112px;font-size:56px;flex:none;margin-top:6px" data-i18n="set.close">Close</button>
       </div>
-      <button class="gel aqua" data-close style="left:200px;top:1600px;width:680px;height:140px;font-size:64px" data-i18n="set.close">Close</button>
       <button class="gel ghost" id="set-home" style="left:330px;top:1770px;width:420px;height:96px;font-size:44px" hidden data-i18n="set.home">Quit to Home</button>
     </div>
 
@@ -546,4 +546,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.30"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.31"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

@@ -1,12 +1,12 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.30';
-import { SFX, vib } from './audio.js?v=0.7.30';
-import { bumpBadge, hud, overlay, show, toast } from './ui.js?v=0.7.30';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.30';
-import { R, startDrop } from './renderer.js?v=0.7.30';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.30';
-import { buildCard } from './screens.js?v=0.7.30';
-import * as TM from './telemetry.js?v=0.7.30';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.31';
+import { SFX, vib } from './audio.js?v=0.7.31';
+import { bumpBadge, hud, overlay, show, toast } from './ui.js?v=0.7.31';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.31';
+import { R, startDrop } from './renderer.js?v=0.7.31';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.31';
+import { buildCard } from './screens.js?v=0.7.31';
+import * as TM from './telemetry.js?v=0.7.31';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
