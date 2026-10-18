@@ -3,8 +3,8 @@
    All of them share ONE extra WebGL renderer (phones drop the oldest WebGL context when there are too many, and the oldest is the garden):
    each frame a mini building is drawn by the shared renderer and copied into its own 2D canvas. One loop, running only while one is on screen.
    If the shared renderer cannot be made, the plain picture stays (the <img> the host already holds). */
-import { $, reduce } from './core.js?v=0.7.38';
-import { makeInst, updateInst } from './renderer.js?v=0.7.38';
+import { $, bkey, reduce } from './core.js?v=0.7.39';
+import { makeInst, updateInst } from './renderer.js?v=0.7.39';
 
 const MAXW = 520, MAXH = 560;   // the largest mini (New Building! is 500 x 540)
 let SR = null, RES = 1, failed = false;
@@ -26,9 +26,10 @@ function loop(now) {
 const wake = () => { if (!raf) { last = 0; raf = requestAnimationFrame(loop); } };
 
 export class Mini {
-  /** host: element holding the fallback <img>; w, h: size in stage px (at most MAXW x MAXH); fps: frame cap. */
-  constructor(host, w, h, fps = 30) {
-    this.host = host; this.w = w; this.h = h; this.step = 1000 / fps; this.t = 0; this.acc = 0; this.I = null; this.lv = 0;
+  /** host: element holding the fallback <img>; w, h: size in stage px (at most MAXW x MAXH); fps: frame cap;
+      clip: a scrolling box the host sits in (only drawn while it is scrolled into view). */
+  constructor(host, w, h, fps = 30, clip = null) {
+    this.host = host; this.clip = clip; this.w = w; this.h = h; this.step = 1000 / fps; this.t = 0; this.acc = 0; this.I = null; this.lv = 0;
     this.img = host.querySelector('img'); this.stage = new PIXI.Container();
     this.ok = !!shared();
     if (this.ok) {
@@ -37,11 +38,16 @@ export class Mini {
       host.style.position = host.style.position || 'relative'; host.appendChild(this.cv); MINIS.add(this);
     }
   }
-  live() { return this.ok && this.I && this.host.offsetParent !== null; }
+  live() {
+    if (!this.ok || !this.I || this.host.offsetParent === null) return false;
+    if (!this.clip) return true;
+    const a = this.host.getBoundingClientRect(), b = this.clip.getBoundingClientRect(); return a.right > b.left && a.left < b.right;   // a card scrolled out of the palette is not drawn
+  }
+  destroy() { MINIS.delete(this); this.stage.destroy({ children: true }); this.I = null; this.cv?.remove(); }
   /** Show building level lv (the picture of the equipped set); returns false when only the plain picture can be used. */
   show(lv) {
     if (!this.ok) return false;
-    if (lv === this.lv && this.I) { wake(); return true; }
+    if (lv === this.lv && this.I && this.I.key === bkey(lv)) { wake(); return true; }   // same building of the same set: keep it
     this.stage.removeChildren().forEach(c => c.destroy({ children: true })); this.I = null;
     try { this.I = makeInst(lv); } catch { this.I = null; }
     if (!this.I) { this.lv = 0; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); if (this.img) this.img.style.visibility = ''; return false; }
@@ -58,6 +64,7 @@ export class Mini {
     const c = this.ctx; c.clearRect(0, 0, this.cv.width, this.cv.height); c.drawImage(SR.view, 0, 0, this.cv.width, this.cv.height, 0, 0, this.cv.width, this.cv.height);
   }
   frame(dt) {
+    if (this.I.key !== bkey(this.lv)) { const lv = this.lv; this.lv = 0; this.show(lv); return; }   // the set's own picture finished loading (or the set changed): rebuild
     this.acc += dt;
     if (this.acc < this.step) return;
     const d = this.acc / 1000; this.acc = 0; if (!reduce()) this.t += d; this.draw(d);

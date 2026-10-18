@@ -137,10 +137,11 @@ const ASSETS = { logo: 'logo', bg: 'sky_day_0', bg1: 'sky_day_1', bg2: 'sky_day_
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
-export let MOTION = {}, MOTION_E = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.38`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.39`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
+loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
   const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
@@ -161,7 +162,7 @@ const loadSet = {};   // skins load the first time they are previewed or equippe
 export function loadSkinArt(keys) {
   return Promise.all(keys.map(([k, src]) => IMG[k] ? null : loadSet[k] || (loadSet[k] = load(k, src).then(() => maskOf(k))))).then(() => {
     if (IMG.body_c && !IMG.c6) { IMG.c6 = IMG.body_c; maskOf('c6'); }   // Candy Lv6 = sail-less body + the spinning sails (like Classic): c6 only exists once the body is here, so it is never drawn half-built
-    for (const lv of [12, 13]) if (IMG['e' + lv + '_body'] && IMG['e' + lv] && !IMG['e' + lv + '_full']) { IMG['e' + lv + '_full'] = IMG['e' + lv]; IMG['e' + lv] = IMG['e' + lv + '_body']; }   // Eco Lv12 / Lv13: the building without its train / rotors replaces the full picture; the full one stays as the source to cut the train from
+    for (const k of ['e12', 'e13', 'g1', 'g14']) if (IMG[k + '_body'] && IMG[k] && !IMG[k + '_full']) { IMG[k + '_full'] = IMG[k]; IMG[k] = IMG[k + '_body']; }   // the building without its moving part (train, rotors, fish, cars) replaces the full picture; the full one stays as the source to cut parts from   // Eco Lv12 / Lv13: the building without its train / rotors replaces the full picture; the full one stays as the source to cut the train from
   });
 }
 

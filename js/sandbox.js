@@ -1,8 +1,9 @@
 /* Skybloom module: sandbox (shop > Decorate tab): place any building on the showcase garden (SHOW) to check sizes, skins and light. Never touches the game board G.board.
    Edits are a draft: only the Save button (or "Save" when leaving) writes the garden; leaving without saving restores the last saved one. */
-import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.38';
-import { addFxXY } from './fx.js?v=0.7.38';
-import { drawn } from './renderer.js?v=0.7.38';
+import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.39';
+import { addFxXY } from './fx.js?v=0.7.39';
+import { drawn } from './renderer.js?v=0.7.39';
+import { Mini } from './minianim.js?v=0.7.39';
 
 /* ponytail: TEST BUILD ONLY. All 17 buildings can be placed; the Silhouette button previews the real rule (locked levels cannot be placed). Set false before a public release. */
 const TEST_ALL = true;
@@ -40,10 +41,15 @@ export function renderPalette(el) {
   const keep = el.querySelector('.sb-pal')?.scrollLeft || 0, tool = U.sbTool ?? 1, ok = lv => !rulesOn() || unlockedFor(U.bset, lv);
   el.className = 'shop-cards sb';
   let h = '<div class="sb-pal">';
-  for (let lv = 1; lv <= 17; lv++) h += `<button class="sb-b${tool === lv ? ' on' : ''}${ok(lv) ? '' : ' lock'}" data-lv="${lv}"><img src="${artSrc(lv)}" alt=""><b>${lv}</b></button>`;
+  for (let lv = 1; lv <= 17; lv++) h += `<button class="sb-b${tool === lv ? ' on' : ''}${ok(lv) ? '' : ' lock'}" data-lv="${lv}"><span class="sb-art"><img src="${artSrc(lv)}" alt=""></span><b>${lv}</b></button>`;
   el.innerHTML = h + `</div><div class="sb-foot"><button class="gel orange sbs" data-sb="clear">${tl('sb.clear')}</button><button class="gel green sbs" data-sb="save">${tl('sb.save')}</button></div>`;
   el.querySelector('.sb-pal').scrollLeft = keep; sbRefresh();
+  // the cards move like the garden (Classic, Candy, Eco; Aqua gets its own motion map later). Locked ones stay a still silhouette.
+  for (const m of CARDS) m.destroy(); CARDS = [];
+  const pal = el.querySelector('.sb-pal');
+  for (const b of pal.querySelectorAll('.sb-b:not(.lock)')) { const m = new Mini(b.querySelector('.sb-art'), 180, 300, 20, pal); if (m.ok) { m.show(+b.dataset.lv); CARDS.push(m); } }
 }
+let CARDS = [];
 /** A palette thumbnail or a tool button was tapped. api = { palette(), toast(text), fold(down) }. Returns true when it was one of ours. */
 export function sbClick(t, api) {
   const btn = t.closest('[data-sb]'), b = t.closest('[data-lv]');

@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.38';
-import { sbLocked } from './sandbox.js?v=0.7.38';
-import { SFX, vib } from './audio.js?v=0.7.38';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.38';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.38';
-import { updateBubbles } from './bubbles.js?v=0.7.38';
-import { updateFx } from './drawfx.js?v=0.7.38';
-import { badgePos, updateTilt } from './input.js?v=0.7.38';
-import { perfGuard } from './perfguard.js?v=0.7.38';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.39';
+import { sbLocked } from './sandbox.js?v=0.7.39';
+import { SFX, vib } from './audio.js?v=0.7.39';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.39';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.39';
+import { updateBubbles } from './bubbles.js?v=0.7.39';
+import { updateFx } from './drawfx.js?v=0.7.39';
+import { badgePos, updateTilt } from './input.js?v=0.7.39';
+import { perfGuard } from './perfguard.js?v=0.7.39';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -92,7 +92,8 @@ export const BAKE = {};
    the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
 const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
 const motionFor = lv => {
-  const k = bkey(lv)[0]; if (k === 'e' && MOTION_E[lv]) return MOTION_E[lv].filter(p => !p.need || IMG[p.need]);   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
+  const k = bkey(lv)[0], own = k === 'e' ? MOTION_E[lv] : k === 'g' ? MOTION_A[lv] : null;
+  if (own) return own.filter(p => !p.need || IMG[p.need]);   // Eco / Aqua: their own maps; a part that needs extra art (train, rotors, fish, cars) waits until that art is loaded   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
   return (MOTION[lv] || []).filter(p => k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type));
 };
 /* Baked frames shared by every copy of a building: the region in N hue-shifted copies (colour-cycling lights), and a sphere in N rotation steps (hologram globe). */
@@ -146,7 +147,8 @@ function bake(lv) {
 export function makeInst(lv) {
   const key = bkey(lv), T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
-  const B = BAKE[key] || bake(lv), L2 = (u, v) => [u - W / 2, v - H];
+  const B = BAKE[key] && BAKE[key].length === motionFor(lv).length ? BAKE[key] : bake(lv),   // re-cut when the part list changed (a part that waits for extra art, or the art itself, loaded since)
+    L2 = (u, v) => [u - W / 2, v - H];
   const parts = motionFor(lv).map((p0, i) => {
     const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
     const at = (nx, ny) => L2(nx * W, ny * H);
@@ -179,6 +181,10 @@ export function makeInst(lv) {
     } else if (p.type === 'orbit') { P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g);
     } else if (p.type === 'globe' && IMG[key]) {   // hologram globe turning
       P.fr = globeFrames(key, i, IMG[key], W, H, p); P.s = new PIXI.Sprite(P.fr[0]); P.s.anchor.set(.5); P.s.position.set(...at(...p.c)); c.addChild(P.s);
+    } else if (p.type === 'swim' && IMG[p.tex]) {   // a fish (its own picture) swimming back and forth inside the building
+      const s = new PIXI.Sprite(tex(p.tex)); s.anchor.set(.5); P.s = s; P.k = (p.size || .3) * W / s.texture.width; s.scale.set(P.k); s.position.set(...at(...p.pt)); P.x0 = s.x; P.y0 = s.y; c.addChild(s);
+    } else if (p.type === 'drive' && b) {   // a car cut out of the full picture, driving along the road and fading at the ends
+      const s = new PIXI.Sprite(b.tex); P.s = s; s.position.set(...L2(b.x0, b.y0)); P.x0 = s.x; P.y0 = s.y; c.addChild(s);
     } else if (p.type === 'slide' && b) {   // a part (the train) running back and forth along a line; its picture is cut out of the building
       const s = new PIXI.Sprite(b.tex); P.s = s; s.position.set(...L2(b.x0, b.y0)); P.x0 = s.x; P.y0 = s.y; c.addChild(s);
     } else if (p.type === 'spin' && IMG[p.tex]) {
@@ -194,6 +200,7 @@ export function updateInst(I, t, dt, s, still) {
   const W = I.W, H = I.H, TAU = Math.PI * 2, L2 = (u, v) => [u - W / 2, v - H];
   for (const P of I.parts) {
     const p = P.p, ph = P.ph + I.ph, per = p.period || 3, wave = Math.sin(TAU * t / per + ph);
+    if (!P.s && !P.g && !P.dots && !P.stars && !P.hs) continue;   // a part whose picture region is missing draws nothing instead of failing the frame
     switch (p.type) {
       case 'sway': P.s.rotation = (p.amp || 3) * Math.PI / 180 * wave; break;
       case 'bob': P.s.y = P.y0 + (p.amp || 3) / s * wave; break;
@@ -245,6 +252,12 @@ export function updateInst(I, t, dt, s, still) {
         if (!still) { const [dx, dy] = at2(TAU * (t / (p.period || 5) + ph / TAU)); g.lineStyle(0).beginFill(0xffffff, .95).drawCircle(dx, dy, 2.6 / s).endFill(); }
         break; }
       case 'globe': if (P.s && !still) { const n = P.fr.length, k = Math.floor((t / (p.period || 8) + ph / TAU) % 1 * n) % n; if (k !== P.k) { P.k = k; P.s.texture = P.fr[k]; } } break;
+      case 'swim': if (P.s) {   // swims to one side, turns, swims back; a gentle up-and-down on the way
+        const q = (t / (p.period || 8) + ph / TAU) % 1, x = Math.sin(q * TAU), dir = Math.cos(q * TAU);
+        P.s.x = P.x0 + (p.dx || .2) * W * (still ? 0 : x); P.s.y = P.y0 + (still ? 0 : Math.sin(q * TAU * 3) * (p.dy || .015) * H);
+        P.s.scale.set(P.k * (still ? 1 : dir < 0 ? -1 : 1), P.k); P.s.rotation = still ? 0 : -.06 * Math.sin(q * TAU * 3);   // the picture faces left: flipped while it swims right
+      } break;
+      case 'drive': if (P.s) { const q = still ? .5 : (t / (p.period || 6) + ph / TAU) % 1; P.s.x = P.x0 + (p.dx || 0) * W * q; P.s.y = P.y0 + (p.dy || 0) * H * q; P.s.alpha = Math.min(1, Math.sin(q * Math.PI) * 3); } break;
       case 'slide': if (P.s) { const m = still ? 0 : Math.sin(TAU * t / (p.period || 8) + ph); P.s.x = P.x0 + (p.dx || 0) * W * m; P.s.y = P.y0 + (p.dy || 0) * H * m; } break;
       case 'spin': if (P.s && !still) P.s.rotation += (p.speed || .7) * dt; break;
     }

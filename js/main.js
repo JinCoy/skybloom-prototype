@@ -1,17 +1,17 @@
 /* Skybloom module: main (split from index.html in step 12; code unchanged) */
-import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.7.38';
-import { SND } from './audio.js?v=0.7.38';
-import { fit, hud, show, toast, transition } from './ui.js?v=0.7.38';
-import { addGold, busy, openAd } from './game.js?v=0.7.38';
-import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.7.38';
-import { R, WTL, app, initRenderer } from './renderer.js?v=0.7.38';
-import { bubbleAt, inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.7.38';
-import { badgePos, candidates, enableSensor } from './input.js?v=0.7.38';
-import { applySkins } from './shop.js?v=0.7.38';
-import { cardFile } from './screens.js?v=0.7.38';
-import { startEditor } from './editor.js?v=0.7.38';
-import { bind, boot, loaded } from './telemetry.js?v=0.7.38';
-import { ask } from './age.js?v=0.7.38';
+import { EDITOR, G, L, SHOW, U, applyI18n, loading, prepareImages, reduce, set_G, toScreen, toWorld } from './core.js?v=0.7.39';
+import { SND } from './audio.js?v=0.7.39';
+import { fit, hud, show, toast, transition } from './ui.js?v=0.7.39';
+import { addGold, busy, openAd } from './game.js?v=0.7.39';
+import { MAX_PARTS, addFxXY, partCount } from './fx.js?v=0.7.39';
+import { R, WTL, app, initRenderer } from './renderer.js?v=0.7.39';
+import { bubbleAt, inIsland, popBubbleAt, spawnBubble } from './bubbles.js?v=0.7.39';
+import { badgePos, candidates, enableSensor } from './input.js?v=0.7.39';
+import { applySkins } from './shop.js?v=0.7.39';
+import { cardFile } from './screens.js?v=0.7.39';
+import { startEditor } from './editor.js?v=0.7.39';
+import { bind, boot, loaded } from './telemetry.js?v=0.7.39';
+import { ask } from './age.js?v=0.7.39';
 
 bind({ busy, candidates, bubbleAt, inIsland });   // the play-log recorder (telemetry.js) reads these but never changes them
 

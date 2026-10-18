@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.38';
-import { SFX, vib } from './audio.js?v=0.7.38';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.38';
-import { addGold } from './game.js?v=0.7.38';
-import { addFxXY } from './fx.js?v=0.7.38';
-import { spawnBubble } from './bubbles.js?v=0.7.38';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.38';
-import { R, tex } from './renderer.js?v=0.7.38';
-import { down } from './input.js?v=0.7.38';
-import * as TM from './telemetry.js?v=0.7.38';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.39';
+import { SFX, vib } from './audio.js?v=0.7.39';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.39';
+import { addGold } from './game.js?v=0.7.39';
+import { addFxXY } from './fx.js?v=0.7.39';
+import { spawnBubble } from './bubbles.js?v=0.7.39';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.39';
+import { R, tex } from './renderer.js?v=0.7.39';
+import { down } from './input.js?v=0.7.39';
+import * as TM from './telemetry.js?v=0.7.39';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -47,6 +47,7 @@ export function applySkins(sel = U.equip) {
   const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) if (!(sp === 'c' && lv === 6)) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);   // Candy Lv6 is built from its own body + sails (core.js loadSkinArt)
   if (sp === 'c') need.push(['body_c', 'assets/windmill_body_c.webp'], ['sails_c', 'assets/windmill_sails_c.webp']);
   if (sp === 'e') need.push(['e12_body', 'assets/e12_body.webp'], ['e13_body', 'assets/e13_body.webp'], ['e13_rotor', 'assets/e13_rotor.webp']);
+  if (sp === 'g') need.push(['g1_body', 'assets/g01_body.webp'], ['g14_body', 'assets/g14_body.webp'], ['g1_fish', 'assets/g01_fish.webp']);
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;
