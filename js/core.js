@@ -98,11 +98,13 @@ export const store = {
 /* ---------- state: G = rules (logic.js), U = view-only ---------- */
 export let G = L.newState();
 export const APP_V = '0.5.4';
+/* ponytail: TEST BUILD ONLY. Once per device the wallet is raised to 100,000 gold so the shop can be tried; gold earned or spent afterwards counts as usual. Remove this (and use store.get('gold', 0)) before a public release. */
+const testGold = () => { if (store.get('testGold1', false)) return store.get('gold', 0); const g = Math.max(100000, store.get('gold', 0)); store.set('testGold1', true); store.set('gold', g); return g; };
 export const U = {
   gameT0: performance.now(), playMs: 0, mode: 'normal', screen: 'login', best: store.get('best', 0), bestSpeed: store.get('bestSpeed', 0),
   discovered: new Set(store.get('discovered', [])),
   treasures: store.get('treasures', {}),          // id -> { n, first }
-  gold: store.get('gold', 0),    // v0.4 §5.1 wallet (this device)
+  gold: testGold(),    // v0.4 §5.1 wallet (this device)
   menuGoldAt: store.get('menuGoldAt', null),   // 10-2 A1: when the last menu gold bubble was popped (first run: the hour counts from now)
   // iOS only grants motion access from a tap, so there Tilt starts off and the first switch-on asks for permission
   settings: Object.assign({ music: false, sfx: true, vib: true, hints: true, tilt: typeof window.DeviceOrientationEvent?.requestPermission !== 'function', reduce: false, ambient: true, cont: false }, store.get('settings', {})),
@@ -136,7 +138,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.24`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.25`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
