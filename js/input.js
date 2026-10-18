@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.36';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.36';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.36';
-import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.36';
-import { drawn } from './renderer.js?v=0.7.36';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.36';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.36';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.36';
-import * as TM from './telemetry.js?v=0.7.36';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.37';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.37';
+import { blinkItems, hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.37';
+import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.37';
+import { drawn } from './renderer.js?v=0.7.37';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.37';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.37';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.37';
+import * as TM from './telemetry.js?v=0.7.37';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -152,17 +152,30 @@ $('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cl
 for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).catch(() =>
   sheet(tl('signin.title', { p: pv === 'google' ? 'Google' : 'Apple' }), tl('signin.body')));
 $('ov-sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) overlay('sheet', false); });
-$('btn-play').onclick = () => transition('bubble', () => newGame(false, 'normal'), [400, 1660]);
-$('btn-speed').onclick = () => transition('bubble', () => newGame(false, 'speed'), [815, 1660]);
+$('btn-play').onclick = () => startOrAsk('normal');
+$('btn-speed').onclick = () => startOrAsk('speed');
 $('place').onclick = () => doPlace();
 $('cel-ok').onclick = () => { overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
-$('stuck-pop').onclick = () => useItem('pop');
 $('stuck-ad').onclick = openAd; $('ad-refill').onclick = openAd; $('ad-cancel').onclick = cancelAd;
-$('stuck-rewind').onclick = () => useItem('rewind');
+$('stuck-use').onclick = () => { if ($('stuck-use').classList.contains('dis')) return; overlay('stuck', false); blinkItems(); };   // close the window; the item box blinks so the player picks Bubble Pop or Rewind there
 $('stuck-end').onclick = () => gameOver('player_finish');
 $('res-retry').onclick = () => TM.leaveResult(() => transition('pass', () => newGame(false, U.mode)));   // the first finished test run asks for feedback here (13-1)
 $('res-home').onclick = () => TM.leaveResult(() => transition('cloud', () => { overlay('result', false); show('main'); }));
-$('set-home').onclick = () => transition('cloud', () => { saveGame('quit'); TM.quit(); G.meta.over = true; overlay('settings', false); show('main'); });
+$('set-home').onclick = () => {
+  if (U.tut) { transition('cloud', () => { saveGame('quit'); TM.quit(); G.meta.over = true; overlay('settings', false); show('main'); }); return; }   // the tutorial is simply left
+  overlay('settings', false); overlay('quit');   // Save (continue later) or Quit without saving (the game ends, score and rewards count)
+};
+$('quit-x').onclick = () => overlay('quit', false);
+$('quit-save').onclick = () => transition('cloud', () => { saveForLater(); TM.quit(); G.meta.over = true; overlay('quit', false); show('main'); });
+$('quit-nosave').onclick = () => { overlay('quit', false); gameOver('player_finish'); };
+const MODE_POS = { normal: [400, 1660], speed: [815, 1660] };
+function startOrAsk(mode) {   // a saved game of this mode: ask once; otherwise start as always
+  const sv = savedGame(mode); if (!sv) { transition('bubble', () => newGame(false, mode), MODE_POS[mode]); return; }
+  U.resumeMode = mode; $('resume-info').textContent = tl('resume.info', { score: (sv.G.score || 0).toLocaleString('en-US'), lv: sv.G.top || 1 }); overlay('resume');
+}
+$('resume-x').onclick = () => overlay('resume', false);
+$('resume-cont').onclick = () => { const m = U.resumeMode; overlay('resume', false); transition('bubble', () => resumeGame(m), MODE_POS[m]); };
+$('resume-new').onclick = () => { const m = U.resumeMode; overlay('resume', false); transition('bubble', () => newGame(false, m), MODE_POS[m]); };
 $('res-save').onclick = saveCard; $('res-share').onclick = shareCard;
 
 

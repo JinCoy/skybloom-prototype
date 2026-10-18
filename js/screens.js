@@ -1,20 +1,21 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.36';
-import { music } from './audio.js?v=0.7.36';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.36';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.36';
-import { app } from './renderer.js?v=0.7.36';
-import { enableSensor, sensorOn } from './input.js?v=0.7.36';
-import * as TM from './telemetry.js?v=0.7.36';
-import { age13 } from './age.js?v=0.7.36';
+import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.37';
+import { Mini } from './minianim.js?v=0.7.37';
+import { music } from './audio.js?v=0.7.37';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.37';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.37';
+import { app } from './renderer.js?v=0.7.37';
+import { enableSensor, sensorOn } from './input.js?v=0.7.37';
+import * as TM from './telemetry.js?v=0.7.37';
+import { age13 } from './age.js?v=0.7.37';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
   $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-speed').setAttribute('aria-selected', tab === 'speed');
   const u = SkyAuth.currentUser(); $('rk-who').textContent = u ? (u.provider === 'guest' ? tl('rank.guest') : u.provider) : tl('rank.guest');
-  $('rk-best').textContent = (tab === 'speed' ? U.bestSpeed : U.best).toLocaleString('en-US'); fitText($('rk-best'), 54);
+  $('rk-best').textContent = (tab === 'speed' ? U.bestSpeed : U.best).toLocaleString('en-US');
   $('rk-note').textContent = tl('rank.note');
-  overlay('ranking');
+  overlay('ranking'); fitText($('rk-best'), 54);   // after the window is shown: before that its width is 0 and the digits shrank to the minimum
 }
 $('rk-normal').onclick = () => openRanking('normal'); $('rk-speed').onclick = () => openRanking('speed');
 
@@ -60,6 +61,7 @@ export function shareCard() {
 }
 
 /* ---------- collection: Garden / Treasures ---------- */
+let _tm = null; const tdMini = () => _tm || (_tm = new Mini($('td-anim'), 420, 420));
 let colTab = 'garden';
 export function openCollection(tab = colTab) {
   colTab = tab;
@@ -87,12 +89,12 @@ $('tab-treasures').onclick = () => openCollection('treasures');
 $('col-grid').addEventListener('click', e => {
   const bd = e.target.closest('[data-bd]');   // building detail: English name, description in the player's language (v0.5 §3.2)
   if (bd) { const lv = +bd.dataset.bd; if (!U.discovered.has(lv)) return;
-    $('td-img').src = artSrc(lv); $('td-name').textContent = NAMES[lv]; $('td-desc').textContent = tl('bd.' + (SET_PRE[U.bset] === 'e' || SET_PRE[U.bset] === 'g' ? SET_PRE[U.bset] : '') + lv);
+    $('td-img').src = artSrc(lv); $('td-img').style.visibility = ''; tdMini().show(lv); $('td-name').textContent = NAMES[lv]; $('td-desc').textContent = tl('bd.' + (SET_PRE[U.bset] === 'e' || SET_PRE[U.bset] === 'g' ? SET_PRE[U.bset] : '') + lv);
     $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = ''; $('tr-detail').hidden = false; return; }
   const b = e.target.closest('[data-tr]'); if (!b) return;
   const id = +b.dataset.tr, got = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
   if (!got) { toast(tl('col.findIt')); return; }
-  $('td-img').src = accSrc(id); $('td-name').textContent = TREASURES[id - 1][0]; $('td-desc').textContent = tl('tr.' + id);
+  tdMini().hide(); $('td-img').src = accSrc(id); $('td-name').textContent = TREASURES[id - 1][0]; $('td-desc').textContent = tl('tr.' + id);
   $('td-rar').className = 'rar ' + rar; $('td-rar').textContent = tl('rarity.' + rar);
   $('td-meta').textContent = tl(got.n === 1 ? 'col.meta1' : 'col.meta', { date: got.first, n: got.n });
   $('tr-detail').hidden = false;

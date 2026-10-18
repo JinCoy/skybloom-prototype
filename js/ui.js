@@ -1,7 +1,8 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.36';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.36';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.36';
+import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.37';
+import { Mini } from './minianim.js?v=0.7.37';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.37';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.37';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;
@@ -66,18 +67,27 @@ export function toast(msg, ms = 1900, img = null) {
 }
 export function bumpBadge(k) { const b = $('cnt-' + k); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
 
+let nextMini = null;
+/** "Place" is grey while the guided tutorial steps do not need it and while the board is full. */
+export function placeState() { $('place').classList.toggle('dis', U.tut === 2 || U.tut === 3 || !L.empties(G.board).length); }
+/** After "Use an Item" in the stuck window: the usable items blink three times. */
+export function blinkItems() {
+  for (const b of document.querySelectorAll('#items .item:not(.dis)')) { b.classList.remove('blink'); void b.offsetWidth; b.classList.add('blink'); b.addEventListener('animationend', () => b.classList.remove('blink'), { once: true }); }
+}
 export function hud() {
   $('score').textContent = G.score.toLocaleString('en-US'); fitText($('score'));
   $('gold').textContent = U.gold.toLocaleString('en-US');
   const ad = L.canAdRefill(G) && !busy(); $('ad-refill').hidden = !ad;   // rewarded-ad refill (v0.4 §4.3)
   if (ad) $('ad-left').textContent = tl('ad.left', { n: L.CONFIG.ads.maxPerGame - G.adsUsed });
   $('best').textContent = Math.max(bestNow(), G.score).toLocaleString('en-US'); fitText($('best'));
-  $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next;
+  $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next; (nextMini || (nextMini = new Mini($('next-anim'), 130, 96, 24))).show(G.next);   // NEXT moves (24 fps)
   for (const [k] of ITEMS) {
     $('cnt-' + k).textContent = G.items[k];
-    const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0);
-    document.querySelector(`[data-item="${k}"]`).classList.toggle('dis', !usable);
+    const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0), btn = document.querySelector(`[data-item="${k}"]`);
+    btn.classList.toggle('dis', !usable);
+    btn.classList.toggle('live', U.target === k || U.liveItem === k); btn.classList.toggle('still', reduce());   // the item being used wears the rainbow ring: Bubble Pop / Cloud Drop while picking, Rewind while it runs
   }
+  placeState();
   const b = $('banner');
   if (U.target) {
     b.hidden = false;

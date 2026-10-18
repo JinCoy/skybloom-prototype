@@ -1,16 +1,16 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.36';
-import { SFX, vib } from './audio.js?v=0.7.36';
-import { bumpBadge, hud, overlay, show, toast } from './ui.js?v=0.7.36';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.36';
-import { R, startDrop } from './renderer.js?v=0.7.36';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.36';
-import { buildCard } from './screens.js?v=0.7.36';
-import * as TM from './telemetry.js?v=0.7.36';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.37';
+import { SFX, vib } from './audio.js?v=0.7.37';
+import { bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.37';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.37';
+import { R, startDrop } from './renderer.js?v=0.7.37';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.37';
+import { buildCard } from './screens.js?v=0.7.37';
+import * as TM from './telemetry.js?v=0.7.37';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
-const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'stuck', 'age', 'consent', 'feedback'];
+const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'stuck', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'];
 export const paused = () => PAUSE_OV.some(k => !$('ov-' + k).hidden);
 export const bestNow = () => U.mode === 'speed' ? U.bestSpeed : U.best;
 export function stamp() { tickSpeed(); G.t = Math.max(G.t, Math.round(U.playMs)); }   // action log time = play time
@@ -31,7 +31,7 @@ function tutRand() { const i = L.empties(G.board).findIndex(([r, c]) => r === TU
 export function tutStep(n) {
   U.tut = n; TM.tutStep(n);
   $('coach').hidden = !n; if (n) { $('coach-n').textContent = tl('tut.count', { n }); $('coach-t').textContent = tl('tut.step' + n); fitCoach(); }
-  $('place').classList.toggle('dis', n === 2 || n === 3);   // Place waits until the guided step needs it
+  placeState();   // Place waits until the guided step needs it (and while the board is full)
   $('place').classList.toggle('coach', n === 1 && !reduce()); $('place').classList.toggle('coach-r', n === 1 && reduce());
   if (n === 3 && !U.bubbles.includes(U.tutBubble)) tutBubble();
 }
@@ -52,7 +52,7 @@ export function tutEnd(done) { TM.tutEnd(done); tutStep(0); U.tutBubble = null; 
 $('coach-skip').onclick = () => tutEnd(false);
 export function newGame(tut = false, mode = 'normal') {
   const demo = mode === 'speed' ? null : DEMO[location.hash.slice(1)];
-  U.mode = mode; U.playMs = 0;
+  U.mode = mode; U.playMs = 0; if (!tut) clearSave(mode);
   U.tut = mode === 'normal' && !demo && (tut || !store.get('tutorialDone', false)) ? 1 : 0;
   const seed = Math.floor(Math.random() * 2 ** 31), board0 = U.tut ? TUT_BOARD : demo || null;
   set_G(L.newState(U.tut ? Math.random : seed, board0));   // the tutorial picks its own drop tile, so it is not seed-replayable
@@ -65,11 +65,29 @@ export function newGame(tut = false, mode = 'normal') {
   U.celebQueue = [];
   for (const k of ['celebrate', 'result', 'stuck']) overlay(k, false);
   show('game'); hud();
+  if (U.tut) { for (const b of U.bubbles) b.c.destroy({ children: true }); U.bubbles = []; }   // the tutorial's only bubble is its own (no stray ones to tap by mistake)
   for (const b of U.bubbles) { b.content = rollFor(b); setIcon(b); if (!U.tut) L.record(G, { a: 'bspawn', kind: b.content.kind }); }   // bubbles already on screen may now carry items
   TM.runStart();   // play log (13-1): the run begins here, before any tutorial step or action
   if (U.tut) tutStep(1);
   else if (location.hash !== '#stuck') toast(tl(location.hash === '#sunset' ? 't.demoSunset' : location.hash === '#night' ? 't.demoNight' : 't.tapHint'), 2600);
   checkStuck();
+}
+/* ---------- save for later (Settings > Quit to Home > Save): one slot per mode; the state is plain data, so it is stored as it is ---------- */
+export const savedGame = mode => store.get('save_' + mode, null);
+export const clearSave = mode => store.set('save_' + mode, null);
+export function saveForLater() {
+  if (!G.meta || G.meta.over || U.tut) return false;
+  stamp(); store.set('save_' + U.mode, { G: JSON.parse(JSON.stringify(G)), playMs: U.playMs, at: Date.now() }); return true;
+}
+export function resumeGame(mode) {
+  const sv = savedGame(mode); if (!sv || !sv.G || !sv.G.board) { newGame(false, mode); return; }
+  set_G(sv.G); U.mode = mode; U.playMs = sv.playMs || sv.G.t || 0; U.tut = 0; tutStep(0); U.gameT0 = performance.now();
+  G.meta = Object.assign(G.meta || {}, { saved: false, over: false });
+  Object.assign(U, { sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, celebQueue: [], nope: null, phaseTop: 0 });
+  for (const row of G.board) for (const v of row) if (v) discover(v, false);
+  for (const k of ['celebrate', 'result', 'stuck']) overlay(k, false);
+  clearSave(mode);   // while it is being played it is no longer "saved": saving again writes a fresh one
+  show('game'); hud(); TM.runStart(); checkStuck();
 }
 function discover(lv, reward = true) {
   if (U.discovered.has(lv)) return;
@@ -81,10 +99,13 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
+import { Mini } from './minianim.js?v=0.7.37';
+let _cm = null, _rm = null;
+const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {
   if (!U.celebQueue.length) return false;
   const lv = Math.max(...U.celebQueue); U.celebQueue = [];
-  $('cel-img').src = artSrc(lv);
+  $('cel-img').src = artSrc(lv); celMini().show(lv);   // the new building moves like it does in the garden
   $('cel-name').textContent = NAMES[lv];
   $('cel-sub').textContent = tl('cel.sub', { lv }) + (U.firstGold ? tl('cel.gold', { n: U.firstGold }) : ''); U.firstGold = 0;
   U.afterCel = $('toast').style.opacity === '1' ? $('toast').textContent : null;   // e.g. "+1 item" message: show it again after Continue
@@ -101,6 +122,7 @@ function announceGrants(grants) {
 
 export function doPlace(at = null) {
   if (busy() || tutBlock('place')) return;
+  if (!at && !L.empties(G.board).length) return;   // board full: Place is grey
   stamp(); const e = L.place(G, U.tut === 1 && !at ? tutRand() : undefined, at);
   if (!e.ok) { toast(tl(e.reason === 'full' ? 't.full' : 't.pickEmpty')); SFX.bad(); return; }
   U.sel = null; U.target = null;
@@ -137,7 +159,7 @@ export function checkStuck() {
   const canPop = G.items.pop > 0, canRew = G.items.rewind > 0 && G.history.length > 0, canAd = L.canAdRefill(G);
   if (canPop || canRew || canAd) {
     if ($('ov-stuck').hidden) { stamp(); L.record(G, { a: 'stuck' }); TM.rescueEnter(); }
-    $('stuck-pop').classList.toggle('dis', !canPop); $('stuck-rewind').classList.toggle('dis', !canRew); $('stuck-ad').hidden = !canAd;
+    $('stuck-use').classList.toggle('dis', !canPop && !canRew); $('stuck-ad').hidden = !canAd;
     overlay('stuck');
   } else gameOver();
 }
@@ -150,14 +172,15 @@ export function saveGame(endedBy, endGold = 0) {
   store.set('games', [...store.get('games', []), rec].slice(-20));
 }
 export function gameOver(why = 'game_over') {   // why: 'game_over' (no option left) or 'player_finish' (End Game in the stuck window)
-  overlay('stuck', false);
+  overlay('stuck', false); clearSave(U.mode);
   G.meta.over = true;
+  $('res-title').textContent = tl(why === 'player_finish' ? 'res.titleEnd' : 'res.title');
   const isNew = G.score > bestNow();
   if (isNew) { if (U.mode === 'speed') { U.bestSpeed = G.score; store.set('bestSpeed', G.score); } else { U.best = G.score; store.set('best', G.score); } }
   $('res-score').textContent = G.score.toLocaleString('en-US');
   $('res-new').hidden = !isNew;
   $('res-best').textContent = isNew ? '' : tl('res.best', { n: bestNow().toLocaleString('en-US') });
-  $('res-img').src = artSrc(G.top);
+  $('res-img').src = artSrc(G.top); resMini().show(G.top);   // the final building moves too
   $('res-name').textContent = `${NAMES[G.top]} · Lv ${G.top}`;
   const endG = L.endGold(G); addGold(endG, 'run_end_gold'); saveGame('stuck', endG); TM.runEnd(why, endG);   // v0.4 §5.1: 10 + best level x 5, plus what bubbles gave this game
   $('res-gold').querySelector('span').textContent = tl('res.gold', { n: (endG + G.gold).toLocaleString('en-US') });
@@ -170,12 +193,12 @@ export function useItem(k) {
   if (k === 'rewind') {
     stamp(); const before = L.clone(G.board), e = L.rewind(G);
     if (!e.ok) { toast(tl('t.nothingRewind')); SFX.bad(); return; }
-    U.sel = null; U.target = null; rewindFx(before); SFX.rewind(); overlay('stuck', false); hud(); return;
+    U.sel = null; U.target = null; rewindFx(before); SFX.rewind(); overlay('stuck', false); U.liveItem = 'rewind'; clearTimeout(U.liveT); U.liveT = setTimeout(() => { U.liveItem = null; hud(); }, 1100); hud(); return;
   }
   if (k === 'drop' && !L.empties(G.board).length) { toast(tl('t.noEmptyDrop')); SFX.bad(); return; }
   U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
 }
-export const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback'].some(k => !$('ov-' + k).hidden);
+export const busy = () => !!U.anim || ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'].some(k => !$('ov-' + k).hidden);
 
 /* ---------- rewarded-ad mock-up (v0.4 §4.3): a clearly labelled placeholder, no real or imitation ads ---------- */
 let adTimer = 0;
