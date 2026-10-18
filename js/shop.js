@@ -1,12 +1,13 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl } from './core.js?v=0.7.21';
-import { SFX, vib } from './audio.js?v=0.7.21';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.21';
-import { addGold } from './game.js?v=0.7.21';
-import { addFxXY } from './fx.js?v=0.7.21';
-import { R, tex } from './renderer.js?v=0.7.21';
-import { down } from './input.js?v=0.7.21';
-import * as TM from './telemetry.js?v=0.7.21';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.22';
+import { SFX, vib } from './audio.js?v=0.7.22';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.22';
+import { addGold } from './game.js?v=0.7.22';
+import { addFxXY } from './fx.js?v=0.7.22';
+import { spawnBubble } from './bubbles.js?v=0.7.22';
+import { R, tex } from './renderer.js?v=0.7.22';
+import { down } from './input.js?v=0.7.22';
+import * as TM from './telemetry.js?v=0.7.22';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -103,6 +104,10 @@ $('ov-shop').addEventListener('click', e => {
   } else if (e.target.closest('[data-equip]')) U.shopFx = { id: k.id, kind: 'equip' };
   if (e.target.closest('[data-buy]') || e.target.closest('[data-equip]')) { TM.setting('skin_' + shopTab, U.equip[shopTab], k.id); U.equip[shopTab] = k.id; store.set('equip', U.equip); }
   preview[shopTab] = k.id; openShop(shopTab);
+  if (shopTab === 'bubble') {   // a bubble appears at once in the sky above the garden (clear -> item -> treasure -> ...), so the chosen skin is seen floating, aura included
+    const kinds = [null, { kind: 'item', item: ITEMS[0][0] }, { kind: 'treasure', id: 1, rarity: 'common' }];
+    spawnBubble(kinds[U.shopSpawn = ((U.shopSpawn ?? -1) + 1) % 3] || { kind: 'empty' }, toWorld([140 + Math.random() * 800, 380 + Math.random() * 330]));
+  }
 });
 
 
