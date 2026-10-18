@@ -1,13 +1,13 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.25';
-import { SFX, vib } from './audio.js?v=0.7.25';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.25';
-import { addGold } from './game.js?v=0.7.25';
-import { addFxXY } from './fx.js?v=0.7.25';
-import { spawnBubble } from './bubbles.js?v=0.7.25';
-import { R, tex } from './renderer.js?v=0.7.25';
-import { down } from './input.js?v=0.7.25';
-import * as TM from './telemetry.js?v=0.7.25';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.26';
+import { SFX, vib } from './audio.js?v=0.7.26';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.26';
+import { addGold } from './game.js?v=0.7.26';
+import { addFxXY } from './fx.js?v=0.7.26';
+import { spawnBubble } from './bubbles.js?v=0.7.26';
+import { R, tex } from './renderer.js?v=0.7.26';
+import { down } from './input.js?v=0.7.26';
+import * as TM from './telemetry.js?v=0.7.26';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -16,9 +16,9 @@ const SKINS = {
           { id: 'lime', name: 'Lime Jelly', gold: 300, tile: 'tile_lime', water: 0x6fd33a }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, tile: 'tile_tangerine', water: 0xff8f3a },
           { id: 'grape', name: 'Grape Console', gold: 600, tile: 'tile_grape', water: 0x7a4fd0 }, { id: 'luna', name: 'Luna Blue', gold: 600, tile: 'tile_luna', water: 0x2f6fe0 },
           { id: 'opal', name: 'Opal Mystic', gold: 900, tile: 'tile_opal', water: 0xb8a8ff }],
-  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
-  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' },
-              { id: 'eco', name: 'Eco Campus', cash: '$2.99', set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', cash: '$2.99', set: 'aqua' }],
+  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', gold: 1000, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy' },
+              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua' }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 },
             // art = own bubble picture (empty bubbles only; item / treasure / gold bubbles keep the clear one so their colour still reads); pop = pop-ring colour; wob = squash amplitude (default .025); cycle = colour drifts slowly
             { id: 'lime', name: 'Lime Slime', gold: 300, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },

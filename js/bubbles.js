@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.25';
-import { SFX, vib } from './audio.js?v=0.7.25';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.25';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.25';
-import { addFxXY, floatText } from './fx.js?v=0.7.25';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.25';
-import * as TM from './telemetry.js?v=0.7.25';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.26';
+import { SFX, vib } from './audio.js?v=0.7.26';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.26';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.26';
+import { addFxXY, floatText } from './fx.js?v=0.7.26';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.26';
+import * as TM from './telemetry.js?v=0.7.26';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -18,7 +18,7 @@ export const rollFor = () => {
 };
 const BUBBLE_TINT = { item: 0x5fe08a, treasure: 0xffa3d6, gold: 0xffe07a };   // green / pink / yellow, clear = empty
 export function spawnBubble(content = null, at = null) {
-  const side = Math.random(), r = 56 + Math.random() * 18, b = { r, ph: Math.random() * 6, amp: 20 + Math.random() * 20, vy: -(40 + Math.random() * 30), t: 0 };
+  const side = Math.random(), r = 58 + Math.random() * 10, b = { r, ph: Math.random() * 6, amp: 20 + Math.random() * 20, vy: -(40 + Math.random() * 30), t: 0 };
   const [x0, y0] = toWorld([0, 0]), [x1, y1] = toWorld([1080, 1920]);   // screen edges in world units
   if (side < .35) Object.assign(b, { x: x0 - r, y: 1000 + Math.random() * (y1 - 1000), vx: 30 + Math.random() * 30 });
   else if (side < .7) Object.assign(b, { x: x1 + r, y: 1000 + Math.random() * (y1 - 1000), vx: -(30 + Math.random() * 30) });
@@ -74,9 +74,10 @@ export function updateBubbles(dt, now, still) {
 function removeBubble(b) { U.bubbles = U.bubbles.filter(x => x !== b); b.c.destroy({ children: true }); }
 export function bubbleAt(x, y) {
   const tb = U.tutBubble; if (tb && Math.hypot(x - tb.sx, y - tb.y) < tb.r) return tb;   // the tutorial bubble can be popped anywhere, even over the island
-  if (inIsland(x, y)) return null;
-  for (let i = U.bubbles.length - 1; i >= 0; i--) { const b = U.bubbles[i]; if (Math.hypot(x - b.sx, y - b.y) < b.r * .95) return b; }
-  return null;
+  // forgiving taps: the nearest bubble within 1.7 x its radius (at least 110) is popped, also next to the screen edge and behind the island or buildings (input.js already lets a building under the finger win)
+  let best = null, bd = 1e9;
+  for (const b of U.bubbles) { const d = Math.hypot(x - b.sx, y - b.y) / Math.max(b.r * 1.7, 110); if (d < 1 && d < bd) { best = b; bd = d; } }
+  return best;
 }
 const SHOP_BTN = [215, 1425];   // centre of the Shop button on the main screen
 export function popBubbleAt(b) {

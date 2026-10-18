@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.25';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.25';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.25';
-import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.25';
-import { drawn } from './renderer.js?v=0.7.25';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.25';
-import { closeShop, openShop } from './shop.js?v=0.7.25';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.25';
-import * as TM from './telemetry.js?v=0.7.25';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.26';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.26';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.26';
+import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.26';
+import { drawn } from './renderer.js?v=0.7.26';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.26';
+import { closeShop, openShop } from './shop.js?v=0.7.26';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.26';
+import * as TM from './telemetry.js?v=0.7.26';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -78,12 +78,16 @@ function pickerHit(e) {   // highlight the card under the finger and light up it
   const i = el ? +el.dataset.i : -1; U.press = i >= 0 && down ? down.cands.list[i] : null; return i;
 }
 function closePicker() { $('picker').hidden = true; }
+document.addEventListener('pointerdown', e => {   // tutorial 3/3: a tap near the guide box's Skip button that is really meant for the bubble pops the bubble instead of pressing Skip
+  const tb = U.screen === 'game' && U.tut === 3 && U.tutBubble; if (!tb || !e.target.closest?.('#coach button')) return;
+  const pt = toWorld(stagePoint(e)); if (Math.hypot(pt[0] - tb.sx, pt[1] - tb.y) < Math.max(tb.r * 1.8, 120)) { e.preventDefault(); e.stopPropagation(); popBubbleAt(tb); }
+}, true);
 cv.addEventListener('pointerdown', e => {
   ac(); if (busy()) return;
   const sp = stagePoint(e), pt = toWorld(sp), inGame = U.screen === 'game', cands = inGame ? candidates(...pt) : { list: [], tile: null, primary: null };
   // buildings always win over bubbles (bubbles float behind the garden)
   const tb = inGame && U.tut === 3 && U.tutBubble;   // tutorial 3/3: the guide bubble wins over the board, even over the island
-  if (tb && Math.hypot(pt[0] - tb.sx, pt[1] - tb.y) < tb.r) { popBubbleAt(tb); down = null; return; }
+  if (tb && Math.hypot(pt[0] - tb.sx, pt[1] - tb.y) < Math.max(tb.r * 1.8, 120)) { popBubbleAt(tb); down = null; return; }
   if (inGame && U.tut && (cands.list.length || cands.tile) && tutBlock(U.tut === 2 && cands.list.length ? 'board' : 'tile')) return;   // tutorial: step 2 only takes the two Dew Drops
   if (!cands.list.length && !(inGame && cands.tile && U.target)) { const b = bubbleAt(...pt); if (b) { if (inGame && U.tut && b !== U.tutBubble && tutBlock('bubble-other')) return; popBubbleAt(b); down = null; return; } }
   if (!inGame || (!cands.list.length && !cands.tile)) {   // empty sky: touch-drag stands in for tilt
