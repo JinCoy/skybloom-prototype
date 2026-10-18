@@ -138,7 +138,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.32`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.33`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
@@ -157,7 +157,11 @@ function maskOf(k) {   // alpha mask so taps hit what is actually drawn, not the
     MASK[k] = { w: im.width, h: im.height, a: x.getImageData(0, 0, im.width, im.height).data }; } catch { /* box hit fallback */ }
 }
 const loadSet = {};   // skins load the first time they are previewed or equipped
-export function loadSkinArt(keys) { return Promise.all(keys.map(([k, src]) => IMG[k] ? null : loadSet[k] || (loadSet[k] = load(k, src).then(() => maskOf(k))))); }
+export function loadSkinArt(keys) {
+  return Promise.all(keys.map(([k, src]) => IMG[k] ? null : loadSet[k] || (loadSet[k] = load(k, src).then(() => maskOf(k))))).then(() => {
+    if (IMG.body_c && !IMG.c6) { IMG.c6 = IMG.body_c; maskOf('c6'); }   // Candy Lv6 = sail-less body + the spinning sails (like Classic): c6 only exists once the body is here, so it is never drawn half-built
+  });
+}
 
 
 /* setters for state that other modules assign */

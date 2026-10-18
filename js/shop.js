@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.32';
-import { SFX, vib } from './audio.js?v=0.7.32';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.32';
-import { addGold } from './game.js?v=0.7.32';
-import { addFxXY } from './fx.js?v=0.7.32';
-import { spawnBubble } from './bubbles.js?v=0.7.32';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.32';
-import { R, tex } from './renderer.js?v=0.7.32';
-import { down } from './input.js?v=0.7.32';
-import * as TM from './telemetry.js?v=0.7.32';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.33';
+import { SFX, vib } from './audio.js?v=0.7.33';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.33';
+import { addGold } from './game.js?v=0.7.33';
+import { addFxXY } from './fx.js?v=0.7.33';
+import { spawnBubble } from './bubbles.js?v=0.7.33';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.33';
+import { R, tex } from './renderer.js?v=0.7.33';
+import { down } from './input.js?v=0.7.33';
+import * as TM from './telemetry.js?v=0.7.33';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -44,7 +44,8 @@ export function applySkins(sel = U.equip) {
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
   U.skyShown = sk.id;   // the sky on screen (a shop preview too): the sky objects in renderer.js follow it, not only the equipped skin
   const need = [b.tile, bb.art].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]).concat(skyKeys(sk.id).map(k => [k, `assets/${k}.webp`]));
-  const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);
+  const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) if (!(sp === 'c' && lv === 6)) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);   // Candy Lv6 is built from its own body + sails (core.js loadSkinArt)
+  if (sp === 'c') need.push(['body_c', 'assets/windmill_body_c.webp'], ['sails_c', 'assets/windmill_sails_c.webp']);
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;

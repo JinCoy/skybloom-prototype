@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.32';
-import { sbLocked } from './sandbox.js?v=0.7.32';
-import { SFX, vib } from './audio.js?v=0.7.32';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.32';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.32';
-import { updateBubbles } from './bubbles.js?v=0.7.32';
-import { updateFx } from './drawfx.js?v=0.7.32';
-import { badgePos, updateTilt } from './input.js?v=0.7.32';
-import { perfGuard } from './perfguard.js?v=0.7.32';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.33';
+import { sbLocked } from './sandbox.js?v=0.7.33';
+import { SFX, vib } from './audio.js?v=0.7.33';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.33';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.33';
+import { updateBubbles } from './bubbles.js?v=0.7.33';
+import { updateFx } from './drawfx.js?v=0.7.33';
+import { badgePos, updateTilt } from './input.js?v=0.7.33';
+import { perfGuard } from './perfguard.js?v=0.7.33';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -81,7 +81,13 @@ function sprite(lv) {
 /* ---------- motion map: parts are clipped out of the sprite once, then animated as plain sprites ---------- */
 export const BAKE = {};
 // The motion map was drawn on the Classic art. Candy Glass keeps only the overlay effects that do not copy image regions.
-const motionFor = lv => (MOTION[lv] || []).filter(p => bkey(lv)[0] === 'b' || ['sparkle', 'ripple', 'rise', 'petals'].includes(p.type));
+/* Which motion parts a building set uses: Classic ('b') all of them; Candy ('c') shares Classic's silhouette so the same map fits (checked on an overlay sheet), except the windmill's spinning sails (no sails layer in
+   the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
+const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
+const motionFor = lv => (MOTION[lv] || []).filter(p => { const k = bkey(lv)[0]; return k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type); });
+const JELLY = { sway: 3, bob: 3, squish: .04 };
+const jelly = p => p.type === 'spin' ? { ...p, tex: 'sails_c', pt: [.484, .128], size: 1 }   // Candy windmill: its own sails, hub at the pink orb of the Candy body
+  : p.type in JELLY ? { ...p, amp: (p.amp ?? JELLY[p.type]) * 1.3 } : p;   // Candy is jelly: a little more give
 function bake(lv) {
   const k = bkey(lv), img = IMG[k]; if (!img) return (BAKE[k] = []);
   const W = img.width, H = img.height;
@@ -105,8 +111,8 @@ export function makeInst(lv) {
   const key = bkey(lv), T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
   const B = BAKE[key] || bake(lv), L2 = (u, v) => [u - W / 2, v - H];
-  const parts = motionFor(lv).map((p, i) => {
-    const b = B[i], P = { p, ph: Math.random() * 6 };
+  const parts = motionFor(lv).map((p0, i) => {
+    const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
     const at = (nx, ny) => L2(nx * W, ny * H);
     if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
       P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g); P.b = b; P.bw = (b.x1 - b.x0) * .28;
@@ -156,7 +162,7 @@ export function updateInst(I, t, dt, s, still) {
       }
       case 'flow': {
         if (!still) P.off += (p.speed || 60) / s * dt;
-        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: 0x6f9dff, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
+        const ft = waterTex('flow'); P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: P.fc, matrix: new PIXI.Matrix().scale(.32, .32).translate(0, P.off % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
         break;
       }
       case 'sparkle': P.stars.forEach((st, i) => { const a = Math.max(0, Math.sin(t * 1.9 + i * 2.1 + ph)) ** 6 * .9; st.alpha = still ? .35 : a; st.visible = st.alpha > .02; st.scale.set((.25 + .35 * st.alpha) / s * .7); st.rotation = t * .4; }); break;
