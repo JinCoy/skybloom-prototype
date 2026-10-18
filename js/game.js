@@ -1,12 +1,12 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl } from './core.js?v=0.7.37';
-import { SFX, vib } from './audio.js?v=0.7.37';
-import { bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.37';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.37';
-import { R, startDrop } from './renderer.js?v=0.7.37';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.37';
-import { buildCard } from './screens.js?v=0.7.37';
-import * as TM from './telemetry.js?v=0.7.37';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl, toWorld } from './core.js?v=0.7.38';
+import { SFX, vib } from './audio.js?v=0.7.38';
+import { bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.38';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.38';
+import { R, startDrop } from './renderer.js?v=0.7.38';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.38';
+import { buildCard } from './screens.js?v=0.7.38';
+import * as TM from './telemetry.js?v=0.7.38';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
@@ -33,9 +33,9 @@ export function tutStep(n) {
   $('coach').hidden = !n; if (n) { $('coach-n').textContent = tl('tut.count', { n }); $('coach-t').textContent = tl('tut.step' + n); fitCoach(); }
   placeState();   // Place waits until the guided step needs it (and while the board is full)
   $('place').classList.toggle('coach', n === 1 && !reduce()); $('place').classList.toggle('coach-r', n === 1 && reduce());
-  if (n === 3 && !U.bubbles.includes(U.tutBubble)) tutBubble();
+  if (n === 3) { U.tutBubbles = []; tutBubble(); tutBubble(); U.nextTutBubble = performance.now() + 3000; }   // 3/3 starts with two bubbles, then one more every 3 s (bubbles.js)
 }
-export function tutBubble() { if (R) { spawnBubble({ kind: 'empty' }); U.tutBubble = U.bubbles[U.bubbles.length - 1]; } }   // 10-2 F4: gold is skins-only now, the tutorial only teaches the pop
+export function tutBubble() { if (R) { spawnBubble({ kind: 'empty' }, toWorld([170 + Math.random() * 740, 570 + Math.random() * 130])); U.tutBubble = U.bubbles[U.bubbles.length - 1]; (U.tutBubbles || (U.tutBubbles = [])).push(U.tutBubble); } }   // a tutorial bubble appears in the open sky between the guide box and the island (bubbles are drawn behind the garden) and rises
 function fitCoach() {   // 10-2 F3: the instruction stays on one line: 36px down to 30px in steps of 2
   const s = $('coach-t'); let size = 36; s.style.fontSize = size + 'px';
   while (s.scrollWidth > s.clientWidth && size > 30) { size -= 2; s.style.fontSize = size + 'px'; }
@@ -48,7 +48,7 @@ export function tutBlock(kind) {
   if (!reduce()) { const c = $('coach'); c.classList.remove('nudge'); void c.offsetWidth; c.classList.add('nudge'); }
   return true;
 }
-export function tutEnd(done) { TM.tutEnd(done); tutStep(0); U.tutBubble = null; store.set('tutorialDone', true); U.nextBubble = 0; if (done) toast(tl('tut.done'), 2600); }
+export function tutEnd(done) { TM.tutEnd(done); tutStep(0); U.tutBubble = null; U.tutBubbles = []; store.set('tutorialDone', true); U.nextBubble = 0; if (done) toast(tl('tut.done'), 2600); }
 $('coach-skip').onclick = () => tutEnd(false);
 export function newGame(tut = false, mode = 'normal') {
   const demo = mode === 'speed' ? null : DEMO[location.hash.slice(1)];
@@ -99,7 +99,7 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
-import { Mini } from './minianim.js?v=0.7.37';
+import { Mini } from './minianim.js?v=0.7.38';
 let _cm = null, _rm = null;
 const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {

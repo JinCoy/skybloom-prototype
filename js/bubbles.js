@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.37';
-import { SFX, vib } from './audio.js?v=0.7.37';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.37';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.37';
-import { addFxXY, floatText } from './fx.js?v=0.7.37';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.37';
-import * as TM from './telemetry.js?v=0.7.37';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.38';
+import { SFX, vib } from './audio.js?v=0.7.38';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.38';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.38';
+import { addFxXY, floatText } from './fx.js?v=0.7.38';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.38';
+import * as TM from './telemetry.js?v=0.7.38';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -40,14 +40,20 @@ export function setIcon(b) {
   b.icon.alpha = k === 'treasure' && !U.treasures[b.content.id] ? .55 : .95;
 }
 export function updateBubbles(dt, now, still) {
-  if (U.tut === 3 && U.tutBubble && U.tutBubble.sx != null) {   // 10-2b: the guide box fades when the tutorial bubble drifts behind it
-    const [bx, by] = toScreen([U.tutBubble.sx, U.tutBubble.y]), r = U.tutBubble.r * WS;
-    $('coach').style.opacity = bx + r > 140 && bx - r < 940 && by + r > 410 && by - r < 530 ? .3 : '';
+  if (U.tut === 3 && (U.tutBubbles || []).length) {   // 10-2b: the guide box fades while a tutorial bubble drifts behind it
+    const behind = U.tutBubbles.some(b => { if (b.sx == null) return false; const [bx, by] = toScreen([b.sx, b.y]), r = b.r * WS; return bx + r > 140 && bx - r < 940 && by + r > 410 && by - r < 530; });
+    $('coach').style.opacity = behind ? .3 : '';
   } else if ($('coach').style.opacity) $('coach').style.opacity = '';
   const shopOpen = !$('ov-shop').hidden, k15 = shopOpen ? 1.5 : 1;   // shop open: 1.5x as many bubbles drift by, so a skin can be judged at a glance
   const max = Math.ceil((U.perf ? BC.max : still ? BC.maxReduced : BC.max) * k15);
   if (!U.nextBubble) U.nextBubble = now + 1500;
-  if (U.tut && U.screen === 'game') { if (U.tut === 3 && !U.bubbles.includes(U.tutBubble)) tutBubble(); }   // tutorial: only its own bubble
+  if (U.tut && U.screen === 'game') {   // tutorial 3/3: its own bubbles only; never fewer than two on screen, one more every 3 s (at most 6), so a missed one is not a long wait
+    if (U.tut === 3) {
+      U.tutBubbles = (U.tutBubbles || []).filter(b => U.bubbles.includes(b));
+      if (U.tutBubbles.length < 2) tutBubble();
+      else if (now >= (U.nextTutBubble || 0) && U.tutBubbles.length < 6) { tutBubble(); U.nextTutBubble = now + 3000; }
+    }
+  }
   else if ((now >= U.nextBubble || U.perf) && U.bubbles.length < max) { spawnBubble(); U.nextBubble = now + (BC.everySec[0] + Math.random() * (BC.everySec[1] - BC.everySec[0])) * 1000 / k15; }
   const T = U.tilt, w = U.phaseW, tint = mix3(w, 0xffffff, 0xffd8bc, 0xc8d6ff);
   for (const b of [...U.bubbles]) {
@@ -73,7 +79,7 @@ export function updateBubbles(dt, now, still) {
 }
 function removeBubble(b) { U.bubbles = U.bubbles.filter(x => x !== b); b.c.destroy({ children: true }); }
 export function bubbleAt(x, y) {
-  const tb = U.tutBubble; if (tb && Math.hypot(x - tb.sx, y - tb.y) < tb.r) return tb;   // the tutorial bubble can be popped anywhere, even over the island
+  if (U.tut === 3) for (const tb of U.tutBubbles || []) if (tb.sx != null && Math.hypot(x - tb.sx, y - tb.y) < tb.r) return tb;   // the tutorial bubbles can be popped anywhere, even over the island
   // forgiving taps: the nearest bubble within 1.7 x its radius (at least 110) is popped, also next to the screen edge and behind the island or buildings (input.js already lets a building under the finger win)
   let best = null, bd = 1e9;
   for (const b of U.bubbles) { const d = Math.hypot(x - b.sx, y - b.y) / Math.max(b.r * 1.7, 110); if (d < 1 && d < bd) { best = b; bd = d; } }
@@ -94,7 +100,7 @@ export function popBubbleAt(b) {
     }
     return;
   }
-  if (b === U.tutBubble) tutEnd(true);
+  if (U.tut === 3 && (U.tutBubbles || []).includes(b)) tutEnd(true);
   const dup = c.kind === 'treasure' ? gainTreasure(c.id) : false; stamp(); const e = L.popBubble(G, c, dup);
   if (e.kind === 'treasure') { toast(dup ? tl('t.dup', { n: e.gold }) : tl('t.newTreasure', { name: TREASURES[c.id - 1][0], rarity: tl('rarity.' + c.rarity) }), 2400, accSrc(c.id)); if (dup) addGold(e.gold, 'dup_treasure_gold'); else SFX.gift(); }
   else if (e.item) fly(itemXY(e.item), () => bumpBadge(e.item));                 // icon flies to its item button

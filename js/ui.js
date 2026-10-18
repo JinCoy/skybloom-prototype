@@ -1,8 +1,8 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.37';
-import { Mini } from './minianim.js?v=0.7.37';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.37';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.37';
+import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.38';
+import { Mini } from './minianim.js?v=0.7.38';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.38';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.38';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;
@@ -83,7 +83,7 @@ export function hud() {
   $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next; (nextMini || (nextMini = new Mini($('next-anim'), 130, 96, 24))).show(G.next);   // NEXT moves (24 fps)
   for (const [k] of ITEMS) {
     $('cnt-' + k).textContent = G.items[k];
-    const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0), btn = document.querySelector(`[data-item="${k}"]`);
+    const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0) && (k !== 'drop' || L.empties(G.board).length > 0), btn = document.querySelector(`[data-item="${k}"]`);
     btn.classList.toggle('dis', !usable);
     btn.classList.toggle('live', U.target === k || U.liveItem === k); btn.classList.toggle('still', reduce());   // the item being used wears the rainbow ring: Bubble Pop / Cloud Drop while picking, Rewind while it runs
   }

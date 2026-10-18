@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.37';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.37';
-import { blinkItems, hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.37';
-import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.37';
-import { drawn } from './renderer.js?v=0.7.37';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.37';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.37';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.37';
-import * as TM from './telemetry.js?v=0.7.37';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.38';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.38';
+import { blinkItems, hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.38';
+import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.38';
+import { drawn } from './renderer.js?v=0.7.38';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.38';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.38';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.38';
+import * as TM from './telemetry.js?v=0.7.38';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -78,18 +78,20 @@ function pickerHit(e) {   // highlight the card under the finger and light up it
   const i = el ? +el.dataset.i : -1; U.press = i >= 0 && down ? down.cands.list[i] : null; return i;
 }
 function closePicker() { $('picker').hidden = true; }
+/** Tutorial 3/3: the guide bubble nearest the finger, within 1.8 x its radius (at least 120). */
+const nearTut = pt => { let best = null, bd = 1e9; for (const b of U.tutBubbles || []) { if (b.sx == null) continue; const d = Math.hypot(pt[0] - b.sx, pt[1] - b.y); if (d < Math.max(b.r * 1.8, 120) && d < bd) { best = b; bd = d; } } return best; };
 document.addEventListener('pointerdown', e => {   // tutorial 3/3: a tap near the guide box's Skip button that is really meant for the bubble pops the bubble instead of pressing Skip
-  const tb = U.screen === 'game' && U.tut === 3 && U.tutBubble; if (!tb || !e.target.closest?.('#coach button')) return;
-  const pt = toWorld(stagePoint(e)); if (Math.hypot(pt[0] - tb.sx, pt[1] - tb.y) < Math.max(tb.r * 1.8, 120)) { e.preventDefault(); e.stopPropagation(); popBubbleAt(tb); }
+  if (U.screen !== 'game' || U.tut !== 3 || !e.target.closest?.('#coach button')) return;
+  const tb = nearTut(toWorld(stagePoint(e))); if (tb) { e.preventDefault(); e.stopPropagation(); popBubbleAt(tb); }
 }, true);
 cv.addEventListener('pointerdown', e => {
   ac(); if (busy()) return;
   const sp = stagePoint(e), pt = toWorld(sp), inGame = U.screen === 'game', cands = inGame ? candidates(...pt) : { list: [], tile: null, primary: null };
   // buildings always win over bubbles (bubbles float behind the garden)
-  const tb = inGame && U.tut === 3 && U.tutBubble;   // tutorial 3/3: the guide bubble wins over the board, even over the island
-  if (tb && Math.hypot(pt[0] - tb.sx, pt[1] - tb.y) < Math.max(tb.r * 1.8, 120)) { popBubbleAt(tb); down = null; return; }
+  const tb = inGame && U.tut === 3 && nearTut(pt);   // tutorial 3/3: a guide bubble wins over the board, even over the island
+  if (tb) { popBubbleAt(tb); down = null; return; }
   if (inGame && U.tut && (cands.list.length || cands.tile) && tutBlock(U.tut === 2 && cands.list.length ? 'board' : 'tile')) return;   // tutorial: step 2 only takes the two Dew Drops
-  if (!cands.list.length && !(inGame && cands.tile && U.target)) { const b = bubbleAt(...pt); if (b) { if (inGame && U.tut && b !== U.tutBubble && tutBlock('bubble-other')) return; popBubbleAt(b); down = null; return; } }
+  if (!cands.list.length && !(inGame && cands.tile && U.target)) { const b = bubbleAt(...pt); if (b) { if (inGame && U.tut && !(U.tutBubbles || []).includes(b) && tutBlock('bubble-other')) return; popBubbleAt(b); down = null; return; } }
   if (!inGame || (!cands.list.length && !cands.tile)) {   // empty sky: touch-drag stands in for tilt
     if (e.pointerType !== 'mouse' && U.tilt.src !== 'sensor') down = { tiltDrag: true, pt };
     else down = inGame ? { pt, cands } : null;

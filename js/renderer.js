@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.37';
-import { sbLocked } from './sandbox.js?v=0.7.37';
-import { SFX, vib } from './audio.js?v=0.7.37';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.37';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.37';
-import { updateBubbles } from './bubbles.js?v=0.7.37';
-import { updateFx } from './drawfx.js?v=0.7.37';
-import { badgePos, updateTilt } from './input.js?v=0.7.37';
-import { perfGuard } from './perfguard.js?v=0.7.37';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.38';
+import { sbLocked } from './sandbox.js?v=0.7.38';
+import { SFX, vib } from './audio.js?v=0.7.38';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.38';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.38';
+import { updateBubbles } from './bubbles.js?v=0.7.38';
+import { updateFx } from './drawfx.js?v=0.7.38';
+import { badgePos, updateTilt } from './input.js?v=0.7.38';
+import { perfGuard } from './perfguard.js?v=0.7.38';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -355,8 +355,14 @@ export function initRenderer() {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
   });
-  app.ticker.add(frame);
+  app.ticker.add(safeFrame);
   document.addEventListener('visibilitychange', () => document.hidden ? app.ticker.stop() : app.ticker.start());   // spec §8: pause when hidden
+  /* The garden must never freeze while the buttons keep working:
+     - a frame that throws is caught (safeFrame), so the PIXI ticker keeps asking for the next frame;
+     - the WebGL context the phone takes away (memory, too many contexts) is asked back (preventDefault) and PIXI rebuilds on restore;
+     - a watchdog restarts the ticker if no frame has been drawn for 1.5 s while the page is visible. */
+  $('cv').addEventListener('webglcontextlost', e => e.preventDefault());
+  setInterval(() => { if (!document.hidden && performance.now() - LASTF > 1500) { app.ticker.stop(); app.ticker.start(); } }, 1000);
 }
 
 /* ---------- per-frame ---------- */
@@ -369,6 +375,11 @@ const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0
   [.82, 0, 0, 0, 0, 0, .86, .02, 0, .01, 0, .03, 1, 0, .04, 0, 0, 0, 1, 0]];   // v0.4: night board and buildings brighter (sky stays dark)
 const FPS = (location.search.includes('fps') || location.hash.includes('fps')) ? { el: Object.assign(document.createElement('div'), { id: 'fps' }), ms: [], t: 0 } : null;   // ?fps: phone frame meter
 if (FPS) document.body.append(FPS.el);
+let LASTF = performance.now(), ERRN = 0;
+function safeFrame() {
+  LASTF = performance.now();
+  try { frame(); } catch (e) { if (ERRN++ < 5) { console.error('frame', e); dispatchEvent(new ErrorEvent('error', { message: 'frame: ' + (e && e.message), error: e })); } }   // reported once in the play log (telemetry listens to 'error'), then quiet
+}
 function frame() {
   const dt = Math.min(app.ticker.deltaMS, 50) / 1000, now = performance.now(), still = reduce();
   if (FPS) { FPS.ms.push(app.ticker.deltaMS); if (now - FPS.t > 500) { const a = FPS.ms.slice().sort((x, y) => x - y), avg = a.reduce((x, y) => x + y, 0) / a.length;
@@ -529,7 +540,9 @@ function updateBoard(dt, now, still) {
   const pulse = .55 + .45 * Math.sin(now / 170), g = R.floorG; g.clear();
   if (inGame && U.target) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
     if (U.target === 'pop' ? !board[r][c] : board[r][c]) continue;
-    const [x, y] = center(r, c); g.lineStyle(8, U.target === 'pop' ? 0xff78c8 : 0x28c8ff, pulse); diamond(g, x, y, .9);
+    const [x, y] = center(r, c);
+    if (U.target === 'pop') { g.lineStyle(8, 0xff78c8, pulse); diamond(g, x, y, .9); }
+    else { g.lineStyle(10, 0xff8a00, .55 + .45 * pulse).beginFill(0xffb000, .12 + .16 * pulse); diamond(g, x, y, .9); g.endFill(); }   // Cloud Drop: vivid orange, it reads on the pale and the coloured tiles
   }
   const sel = inGame && !U.anim ? (U.drag && U.drag.active ? U.drag.from : U.sel) : null;
   const tg = sel ? L.targets(board, sel[0], sel[1]) : [];
