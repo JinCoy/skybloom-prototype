@@ -1,12 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.26';
-import { SFX, vib } from './audio.js?v=0.7.26';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.26';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.26';
-import { updateBubbles } from './bubbles.js?v=0.7.26';
-import { updateFx } from './drawfx.js?v=0.7.26';
-import { badgePos, updateTilt } from './input.js?v=0.7.26';
-import { perfGuard } from './perfguard.js?v=0.7.26';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.27';
+import { sbLocked } from './sandbox.js?v=0.7.27';
+import { SFX, vib } from './audio.js?v=0.7.27';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.27';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.27';
+import { updateBubbles } from './bubbles.js?v=0.7.27';
+import { updateFx } from './drawfx.js?v=0.7.27';
+import { badgePos, updateTilt } from './input.js?v=0.7.27';
+import { perfGuard } from './perfguard.js?v=0.7.27';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -60,6 +61,8 @@ export function genTextures() {
   };
   return GEN;
 }
+let SILF = null;   // silhouette for buildings that are not unlocked yet (Decorate tab): flat navy, 62% opaque
+const silFilter = () => SILF || (SILF = Object.assign(new (PIXI.ColorMatrixFilter || PIXI.filters.ColorMatrixFilter)(), { matrix: [0, 0, 0, 0, .16, 0, 0, 0, 0, .30, 0, 0, 0, 0, .50, 0, 0, 0, .62, 0] }));
 export const hsl = (h, s = .75, l = .7) => { const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); };
 export const lerpColor = (a, b, t) => { const c = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255], A = c(a), B = c(b); return A.map((v, i) => Math.round(v + (B[i] - v) * t)).reduce((s, v) => (s << 8) | v, 0); };
 export const mix3 = (w, a, b, c) => lerpColor(lerpColor(a, b, w[1] / Math.max(1e-6, w[0] + w[1])), c, w[2]);
@@ -512,6 +515,7 @@ function updateBoard(dt, now, still) {
     I.c.visible = true; I.c.alpha = alpha; I.c.zIndex = p.z ?? (p.r + p.c + (p.moving ? .5 : 0));
     I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
     I.glow.alpha = gardenPulse(x, y - 60, !inGame) * .38 + (hintK > 0 && p.key !== 'mv' && p.key !== 'drag' && L.targets(board, p.r, p.c).length ? hintK * .3 : 0) + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
+    const sil = !inGame && sbLocked(p.lv); if (!!I.sil !== sil) { I.sil = sil; I.c.filters = sil ? [silFilter()] : null; } if (sil) I.glow.visible = false;
     updateInst(I, TP, dt, s * k, still);
     if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, key: I.key, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
   }

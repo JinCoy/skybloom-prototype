@@ -30,7 +30,7 @@ const MAIN_SLOTS = [[0,0,7,9],[0,1,5,8],[0,2,9,12],[0,3,15,17],[1,0,6,9],[1,2,3,
 const MAIN_FALLBACK = [[9,7,11,17],[8,0,4,5],[15,0,3,2],[13,6,1,0]];
 const MOVERS = new Set([2, 3, 4, 5, 6, 8, 10, 12, 14]);   // spin, sway, bob and flowing-water buildings
 export const SHOW = MAIN_FALLBACK.map(r => r.slice());
-function genShow() {
+export function genShow() {
   const slots = MAIN_SLOTS, pick = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   let g = null;
   for (let tries = 0; tries < 6000 && !g; tries++) {
@@ -138,7 +138,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {};
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.26`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.27`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)

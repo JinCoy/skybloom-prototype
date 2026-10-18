@@ -1,13 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.26';
-import { SFX, vib } from './audio.js?v=0.7.26';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.26';
-import { addGold } from './game.js?v=0.7.26';
-import { addFxXY } from './fx.js?v=0.7.26';
-import { spawnBubble } from './bubbles.js?v=0.7.26';
-import { R, tex } from './renderer.js?v=0.7.26';
-import { down } from './input.js?v=0.7.26';
-import * as TM from './telemetry.js?v=0.7.26';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.27';
+import { SFX, vib } from './audio.js?v=0.7.27';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.27';
+import { addGold } from './game.js?v=0.7.27';
+import { addFxXY } from './fx.js?v=0.7.27';
+import { spawnBubble } from './bubbles.js?v=0.7.27';
+import { renderPalette, sbClick, sbTap } from './sandbox.js?v=0.7.27';
+import { R, tex } from './renderer.js?v=0.7.27';
+import { down } from './input.js?v=0.7.27';
+import * as TM from './telemetry.js?v=0.7.27';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -25,7 +26,7 @@ const SKINS = {
             { id: 'grape', name: 'Grape Console', gold: 300, art: 'bubble_grape', pop: 0xa070e0, wob: .012 }, { id: 'luna', name: 'Luna Blue', gold: 300, art: 'bubble_luna', pop: 0x5a90f0 },
             { id: 'opal', name: 'Opal Mystic', gold: 300, art: 'bubble_opal', pop: 0xe0c8ff, cycle: true }],
 };
-const SHOP_TABS = ['board', 'sky', 'building', 'bubble'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
+const SHOP_TABS = ['board', 'sky', 'building', 'bubble', 'garden'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
 U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));
 U.equip = Object.assign({ board: 'frost', sky: 'day', building: 'classic', bubble: 'rainbow' }, store.get('equip', {}));
 let shopTab = 'board', preview = null, shopDown = false, phaseTimer = 0;
@@ -85,19 +86,22 @@ export function openShop(tab = shopTab) {
   $('shop-gold').textContent = U.gold.toLocaleString('en-US');
   $('shop-tabs').innerHTML = SHOP_TABS.map(k => `<button class="tab" role="tab" data-shop-tab="${k}" aria-selected="${k === tab}">${tl('shop.tab.' + k)}</button>`).join('');
   const coin = '<i class="coin"></i>';
-  $('shop-hint').textContent = tl('shop.hint');
-  $('shop-cards').innerHTML = SKINS[tab].map(k => {
+  $('shop-hint').textContent = tl(tab === 'garden' ? 'shop.hint.garden' : 'shop.hint'); U.sbOn = tab === 'garden';
+  if (tab === 'garden') renderPalette($('shop-cards')); else { $('shop-cards').className = 'shop-cards'; $('shop-cards').innerHTML = SKINS[tab].map(k => {
     const own = U.owned[tab].includes(k.id), eq = U.equip[tab] === k.id, on = preview[tab] === k.id;
     const act = eq ? `<span class="act done">${tl('shop.equipped')}</span>` : own ? `<span class="act eq" data-equip>${tl('shop.equip')}</span>` : k.cash ? `<span class="act cash" data-cash>${k.cash}</span>` : `<span class="act buy" data-buy>${coin}${k.gold}</span>`;
     return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${k.name}</span><span class="sub">${k.sub ? tl('shop.default') : k.cash ? tl('shop.premium') : ''}</span>${act}</button>`;
-  }).join('');
-  cyclePhase(tab === 'sky'); applySkins(preview); overlay('shop'); shopFx();
+  }).join(''); }
+  if (tab === 'garden') { clearInterval(phaseTimer); phaseTimer = 0; } else cyclePhase(tab === 'sky');   // Decorate: the phase chips set U.shopPhase by hand
+  applySkins(preview); overlay('shop'); shopFx();
   $('scr-' + U.screen).style.visibility = 'hidden';   // the garden stays visible for previews, the HUD steps aside
 }
-export function closeShop() { cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
+export function closeShop() { U.sbOn = false; cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
 $('ov-shop').addEventListener('click', e => {
+  if (U.sbOn && e.target.id === 'shop-dim') { const r = $('stage').getBoundingClientRect(), k = r.width / 1080; sbTap(toWorld([(e.clientX - r.left) / k, (e.clientY - r.top) / k])); return; }   // Decorate: a tap on the garden places / erases
   if (e.target.id === 'shop-dim') { setShopDown(!shopDown); return; }   // 10-2b: a background tap folds / unfolds the panel like the arrow; only ✕ closes the shop
   const tb = e.target.closest('[data-shop-tab]'); if (tb) { openShop(tb.dataset.shopTab); return; }
+  if (U.sbOn && sbClick(e.target, () => renderPalette($('shop-cards')), toast)) return;
   const card = e.target.closest('[data-skin]'); if (!card) return;
   const k = skin(shopTab, card.dataset.skin);
   if (e.target.closest('[data-cash]')) { sheet(tl('shop.cashTitle'), tl('shop.cashBody', { name: k.name, price: k.cash })); return; }
