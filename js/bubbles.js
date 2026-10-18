@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.22';
-import { SFX, vib } from './audio.js?v=0.7.22';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.22';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.22';
-import { addFxXY, floatText } from './fx.js?v=0.7.22';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.22';
-import * as TM from './telemetry.js?v=0.7.22';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.23';
+import { SFX, vib } from './audio.js?v=0.7.23';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.23';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.23';
+import { addFxXY, floatText } from './fx.js?v=0.7.23';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.23';
+import * as TM from './telemetry.js?v=0.7.23';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -28,7 +28,7 @@ export function spawnBubble(content = null, at = null) {
   if (U.screen === 'game' && !U.tut && G.log) { stamp(); L.record(G, { a: 'bspawn', kind: b.content.kind }); }
   const c = new PIXI.Container(), shell = new PIXI.Sprite(tex('bubble')), glow = new PIXI.Sprite(tex('bubble')), sk = new PIXI.Sprite(PIXI.Texture.EMPTY);
   shell.anchor.set(.5); glow.anchor.set(.5); sk.anchor.set(.5); sk.visible = false; glow.blendMode = ADD(); glow.alpha = 0; shell.width = shell.height = glow.width = glow.height = r * 2;
-  const icon = new PIXI.Sprite(PIXI.Texture.EMPTY); icon.anchor.set(.5); c.addChild(icon, shell, sk, glow);
+  const icon = new PIXI.Sprite(PIXI.Texture.EMPTY); icon.anchor.set(.5); c.addChild(icon, sk, shell, glow);   // skin first, the old bubble's rim (shell) on top of it
   Object.assign(b, { c, shell, glow, icon, sk }); setIcon(b);
   R.bubbleLayer.addChild(c); U.bubbles.push(b);
 }
@@ -59,13 +59,15 @@ export function updateBubbles(dt, now, still) {
     // skin art (empty AND coloured bubbles): the skin sprite `sk` sits on top; a coloured bubble (item / treasure / gold) also keeps its clear shell + glow underneath as the coloured aura
     const skinTex = U.skinBubbleArt ? tex(U.skinBubbleArt) : null, wob = still ? 0 : Math.sin(b.t * 2.2 + b.ph) * (U.skinWob ?? .025);
     const sx = b.r * 2 / b.shell.texture.width * (1 + wob), sy = b.r * 2 / b.shell.texture.width * (1 - wob), aura = skinTex && b.color;
-    b.shell.scale.set(sx, sy); b.shell.visible = !skinTex;   // with skin art the old clear shell goes away; a coloured bubble keeps its colour as an aura (glow) + a tint on the skin
+    // skin art + coloured bubble (item / treasure / gold): same size; only the old bubble's RIM (bubble_rim) is laid over the skin in the item colour, half transparent
+    const shellTex = skinTex ? (b.color ? tex('bubbleRim') : null) : tex('bubble'); b.shell.visible = !!shellTex; if (shellTex && b.shell.texture !== shellTex) b.shell.texture = shellTex;
+    b.shell.scale.set(sx, sy); b.shell.alpha = skinTex ? .7 : 1;
     b.sk.visible = !!skinTex; if (skinTex) { if (b.sk.texture !== skinTex) b.sk.texture = skinTex; b.sk.scale.set(sx, sy); }
     const spin = U.skinCycle && !still ? hsl((now / 40 + b.ph * 60) % 360, .45, .88) : null;
-    b.sk.tint = spin ? lerpColor(spin, tint, .25) : lerpColor(tint, b.color || 0xffffff, b.color ? .3 : 0);
+    b.sk.tint = spin ? lerpColor(spin, tint, .25) : tint;
     b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : U.skinBubble ? lerpColor(U.skinBubble, tint, .25) : tint;
-    b.glow.scale.set(b.r * 2 / b.glow.texture.width * (aura ? 1.4 : 1));
-    b.glow.tint = b.color || 0xffffff; b.glow.alpha = Math.max(w[2] * .5, b.color ? (aura ? .8 : .3) : 0);   // coloured bubbles glow a little so the colour reads
+    b.glow.scale.set(b.r * 2 / b.glow.texture.width);
+    b.glow.tint = b.color || 0xffffff; b.glow.alpha = Math.max(w[2] * .5, b.color ? (aura ? .2 : .3) : 0);   // coloured bubbles glow a little so the colour reads
     if (b.y < toWorld([0, 0])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
   }
 }

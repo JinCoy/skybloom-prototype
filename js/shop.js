@@ -1,13 +1,13 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.22';
-import { SFX, vib } from './audio.js?v=0.7.22';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.22';
-import { addGold } from './game.js?v=0.7.22';
-import { addFxXY } from './fx.js?v=0.7.22';
-import { spawnBubble } from './bubbles.js?v=0.7.22';
-import { R, tex } from './renderer.js?v=0.7.22';
-import { down } from './input.js?v=0.7.22';
-import * as TM from './telemetry.js?v=0.7.22';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.23';
+import { SFX, vib } from './audio.js?v=0.7.23';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.23';
+import { addGold } from './game.js?v=0.7.23';
+import { addFxXY } from './fx.js?v=0.7.23';
+import { spawnBubble } from './bubbles.js?v=0.7.23';
+import { R, tex } from './renderer.js?v=0.7.23';
+import { down } from './input.js?v=0.7.23';
+import * as TM from './telemetry.js?v=0.7.23';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
