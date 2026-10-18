@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.34';
-import { SFX, vib } from './audio.js?v=0.7.34';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.34';
-import { addGold } from './game.js?v=0.7.34';
-import { addFxXY } from './fx.js?v=0.7.34';
-import { spawnBubble } from './bubbles.js?v=0.7.34';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.34';
-import { R, tex } from './renderer.js?v=0.7.34';
-import { down } from './input.js?v=0.7.34';
-import * as TM from './telemetry.js?v=0.7.34';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.35';
+import { SFX, vib } from './audio.js?v=0.7.35';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.35';
+import { addGold } from './game.js?v=0.7.35';
+import { addFxXY } from './fx.js?v=0.7.35';
+import { spawnBubble } from './bubbles.js?v=0.7.35';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.35';
+import { R, tex } from './renderer.js?v=0.7.35';
+import { down } from './input.js?v=0.7.35';
+import * as TM from './telemetry.js?v=0.7.35';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {

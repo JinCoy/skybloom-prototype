@@ -125,7 +125,8 @@ body {
 .tog[aria-checked="true"] { background: linear-gradient(var(--leaf-1), var(--leaf-2)); }
 .tog[aria-checked="true"]::after { left: 80px; }
 .tog:disabled { opacity: .45; cursor: default; }
-#toast { left: 140px; top: 410px; width: 800px; padding: 22px 30px; box-sizing: border-box; text-align: center; font: 800 36px/1.25 var(--font); color: var(--navy);
+.layer[id^="ov-"] { z-index: 4; }   /* every overlay (settings, shop...) sits above the tutorial box (#coach, z-index 3) */
+#toast { z-index: 6; left: 140px; top: 410px; width: 800px; padding: 22px 30px; box-sizing: border-box; text-align: center; font: 800 36px/1.25 var(--font); color: var(--navy);
   transition: opacity .25s; display: flex; align-items: center; justify-content: center; gap: 22px; }
 #toast img { width: 110px; height: 110px; object-fit: contain; flex: none; }
 .pre { white-space: pre-line; }
@@ -274,6 +275,7 @@ body {
       <div class="abs lbl" style="left:20px;top:270px;width:180px" data-i18n="nav.collection">Collection</div>
       <button class="gel aqua sq" data-open="settings" aria-label="Settings" data-i18n-aria="nav.settings" style="left:910px;top:135px;width:120px;height:120px"><svg viewBox="0 0 24 24" width="64" height="64" style="position:relative"><path fill="#fff" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3.4h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
       <div class="abs lbl" style="left:880px;top:270px;width:180px" data-i18n="nav.settings">Settings</div>
+      <div class="abs" id="app-ver" style="left:56px;top:1846px;font:800 22px/1 var(--font);letter-spacing:.02em;color:var(--blue);opacity:.75;pointer-events:none"></div>   <!-- the version, small, bottom left of the main screen -->
       <img class="abs" id="main-logo" src="assets/logo.webp" alt="Skybloom" style="left:160px;top:300px;width:760px">
       <div class="glass stat" style="left:340px;top:1360px;width:400px;height:140px;justify-content:center"><span class="cap" data-i18n="hud.best">BEST</span><span class="num" id="main-best">0</span></div>
       <button class="gel aqua sq" id="main-shop" data-open="shop" aria-label="Shop" data-i18n-aria="nav.shop" style="left:150px;top:1360px;width:130px;height:130px"><svg viewBox="0 0 24 24" width="62" height="62" style="position:relative" aria-hidden="true"><path fill="#fff" d="M7 7V6a5 5 0 0 1 10 0v1h3l-1 14H5L4 7h3zm2 0h6V6a3 3 0 0 0-6 0v1z"/></svg></button>
@@ -457,10 +459,9 @@ body {
           <button class="gel aqua" id="set-tut" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.tutorial">Replay Tutorial</button>
           <button class="gel aqua" id="set-log" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.log">Send Play Log</button>
         </div>
-        <div class="cap" id="app-ver" style="letter-spacing:.02em;font-size:28px;line-height:1.35;color:var(--blue)"></div>
         <button class="gel aqua" data-close style="position:relative;width:100%;height:112px;font-size:56px;flex:none;margin-top:6px" data-i18n="set.close">Close</button>
       </div>
-      <button class="gel ghost" id="set-home" style="left:330px;top:1770px;width:420px;height:96px;font-size:44px" hidden data-i18n="set.home">Quit to Home</button>
+      <button class="gel ghost" id="set-home" style="left:330px;top:1735px;width:420px;height:96px;font-size:44px" hidden data-i18n="set.home">Quit to Home</button>
     </div>
 
     <div class="layer" id="ov-confirm" hidden>
@@ -548,4 +549,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.34"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.35"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

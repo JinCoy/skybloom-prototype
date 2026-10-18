@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.34';
-import { sbLocked } from './sandbox.js?v=0.7.34';
-import { SFX, vib } from './audio.js?v=0.7.34';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.34';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.34';
-import { updateBubbles } from './bubbles.js?v=0.7.34';
-import { updateFx } from './drawfx.js?v=0.7.34';
-import { badgePos, updateTilt } from './input.js?v=0.7.34';
-import { perfGuard } from './perfguard.js?v=0.7.34';
+import { $, CAL, CX, CY, FALLS, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.35';
+import { sbLocked } from './sandbox.js?v=0.7.35';
+import { SFX, vib } from './audio.js?v=0.7.35';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.35';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.35';
+import { updateBubbles } from './bubbles.js?v=0.7.35';
+import { updateFx } from './drawfx.js?v=0.7.35';
+import { badgePos, updateTilt } from './input.js?v=0.7.35';
+import { perfGuard } from './perfguard.js?v=0.7.35';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -68,13 +68,15 @@ export const lerpColor = (a, b, t) => { const c = s => [(s >> 16) & 255, (s >> 8
 export const mix3 = (w, a, b, c) => lerpColor(lerpColor(a, b, w[1] / Math.max(1e-6, w[0] + w[1])), c, w[2]);
 
 /* ---------- building sprite size (shared with taps) ---------- */
+const ECO_FIT = { 6: .74, 7: .88, 8: .84, 9: .84, 10: .84, 11: .84, 12: .84 };
 function sprite(lv) {
   const k = bkey(lv), im = IMG[k]; if (!im) return null;
   const gb = GUIDE[k];
   if (gb) { const s = .97 * TW / 640;   // ox/oy: offset of the drawn box from the default (centred, bottom at centre+.4TH)
     return { im, w: (gb[2] - gb[0]) * s, h: (gb[3] - gb[1]) * s, ox: ((gb[0] + gb[2]) / 2 - 512) * s, oy: (gb[3] - 820) * s - .4 * TH }; }
   const want = (HR[lv] * TH + .4 * TH) * CAL[lv];
-  const s = Math.min(want / im.height, .92 * TW / im.width);
+  const EF = k[0] === 'e' ? ECO_FIT[lv] || 1 : 1;   // Eco Lv6-12 are wide pictures that filled the whole tile: drawn a little smaller so they do not run far over the board
+  const s = Math.min(want / im.height, .92 * TW / im.width) * EF;
   return { im, w: im.width * s, h: im.height * s, ox: 0, oy: 0 };
 }
 

@@ -1,12 +1,12 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.34';
-import { music } from './audio.js?v=0.7.34';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.34';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.34';
-import { app } from './renderer.js?v=0.7.34';
-import { enableSensor, sensorOn } from './input.js?v=0.7.34';
-import * as TM from './telemetry.js?v=0.7.34';
-import { age13 } from './age.js?v=0.7.34';
+import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.35';
+import { music } from './audio.js?v=0.7.35';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.35';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.35';
+import { app } from './renderer.js?v=0.7.35';
+import { enableSensor, sensorOn } from './input.js?v=0.7.35';
+import * as TM from './telemetry.js?v=0.7.35';
+import { age13 } from './age.js?v=0.7.35';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
@@ -104,7 +104,8 @@ const TOGS = { music: 'set-music', sfx: 'set-sfx', vib: 'set-vib', hints: 'set-h
 function ambientTog() {   // Reduce Motion forces Background Motion off: show the switch off and dimmed (a disabled button takes no taps) while it is on; the saved choice returns when Reduce Motion is turned off
   const b = $('set-ambient'), on = U.settings.reduce; b.disabled = on; b.setAttribute('aria-checked', !on && U.settings.ambient);
 }
-function verNote() { $('app-ver').textContent = 'v' + VER; }   // the module version under the settings, taken from the ?v= the game was loaded with, so it follows every release by itself
+function verNote() { $('app-ver').textContent = 'v' + VER; }   // the module version, small at the bottom left of the main screen: taken from the ?v= the game was loaded with, so it follows every release by itself
+verNote();
 function acctLabel() {   // 10-2 C1: "Guest · …a1b2" (last 4 of the guest id); Google / Apple show up with the server in step 12+
   const u = SkyAuth.currentUser(); return !u || u.provider === 'guest' ? tl('rank.guest') + (u ? ' · …' + u.id.slice(-4) : '') : u.provider;
 }
