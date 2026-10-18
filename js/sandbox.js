@@ -1,8 +1,8 @@
 /* Skybloom module: sandbox (shop > Decorate tab): place any building on the showcase garden (SHOW) to check sizes, skins and light. Never touches the game board G.board.
    Edits are a draft: only the Save button (or "Save" when leaving) writes the garden; leaving without saving restores the last saved one. */
-import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.28';
-import { addFxXY } from './fx.js?v=0.7.28';
-import { R, drawn } from './renderer.js?v=0.7.28';
+import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.29';
+import { addFxXY } from './fx.js?v=0.7.29';
+import { drawn } from './renderer.js?v=0.7.29';
 
 /* ponytail: TEST BUILD ONLY. All 17 buildings can be placed; the Silhouette button previews the real rule (locked levels cannot be placed). Set false before a public release. */
 const TEST_ALL = true;
@@ -35,7 +35,6 @@ export function sbRefresh() {   // keep the tool buttons in step with the state
   document.querySelector('#sb-ui [data-sb="rules"]').hidden = !TEST_ALL;
   $('sb-ph').textContent = tl(PH[U.shopPhase ?? realPhase()]);
   $('ov-shop').classList.toggle('shot', !!U.sbShot);
-  if (R && R.bubbleLayer) R.bubbleLayer.visible = !U.sbShot;   // the screenshot view shows only buildings and background
 }
 export function renderPalette(el) {
   const keep = el.querySelector('.sb-pal')?.scrollLeft || 0, tool = U.sbTool ?? 1, ok = lv => !rulesOn() || unlockedFor(U.bset, lv);
