@@ -1,18 +1,21 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.23';
-import { SFX, vib } from './audio.js?v=0.7.23';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.23';
-import { addGold } from './game.js?v=0.7.23';
-import { addFxXY } from './fx.js?v=0.7.23';
-import { spawnBubble } from './bubbles.js?v=0.7.23';
-import { R, tex } from './renderer.js?v=0.7.23';
-import { down } from './input.js?v=0.7.23';
-import * as TM from './telemetry.js?v=0.7.23';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.24';
+import { SFX, vib } from './audio.js?v=0.7.24';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.24';
+import { addGold } from './game.js?v=0.7.24';
+import { addFxXY } from './fx.js?v=0.7.24';
+import { spawnBubble } from './bubbles.js?v=0.7.24';
+import { R, tex } from './renderer.js?v=0.7.24';
+import { down } from './input.js?v=0.7.24';
+import * as TM from './telemetry.js?v=0.7.24';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
   board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 'tile_petal', water: 0x6f6fe6 },
-          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 }],
+          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 },
+          { id: 'lime', name: 'Lime Jelly', gold: 300, tile: 'tile_lime', water: 0x6fd33a }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, tile: 'tile_tangerine', water: 0xff8f3a },
+          { id: 'grape', name: 'Grape Console', gold: 600, tile: 'tile_grape', water: 0x7a4fd0 }, { id: 'luna', name: 'Luna Blue', gold: 600, tile: 'tile_luna', water: 0x2f6fe0 },
+          { id: 'opal', name: 'Opal Mystic', gold: 900, tile: 'tile_opal', water: 0xb8a8ff }],
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', cash: '$1.99', thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
   building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', cash: '$2.99', set: 'candy' },
               { id: 'eco', name: 'Eco Campus', cash: '$2.99', set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', cash: '$2.99', set: 'aqua' }],
@@ -33,7 +36,7 @@ function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -
 }
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
-const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
+const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', tile_lime: 'tile_lime', tile_tangerine: 'tile_tangerine', tile_grape: 'tile_grape', tile_luna: 'tile_luna', tile_opal: 'tile_opal', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
 const skyKeys = id => [0, 1, 2].map(n => `sky_${id}_${n}`);
 export function applySkins(sel = U.equip) {
   if (!R) return;
