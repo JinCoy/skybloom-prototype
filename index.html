@@ -46,6 +46,9 @@ body {
 .gel:active { transform: scale(.96); }
 .gel:focus-visible, .tog:focus-visible, .tab:focus-visible, .card:focus-visible { outline: 6px solid var(--gold-1); outline-offset: 4px; }
 .green { background: linear-gradient(var(--leaf-1), var(--leaf-2)); text-shadow: 0 4px 0 var(--leaf-ink); }
+.lime { background: linear-gradient(#dcf9b8, var(--leaf-1)); color: var(--leaf-ink); text-shadow: 0 2px 0 rgba(255, 255, 255, .7); }   /* Decorate: not chosen = light leaf green, dark green text */
+.forest { background: linear-gradient(var(--leaf-2), var(--leaf-ink)); color: #fff; text-shadow: 0 4px 0 #0f4a12; }   /* Decorate: chosen = deep green, white text */
+.orange { background: linear-gradient(var(--gold-2), #d9770f); color: #fff; text-shadow: 0 4px 0 #8f4a06; }   /* Reset: amber-orange, the gold family's darker end */
 .aqua { background: linear-gradient(var(--aqua-1), var(--aqua-2)); text-shadow: 0 4px 0 #165aa6; }
 .gold { background: linear-gradient(var(--gold-1), var(--gold-2)); color: #fff; text-shadow: 0 4px 0 #b8640a; }
 .ghost { background: linear-gradient(rgba(255, 255, 255, .85), rgba(205, 235, 255, .8)); color: var(--blue); text-shadow: none; }
@@ -176,7 +179,7 @@ body {
 .sk .sub { font: 800 24px/1.2 var(--font); color: var(--blue); text-align: center; min-height: 28px; }
 .shop-cards.sb { flex-direction: column; overflow: hidden; gap: 10px; scroll-snap-type: none; padding: 2px 4px; }   /* Decorate tab: chips on top, building palette below */
 .sb-pal { display: flex; gap: 16px; overflow-x: auto; height: 330px; flex: none; padding: 4px 4px 10px; touch-action: pan-x; }
-.sb-foot { display: flex; justify-content: flex-end; padding: 0 6px; }
+.sb-foot { display: flex; justify-content: space-between; padding: 0 6px; }   /* Reset left, Save right */
 .sbs { position: relative; width: 220px; height: 84px; font-size: 40px; }
 #sb-ui { position: absolute; inset: 0; pointer-events: none; z-index: 4; }   /* the buttons themselves take the taps */
 #sb-ui button { pointer-events: auto; }
@@ -187,10 +190,11 @@ body {
 #shop-panel, .shop-cards { touch-action: pan-x; }
 #shop-fold::after { content: ""; position: absolute; left: -300px; right: -300px; top: 0; bottom: 0; }   /* the fold arrow is easy to hit: five times as wide, not taller */
 .sb-b { flex: none; width: 198px; height: 100%;   /* 4.5 cards in view: the half card shows there is more to scroll */
-   border-radius: 26px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .7); position: relative; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
+   border-radius: 26px; border: 4px solid var(--rim); background: rgba(220, 249, 184, .8); position: relative; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
 .sb-b img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.sb-b b { position: absolute; left: 12px; top: 8px; font: 900 30px/1 var(--font); color: var(--blue); }
-.sb-c.on, .sb-b.on { background: linear-gradient(var(--aqua-1), var(--aqua-2)); color: #fff; border-color: #fff; }
+.sb-b b { position: absolute; left: 12px; top: 8px; font: 900 30px/1 var(--font); color: var(--leaf-ink); }
+.sb-b.on { background: linear-gradient(var(--leaf-2), var(--leaf-ink)); border-color: #fff; }
+.sb-b.on b { color: #fff; }
 .sb-b.lock img { filter: brightness(0) opacity(.45); }
 #shop-tabs .tab { width: 180px; height: 80px; font-size: 32px; }
 /* 10-2 B3: the panel slides down to a 120px strip so the whole garden preview is visible; ▲ brings it back */
@@ -370,12 +374,11 @@ body {
       <button class="gel aqua sq" data-close aria-label="Close" data-i18n-aria="aria.close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
       <div class="abs lbl" id="shop-hint" style="left:0;right:0;top:330px;font-size:30px;pointer-events:none">Tap a card to preview it on your garden</div>
       <div id="sb-ui" hidden>   <!-- Decorate tab tools: left = what the finger does, right = how the garden is shown -->
-        <button class="gel aqua sbb" data-sb="build" style="left:60px;top:400px" data-i18n="sb.build">Build</button>
-        <button class="gel aqua sbb" data-sb="erase" style="left:60px;top:524px" data-i18n="sb.erase">Eraser</button>
-        <button class="gel aqua sbb" data-sb="clear" style="left:60px;top:648px" data-i18n="sb.clear">Reset</button>
-        <button class="gel aqua sbb" data-sb="phase" style="left:830px;top:400px"><span data-i18n="sb.time">Time</span><small id="sb-ph"></small></button>
-        <button class="gel aqua sbb" data-sb="rules" style="left:830px;top:524px" data-i18n="sb.sil">Silhouette</button>
-        <button class="gel aqua sbb" data-sb="shot" style="left:830px;top:648px" data-i18n="sb.shot">Screenshot</button>
+        <button class="gel lime sbb" data-sb="build" style="left:60px;top:400px" data-i18n="sb.build">Build</button>
+        <button class="gel lime sbb" data-sb="erase" style="left:60px;top:524px" data-i18n="sb.erase">Eraser</button>
+        <button class="gel lime sbb" data-sb="phase" style="left:830px;top:400px"><span data-i18n="sb.time">Time</span><small id="sb-ph"></small></button>
+        <button class="gel lime sbb" data-sb="rules" style="left:830px;top:524px" data-i18n="sb.sil">Silhouette</button>
+        <button class="gel lime sbb" data-sb="shot" style="left:830px;top:648px" data-i18n="sb.shot">Screenshot</button>
       </div>
       <div class="glass" id="shop-panel" style="left:30px;top:1300px;width:1020px;height:590px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
         <button class="gel ghost" id="shop-fold" aria-label="Lower the panel" data-i18n-aria="shop.fold" style="left:435px;top:-68px;width:150px;height:90px"></button>
@@ -437,8 +440,6 @@ body {
       <div class="dim"></div>
       <div class="glass panel" style="top:110px;gap:12px;padding-block:30px">
         <h2 data-i18n="set.title">Settings</h2>
-        <div class="row" id="set-acct"><span style="display:flex;flex-direction:column;gap:8px;min-width:0"><small data-i18n="set.account" style="font:800 26px/1 var(--font);color:var(--blue)">Account</small><b id="acct-who" style="font:900 38px/1.1 var(--font)"></b></span>
-          <button class="gel ghost" id="set-logout" style="position:relative;height:78px;padding:0 30px;font-size:34px;flex:none" data-i18n="set.logout">Log out</button></div>
         <div class="row"><span data-i18n="set.music">Music</span><button class="tog" role="switch" id="set-music" aria-label="Music" data-i18n-aria="set.music"></button></div>
         <div class="row"><span data-i18n="set.sfx">Sound Effects</span><button class="tog" role="switch" id="set-sfx" aria-label="Sound Effects" data-i18n-aria="set.sfx"></button></div>
         <div class="row"><span data-i18n="set.vib">Vibration</span><button class="tog" role="switch" id="set-vib" aria-label="Vibration" data-i18n-aria="set.vib"></button></div>
@@ -452,6 +453,8 @@ body {
           <button class="gel aqua" id="set-tut" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.tutorial">Replay Tutorial</button>
           <button class="gel aqua" id="set-log" style="position:relative;flex:1;height:96px;padding:0 14px;font-size:34px" data-i18n="set.log">Send Play Log</button>
         </div>
+        <div class="row" id="set-acct"><span style="display:flex;flex-direction:column;gap:8px;min-width:0"><small data-i18n="set.account" style="font:800 26px/1 var(--font);color:var(--blue)">Account</small><b id="acct-who" style="font:900 38px/1.1 var(--font)"></b></span>
+          <button class="gel ghost" id="set-logout" style="position:relative;height:78px;padding:0 30px;font-size:34px;flex:none" data-i18n="set.logout">Log out</button></div>
         <div class="cap" id="app-ver" style="letter-spacing:.02em;font-size:28px;line-height:1.35;color:var(--blue)"></div>
       </div>
       <button class="gel aqua" data-close style="left:200px;top:1600px;width:680px;height:140px;font-size:64px" data-i18n="set.close">Close</button>
@@ -543,4 +546,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.29"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.30"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

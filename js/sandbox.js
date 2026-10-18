@@ -1,8 +1,8 @@
 /* Skybloom module: sandbox (shop > Decorate tab): place any building on the showcase garden (SHOW) to check sizes, skins and light. Never touches the game board G.board.
    Edits are a draft: only the Save button (or "Save" when leaving) writes the garden; leaving without saving restores the last saved one. */
-import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.29';
-import { addFxXY } from './fx.js?v=0.7.29';
-import { drawn } from './renderer.js?v=0.7.29';
+import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.30';
+import { addFxXY } from './fx.js?v=0.7.30';
+import { drawn } from './renderer.js?v=0.7.30';
 
 /* ponytail: TEST BUILD ONLY. All 17 buildings can be placed; the Silhouette button previews the real rule (locked levels cannot be placed). Set false before a public release. */
 const TEST_ALL = true;
@@ -30,7 +30,7 @@ export function sbRevert() { for (let r = 0; r < 4; r++) for (let c = 0; c < 4; 
 const PH = ['sb.p0', 'sb.p1', 'sb.p2'], realPhase = () => U.phaseW.indexOf(Math.max(...U.phaseW));
 export function sbRefresh() {   // keep the tool buttons in step with the state
   $('sb-ui').hidden = !U.sbOn || !!U.sbShot;
-  const t = U.sbTool ?? 1, on = (id, v) => { const b = document.querySelector(`#sb-ui [data-sb="${id}"]`); b.classList.toggle('green', v); b.classList.toggle('aqua', !v); };
+  const t = U.sbTool ?? 1, on = (id, v) => { const b = document.querySelector(`#sb-ui [data-sb="${id}"]`); b.classList.toggle('forest', v); b.classList.toggle('lime', !v); };
   on('build', t > 0); on('erase', t === -1); on('rules', !!U.sbRules);
   document.querySelector('#sb-ui [data-sb="rules"]').hidden = !TEST_ALL;
   $('sb-ph').textContent = tl(PH[U.shopPhase ?? realPhase()]);
@@ -41,7 +41,7 @@ export function renderPalette(el) {
   el.className = 'shop-cards sb';
   let h = '<div class="sb-pal">';
   for (let lv = 1; lv <= 17; lv++) h += `<button class="sb-b${tool === lv ? ' on' : ''}${ok(lv) ? '' : ' lock'}" data-lv="${lv}"><img src="${artSrc(lv)}" alt=""><b>${lv}</b></button>`;
-  el.innerHTML = h + `</div><div class="sb-foot"><button class="gel green sbs" data-sb="save">${tl('sb.save')}</button></div>`;
+  el.innerHTML = h + `</div><div class="sb-foot"><button class="gel orange sbs" data-sb="clear">${tl('sb.clear')}</button><button class="gel green sbs" data-sb="save">${tl('sb.save')}</button></div>`;
   el.querySelector('.sb-pal').scrollLeft = keep; sbRefresh();
 }
 /** A palette thumbnail or a tool button was tapped. api = { palette(), toast(text), fold(down) }. Returns true when it was one of ours. */

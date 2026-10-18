@@ -1,6 +1,6 @@
 /* Skybloom module: editor (split from index.html in step 12; code unchanged) */
-import { $, IMG, MOTION, NAMES } from './core.js?v=0.7.29';
-import { BAKE, makeInst, tickParts, updateInst } from './renderer.js?v=0.7.29';
+import { $, IMG, MOTION, NAMES } from './core.js?v=0.7.30';
+import { BAKE, makeInst, tickParts, updateInst } from './renderer.js?v=0.7.30';
 
 /* ======================================================================
    ?editor — motion map editor (dev only). Reuses makeInst/updateInst for a live preview.

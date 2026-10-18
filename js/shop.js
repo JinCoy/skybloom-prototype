@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.29';
-import { SFX, vib } from './audio.js?v=0.7.29';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.29';
-import { addGold } from './game.js?v=0.7.29';
-import { addFxXY } from './fx.js?v=0.7.29';
-import { spawnBubble } from './bubbles.js?v=0.7.29';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.29';
-import { R, tex } from './renderer.js?v=0.7.29';
-import { down } from './input.js?v=0.7.29';
-import * as TM from './telemetry.js?v=0.7.29';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.30';
+import { SFX, vib } from './audio.js?v=0.7.30';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.30';
+import { addGold } from './game.js?v=0.7.30';
+import { addFxXY } from './fx.js?v=0.7.30';
+import { spawnBubble } from './bubbles.js?v=0.7.30';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.30';
+import { R, tex } from './renderer.js?v=0.7.30';
+import { down } from './input.js?v=0.7.30';
+import * as TM from './telemetry.js?v=0.7.30';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -26,10 +26,10 @@ const SKINS = {
             { id: 'grape', name: 'Grape Console', gold: 300, art: 'bubble_grape', pop: 0xa070e0, wob: .012 }, { id: 'luna', name: 'Luna Blue', gold: 300, art: 'bubble_luna', pop: 0x5a90f0 },
             { id: 'opal', name: 'Opal Mystic', gold: 300, art: 'bubble_opal', pop: 0xe0c8ff, cycle: true }],
 };
-const SHOP_TABS = ['board', 'sky', 'building', 'bubble', 'garden'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
+const SHOP_TABS = ['building', 'sky', 'board', 'bubble', 'garden'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
 U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));
 U.equip = Object.assign({ board: 'frost', sky: 'day', building: 'classic', bubble: 'rainbow' }, store.get('equip', {}));
-let shopTab = 'board', preview = null, shopDown = false, phaseTimer = 0;
+let shopTab = 'building', preview = null, shopDown = false, phaseTimer = 0;
 function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -> Night every 5 s; other tabs / closed shop follow the real game phase
   if (!on) { clearInterval(phaseTimer); phaseTimer = 0; U.shopPhase = null; return; }
   if (phaseTimer) return;
@@ -112,7 +112,8 @@ $('sv-cancel').onclick = () => { overlay('sbsave', false); sbRefresh(); };
     if (Math.abs(dy) > 70 * k && Math.abs(dy) > 1.5 * Math.abs(dx)) setShopDown(dy > 0);
   });
 })();
-export function closeShop() { sbOff(); cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
+export function closeShop() { shopTab = 'building'; sbOff(); cyclePhase(false);   // the next visit always starts on the Building tab
+  preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
 $('ov-shop').addEventListener('click', e => {
   if (U.sbOn && e.target.id === 'shop-dim') {   // Decorate: a tap on a tile / building places or erases, a tap on the empty background folds the panel; in the screenshot view any tap goes back
     if (sbShotOff()) return;
