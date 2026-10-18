@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.27';
-import { SFX, vib } from './audio.js?v=0.7.27';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.27';
-import { addGold } from './game.js?v=0.7.27';
-import { addFxXY } from './fx.js?v=0.7.27';
-import { spawnBubble } from './bubbles.js?v=0.7.27';
-import { renderPalette, sbClick, sbTap } from './sandbox.js?v=0.7.27';
-import { R, tex } from './renderer.js?v=0.7.27';
-import { down } from './input.js?v=0.7.27';
-import * as TM from './telemetry.js?v=0.7.27';
+import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.28';
+import { SFX, vib } from './audio.js?v=0.7.28';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.28';
+import { addGold } from './game.js?v=0.7.28';
+import { addFxXY } from './fx.js?v=0.7.28';
+import { spawnBubble } from './bubbles.js?v=0.7.28';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.28';
+import { R, tex } from './renderer.js?v=0.7.28';
+import { down } from './input.js?v=0.7.28';
+import * as TM from './telemetry.js?v=0.7.28';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 const SKINS = {
@@ -81,7 +81,7 @@ function shopFx() {   // after a purchase / equip: card glow + a burst over the 
   if (f.kind === 'bought') { addFxXY('burst', CX, CY - 80); SFX.fanfare(); vib([20, 30, 20]); } else { addFxXY('merge', CX, CY - 60, 1); SFX.shimmer(); vib(12); }
 }
 export function openShop(tab = shopTab) {
-  if ($('ov-shop').hidden) setShopDown(false, false);   // a fresh open always starts with the panel up
+  if ($('ov-shop').hidden) { setShopDown(false, false); sbBegin(); }   // a fresh open always starts with the panel up; the sandbox remembers the garden as it was
   shopTab = tab; preview = preview || { ...U.equip };
   $('shop-gold').textContent = U.gold.toLocaleString('en-US');
   $('shop-tabs').innerHTML = SHOP_TABS.map(k => `<button class="tab" role="tab" data-shop-tab="${k}" aria-selected="${k === tab}">${tl('shop.tab.' + k)}</button>`).join('');
@@ -95,13 +95,32 @@ export function openShop(tab = shopTab) {
   if (tab === 'garden') { clearInterval(phaseTimer); phaseTimer = 0; } else cyclePhase(tab === 'sky');   // Decorate: the phase chips set U.shopPhase by hand
   applySkins(preview); overlay('shop'); shopFx();
   $('scr-' + U.screen).style.visibility = 'hidden';   // the garden stays visible for previews, the HUD steps aside
+  sbRefresh();
 }
-export function closeShop() { U.sbOn = false; cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
+export function requestCloseShop() {   // X: with unsaved decorating the player is asked first
+  if (sbDirty()) { overlay('sbsave'); $('sb-ui').hidden = true; } else closeShop();   // the tool buttons step aside while the question is open
+}
+$('sv-yes').onclick = () => { sbSave(); overlay('sbsave', false); closeShop(); };
+$('sv-no').onclick = () => { sbRevert(); overlay('sbsave', false); closeShop(); };
+$('sv-cancel').onclick = () => { overlay('sbsave', false); sbRefresh(); };
+(() => {   // swipe the panel down to fold it, up to bring it back (horizontal swipes still scroll the cards)
+  const p = $('shop-panel'); let s = null;
+  p.addEventListener('pointerdown', e => { s = [e.clientX, e.clientY]; });
+  p.addEventListener('pointercancel', () => { s = null; });
+  p.addEventListener('pointerup', e => {
+    if (!s) return; const dx = e.clientX - s[0], dy = e.clientY - s[1], k = $('stage').getBoundingClientRect().width / 1080; s = null;
+    if (Math.abs(dy) > 70 * k && Math.abs(dy) > 1.5 * Math.abs(dx)) setShopDown(dy > 0);
+  });
+})();
+export function closeShop() { sbOff(); cyclePhase(false); preview = null; applySkins(); overlay('shop', false); $('scr-' + U.screen).style.visibility = ''; hud(); }
 $('ov-shop').addEventListener('click', e => {
-  if (U.sbOn && e.target.id === 'shop-dim') { const r = $('stage').getBoundingClientRect(), k = r.width / 1080; sbTap(toWorld([(e.clientX - r.left) / k, (e.clientY - r.top) / k])); return; }   // Decorate: a tap on the garden places / erases
+  if (U.sbOn && e.target.id === 'shop-dim') {   // Decorate: a tap on a tile / building places or erases, a tap on the empty background folds the panel; in the screenshot view any tap goes back
+    if (sbShotOff()) return;
+    const r = $('stage').getBoundingClientRect(), k = r.width / 1080; if (!sbTap(toWorld([(e.clientX - r.left) / k, (e.clientY - r.top) / k]))) setShopDown(!shopDown); return;
+  }
   if (e.target.id === 'shop-dim') { setShopDown(!shopDown); return; }   // 10-2b: a background tap folds / unfolds the panel like the arrow; only ✕ closes the shop
   const tb = e.target.closest('[data-shop-tab]'); if (tb) { openShop(tb.dataset.shopTab); return; }
-  if (U.sbOn && sbClick(e.target, () => renderPalette($('shop-cards')), toast)) return;
+  if (U.sbOn && sbClick(e.target, { palette: () => renderPalette($('shop-cards')), toast, fold: d => setShopDown(d) })) return;
   const card = e.target.closest('[data-skin]'); if (!card) return;
   const k = skin(shopTab, card.dataset.skin);
   if (e.target.closest('[data-cash]')) { sheet(tl('shop.cashTitle'), tl('shop.cashBody', { name: k.name, price: k.cash })); return; }

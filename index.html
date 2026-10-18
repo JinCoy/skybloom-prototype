@@ -175,12 +175,20 @@ body {
 .sk .act .coin { width: 34px; height: 34px; }
 .sk .sub { font: 800 24px/1.2 var(--font); color: var(--blue); text-align: center; min-height: 28px; }
 .shop-cards.sb { flex-direction: column; overflow: hidden; gap: 10px; scroll-snap-type: none; padding: 2px 4px; }   /* Decorate tab: chips on top, building palette below */
-.sb-tools { display: flex; flex-wrap: wrap; gap: 10px; }
-.sb-c { height: 62px; padding: 0 22px; border-radius: 31px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .7); font: 900 28px/1 var(--font); color: var(--blue); }
-.sb-pal { display: flex; gap: 14px; overflow-x: auto; padding: 4px 4px 10px; }
-.sb-b { flex: none; width: 140px; height: 190px; border-radius: 26px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .7); position: relative; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
+.sb-pal { display: flex; gap: 16px; overflow-x: auto; height: 330px; flex: none; padding: 4px 4px 10px; touch-action: pan-x; }
+.sb-foot { display: flex; justify-content: flex-end; padding: 0 6px; }
+.sbs { position: relative; width: 220px; height: 84px; font-size: 40px; }
+#sb-ui { position: absolute; inset: 0; pointer-events: none; z-index: 4; }   /* the buttons themselves take the taps */
+#sb-ui button { pointer-events: auto; }
+.sbb { width: 190px; height: 108px; font-size: 38px; flex-direction: column; gap: 4px; padding: 0; }
+.sbb small { font: 800 26px/1 var(--font); opacity: .95; }
+#ov-shop.shot > :not(#shop-dim) { visibility: hidden; }   /* screenshot view: only buildings and background */
+#ov-shop.shot #shop-dim { background: none !important; }
+#shop-panel, .shop-cards { touch-action: pan-x; }
+#shop-fold::after { content: ""; position: absolute; left: -300px; right: -300px; top: 0; bottom: 0; }   /* the fold arrow is easy to hit: five times as wide, not taller */
+.sb-b { flex: none; width: 250px; height: 100%; border-radius: 26px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .7); position: relative; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
 .sb-b img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.sb-b b { position: absolute; left: 10px; top: 6px; font: 900 26px/1 var(--font); color: var(--blue); }
+.sb-b b { position: absolute; left: 14px; top: 10px; font: 900 34px/1 var(--font); color: var(--blue); }
 .sb-c.on, .sb-b.on { background: linear-gradient(var(--aqua-1), var(--aqua-2)); color: #fff; border-color: #fff; }
 .sb-b.lock img { filter: brightness(0) opacity(.45); }
 #shop-tabs .tab { width: 180px; height: 80px; font-size: 32px; }
@@ -360,6 +368,14 @@ body {
       <div class="glass pill" style="left:440px;top:245px"><i class="coin"></i><span id="shop-gold">0</span></div>
       <button class="gel aqua sq" data-close aria-label="Close" data-i18n-aria="aria.close" style="left:910px;top:135px;width:120px;height:120px;font-size:60px">✕</button>
       <div class="abs lbl" id="shop-hint" style="left:0;right:0;top:330px;font-size:30px;pointer-events:none">Tap a card to preview it on your garden</div>
+      <div id="sb-ui" hidden>   <!-- Decorate tab tools: left = what the finger does, right = how the garden is shown -->
+        <button class="gel aqua sbb" data-sb="build" style="left:60px;top:400px" data-i18n="sb.build">Build</button>
+        <button class="gel aqua sbb" data-sb="erase" style="left:60px;top:524px" data-i18n="sb.erase">Eraser</button>
+        <button class="gel aqua sbb" data-sb="clear" style="left:60px;top:648px" data-i18n="sb.clear">Reset</button>
+        <button class="gel aqua sbb" data-sb="phase" style="left:830px;top:400px"><span data-i18n="sb.time">Time</span><small id="sb-ph"></small></button>
+        <button class="gel aqua sbb" data-sb="rules" style="left:830px;top:524px" data-i18n="sb.sil">Silhouette</button>
+        <button class="gel aqua sbb" data-sb="shot" style="left:830px;top:648px" data-i18n="sb.shot">Screenshot</button>
+      </div>
       <div class="glass" id="shop-panel" style="left:30px;top:1300px;width:1020px;height:590px;border-radius:48px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
         <button class="gel ghost" id="shop-fold" aria-label="Lower the panel" data-i18n-aria="shop.fold" style="left:435px;top:-68px;width:150px;height:90px"></button>
         <div class="tabs" role="tablist" id="shop-tabs"></div>
@@ -453,6 +469,19 @@ body {
       </div>
     </div>
 
+    <div class="layer" id="ov-sbsave" hidden>
+      <div class="dim"></div>
+      <div class="glass panel" style="top:620px;gap:24px">
+        <h2 data-i18n="sb.askT">Save your garden?</h2>
+        <div class="cap" style="letter-spacing:.02em;font-size:36px;line-height:1.35;color:var(--navy)" data-i18n="sb.askB">Without saving, the garden goes back to the last saved one.</div>
+        <div style="display:flex;gap:20px;margin-top:14px">
+          <button class="gel ghost" id="sv-cancel" style="position:relative;width:260px;height:120px;font-size:42px" data-i18n="banner.cancel">Cancel</button>
+          <button class="gel ghost" id="sv-no" style="position:relative;width:300px;height:120px;font-size:42px" data-i18n="sb.askNo">Don't save</button>
+          <button class="gel green" id="sv-yes" style="position:relative;width:260px;height:120px;font-size:42px" data-i18n="sb.save">Save</button>
+        </div>
+      </div>
+    </div>
+
     <div class="layer" id="ov-export" hidden>
       <div class="dim"></div>
       <div class="glass panel" style="top:420px;gap:24px">
@@ -513,4 +542,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.27"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.28"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

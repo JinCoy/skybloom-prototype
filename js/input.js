@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.27';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.27';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.27';
-import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.27';
-import { drawn } from './renderer.js?v=0.7.27';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.27';
-import { closeShop, openShop } from './shop.js?v=0.7.27';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.27';
-import * as TM from './telemetry.js?v=0.7.27';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.28';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.28';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.28';
+import { busy, cancelAd, checkStuck, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, saveGame, select, tutBlock, useItem } from './game.js?v=0.7.28';
+import { drawn } from './renderer.js?v=0.7.28';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.28';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.28';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.28';
+import * as TM from './telemetry.js?v=0.7.28';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -145,7 +145,7 @@ document.addEventListener('click', e => {
   if (b.dataset.open === 'settings') openSettings();
   if (b.dataset.open === 'shop') openShop();
   if (b.dataset.open === 'ranking') openRanking();
-  if (b.hasAttribute('data-close')) { if (!$('ov-shop').hidden) closeShop(); for (const k of ['collection', 'settings', 'ranking']) overlay(k, false); }
+  if (b.hasAttribute('data-close')) { if (!$('ov-shop').hidden) requestCloseShop(); for (const k of ['collection', 'settings', 'ranking']) overlay(k, false); }
 });
 // sign-in (v0.4 §6.1): only the guest path works until the server exists; no pretend Google / Apple sessions
 $('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cloud', () => show('main')));
