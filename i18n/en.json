@@ -101,6 +101,7 @@
   "col.treasures": "Treasures",
   "col.locked": "Locked building",
   "col.lockedTreasure": "Locked treasure",
+  "col.inShop": "Unlock in the Shop",
   "col.back": "Back",
   "col.findIt": "Pop bubbles during a game to find this treasure.",
   "col.meta1": "First found {date} · Found once",

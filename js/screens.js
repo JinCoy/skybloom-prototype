@@ -1,5 +1,6 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, lang, store, tl } from './core.js?v=0.7.39';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, bsetId, hasBuilt, lang, store, tl } from './core.js?v=0.7.39';
+import { SKINS } from './shop.js?v=0.7.39';
 import { Mini } from './minianim.js?v=0.7.39';
 import { music } from './audio.js?v=0.7.39';
 import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.39';
@@ -63,24 +64,34 @@ export function shareCard() {
 /* ---------- collection: Garden / Treasures ---------- */
 let _tm = null; const tdMini = () => _tm || (_tm = new Mini($('td-anim'), 420, 420));
 let colTab = 'garden';
+const setOf = id => SKINS.building.find(k => k.id === id);
+const setNames = k => NAMES_BY[k.set] || NAMES_BASE;
 export function openCollection(tab = colTab) {
-  colTab = tab;
+  colTab = tab; $('col-grid').scrollTop = 0;
   $('tab-garden').setAttribute('aria-selected', tab === 'garden'); $('tab-treasures').setAttribute('aria-selected', tab === 'treasures');
   $('tr-detail').hidden = true;
   if (tab === 'garden') {
-    const n = U.discovered.size, total = NAMES.length - 1;
+    // 10-18: one section of 17 per building set, in shop order, stacked in one scroll; a set not bought yet shows its silhouettes
+    let n = 0, h = '';
+    for (const k of SKINS.building) {
+      const own = U.owned.building.includes(k.id), names = setNames(k); let m = 0, cards = '';
+      for (let lv = 1; lv <= 17; lv++) {
+        const got = hasBuilt(k.id, lv); m += got;
+        cards += `<button class="card ${got ? '' : 'locked'}" data-bd="${lv}" data-set="${k.id}"><span class="badge">${lv}</span><img src="${artSrc(lv, k.set || null)}" alt="${got ? names[lv] : tl('col.locked')}" loading="lazy"><div class="nm">${got ? names[lv] : '???'}</div></button>`;
+      }
+      n += m;
+      h += `<section class="col-set${own ? '' : ' unowned'}"><h3><span>${k.name}</span><b>${own || m ? `${m} / 17` : tl('col.inShop')}</b></h3><div class="grid">${cards}</div></section>`;
+    }
+    const total = SKINS.building.length * 17;
     $('col-count').textContent = `${n} / ${total}`; $('col-fill').style.width = (n / total * 100) + '%';
-    $('col-grid').innerHTML = NAMES.slice(1).map((nm, i) => {
-      const lv = i + 1, got = U.discovered.has(lv);
-      return `<button class="card ${got ? '' : 'locked'}" data-bd="${lv}"><span class="badge">${lv}</span><img src="${artSrc(lv)}" alt="${got ? nm : tl('col.locked')}"><div class="nm">${got ? nm : '???'}</div></button>`;
-    }).join('');
+    $('col-grid').innerHTML = h;
   } else {
     const n = Object.keys(U.treasures).length;
     $('col-count').textContent = `${n} / 12`; $('col-fill').style.width = (n / 12 * 100) + '%';
-    $('col-grid').innerHTML = TREASURES.map(([nm], i) => {
+    $('col-grid').innerHTML = '<div class="grid">' + TREASURES.map(([nm], i) => {
       const id = i + 1, got = U.treasures[id], rar = L.TREASURE_RARITY[i];
       return `<button class="card tr ${rar} ${got ? '' : 'locked'}" data-tr="${id}" aria-label="${got ? nm : tl('col.lockedTreasure')}, ${tl('rarity.' + rar)}">${got ? `<span class="cnt">×${got.n}</span>` : ''}<img src="${accSrc(id)}" alt=""><div class="nm">${got ? nm : '???'}</div></button>`;
-    }).join('');
+    }).join('') + '</div>';
   }
   overlay('collection');
 }
@@ -88,9 +99,12 @@ $('tab-garden').onclick = () => openCollection('garden');
 $('tab-treasures').onclick = () => openCollection('treasures');
 $('col-grid').addEventListener('click', e => {
   const bd = e.target.closest('[data-bd]');   // building detail: English name, description in the player's language (v0.5 §3.2)
-  if (bd) { const lv = +bd.dataset.bd; if (!U.discovered.has(lv)) return;
-    $('td-img').src = artSrc(lv); $('td-img').style.visibility = ''; tdMini().show(lv); $('td-name').textContent = NAMES[lv]; $('td-desc').textContent = tl('bd.' + (SET_PRE[U.bset] === 'e' || SET_PRE[U.bset] === 'g' ? SET_PRE[U.bset] : '') + lv);
-    $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = ''; $('tr-detail').hidden = false; return; }
+  if (bd) { const lv = +bd.dataset.bd, k = setOf(bd.dataset.set); if (!k || !hasBuilt(k.id, lv)) return;
+    $('td-img').src = artSrc(lv, k.set || null); $('td-img').style.visibility = '';
+    if (k.id === bsetId()) tdMini().show(lv); else tdMini().hide();   // the moving copy draws the equipped set only; other sets show their still picture
+    const key = 'bd.' + (SET_PRE[k.set] || '') + lv;   // a set without its own descriptions (Classic, Candy Glass) uses the base ones
+    $('td-name').textContent = setNames(k)[lv]; $('td-desc').textContent = tl(tl(key) === key ? 'bd.' + lv : key);
+    $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = k.name; $('tr-detail').hidden = false; return; }
   const b = e.target.closest('[data-tr]'); if (!b) return;
   const id = +b.dataset.tr, got = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
   if (!got) { toast(tl('col.findIt')); return; }

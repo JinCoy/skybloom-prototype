@@ -60,7 +60,7 @@ export const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 
 export const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 export const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 export const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g' };   // building set -> image key / file prefix; Classic is 'b'
-export const artSrc = lv => av(`assets/${(U && SET_PRE[U.bset]) || 'b'}${String(lv).padStart(2, '0')}.webp`);
+export const artSrc = (lv, set = U.bset) => av(`assets/${SET_PRE[set] || 'b'}${String(lv).padStart(2, '0')}.webp`);   // set = SET_PRE key (null = Classic); default: the equipped set
 // building image key for the active set; the other sets fall back to Classic until its image has loaded
 export const bkey = lv => { const p = SET_PRE[U.bset]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
@@ -111,6 +111,13 @@ export const U = {
   sel: null, drag: null, target: null, anim: null, drop: null, pops: {}, fx: [], floats: [], flies: [], shake: 0, shakeAmp: 0, nope: null,
   celebQueue: [], toldNoPair: false, phaseTop: 0, phaseW: [1, 0, 0], bubbles: [], nextBubble: 0, tilt: { x: 0, y: 0, tx: 0, ty: 0, src: 'none', at: 0 },
 };
+// per-skin collection (10-18): building set id (shop ids: classic, candy, ...) -> levels first built while that set was equipped.
+// U.discovered stays the levels built in any set (first-build gold is paid once per level). Before 10-18 unlocks were shared by level: those move to Classic.
+U.discBy = Object.fromEntries(Object.entries(store.get('discoveredBy', null) || { classic: [...U.discovered] }).map(([k, v]) => [k, new Set(v)]));
+export const saveDiscBy = () => store.set('discoveredBy', Object.fromEntries(Object.entries(U.discBy).map(([k, v]) => [k, [...v]])));
+if (store.get('discoveredBy', null) == null) saveDiscBy();
+export const bsetId = () => U.bset || 'classic';
+export const hasBuilt = (set, lv) => !!U.discBy[set || 'classic']?.has(lv);
 if (U.menuGoldAt == null) { U.menuGoldAt = Date.now(); store.set('menuGoldAt', U.menuGoldAt); }
 if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && store.get('settings', null) == null) U.settings.reduce = true;
 export const reduce = () => U.settings.reduce;

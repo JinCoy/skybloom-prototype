@@ -1,15 +1,14 @@
 /* Skybloom module: sandbox (shop > Decorate tab): place any building on the showcase garden (SHOW) to check sizes, skins and light. Never touches the game board G.board.
    Edits are a draft: only the Save button (or "Save" when leaving) writes the garden; leaving without saving restores the last saved one. */
-import { $, MASK, SHOW, TH, TW, U, artSrc, center, store, tl } from './core.js?v=0.7.39';
+import { $, MASK, SHOW, TH, TW, U, artSrc, center, hasBuilt, store, tl } from './core.js?v=0.7.39';
 import { addFxXY } from './fx.js?v=0.7.39';
 import { drawn } from './renderer.js?v=0.7.39';
 import { Mini } from './minianim.js?v=0.7.39';
 
 /* ponytail: TEST BUILD ONLY. All 17 buildings can be placed; the Silhouette button previews the real rule (locked levels cannot be placed). Set false before a public release. */
 const TEST_ALL = true;
-/* The single place that decides whether a building level is unlocked for a skin. Today unlocks are shared by level (U.discovered);
-   the per-skin collection (later step) only has to change this one function. */
-export const unlockedFor = (set, lv) => U.discovered.has(lv);
+/* The single place that decides whether a building level is unlocked for a skin: built at least once with that set equipped (per-skin collection, 10-18). set = U.bset (null = Classic). */
+export const unlockedFor = (set, lv) => hasBuilt(set, lv);
 const rulesOn = () => !TEST_ALL || !!U.sbRules;
 export const sbLocked = lv => !!U.sbOn && rulesOn() && !unlockedFor(U.bset, lv);   // the renderer draws these as silhouettes
 

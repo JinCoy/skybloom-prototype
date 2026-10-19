@@ -122,6 +122,14 @@ body {
 .card.tr.C { border-color: var(--rare-c); } .card.tr.R { border-color: var(--rare-r); } .card.tr.L { border-color: var(--rare-l); }
 .card .cnt { position: absolute; right: 10px; top: 10px; font: 900 26px/1 var(--font); color: #fff; background: var(--blue); border-radius: 999px; padding: 6px 12px; }
 .locked img { filter: brightness(0) !important; opacity: .28; }
+/* collection (10-18): the Garden tab stacks one section of 17 per building set in a vertical scroll */
+.col-scroll { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 0 0 80px; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(#000 92%, transparent); mask-image: linear-gradient(#000 92%, transparent); }
+.col-scroll::-webkit-scrollbar { display: none; }
+.col-set + .col-set { margin-top: 48px; }
+.col-set h3 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 10px 18px; font: 900 44px/1.1 var(--font); color: #fff; text-shadow: 0 4px 0 #1d64b8; }
+.col-set h3 b { font-size: 32px; }
+.col-set.unowned h3 b { opacity: .85; }
 .bar { width: 600px; height: 56px; border-radius: 28px; background: rgba(255, 255, 255, .55); border: 4px solid var(--rim); position: relative; overflow: hidden; }
 .bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(var(--leaf-1), var(--leaf-2)); }
 .bar b { position: absolute; inset: 0; display: grid; place-items: center; font: 900 32px/1 var(--font); color: #fff; text-shadow: 0 3px 0 var(--leaf-ink); }
@@ -443,7 +451,7 @@ body {
         <button class="tab" role="tab" id="tab-treasures" aria-selected="false" data-i18n="col.treasures">Treasures</button>
       </div>
       <div class="abs" style="left:240px;top:380px"><div class="bar"><i id="col-fill"></i><b id="col-count">0 / 17</b></div></div>
-      <div class="abs grid" id="col-grid" role="tabpanel" style="left:60px;top:470px;width:960px"></div>
+      <div class="abs col-scroll" id="col-grid" role="tabpanel" style="left:60px;top:470px;width:960px;height:1450px"></div>
       <div class="layer" id="tr-detail" hidden>
         <div class="dim" data-detail-close></div>
         <div class="glass panel" style="top:330px;gap:20px">

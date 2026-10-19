@@ -101,6 +101,7 @@
   "col.treasures": "보물",
   "col.locked": "잠긴 건물",
   "col.lockedTreasure": "잠긴 보물",
+  "col.inShop": "상점에서 열 수 있어요",
   "col.back": "뒤로",
   "col.findIt": "게임 중 비눗방울을 터뜨려 이 보물을 찾아보세요.",
   "col.meta1": "처음 찾은 날 {date} · 1번 찾음",

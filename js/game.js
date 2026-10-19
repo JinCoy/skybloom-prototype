@@ -1,5 +1,5 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, center, itemName, reduce, same, set_G, store, tl, toWorld } from './core.js?v=0.7.39';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.39';
 import { SFX, vib } from './audio.js?v=0.7.39';
 import { bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.39';
 import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.39';
@@ -90,9 +90,11 @@ export function resumeGame(mode) {
   show('game'); hud(); TM.runStart(); checkStuck();
 }
 function discover(lv, reward = true) {
-  if (U.discovered.has(lv)) return;
-  U.discovered.add(lv); store.set('discovered', [...U.discovered]); TM.catalog('building', 'lv' + lv, reward ? 'build' : 'preset_board');
-  if (reward && lv >= 2) { const g = L.firstBuildGold(lv); addGold(g, 'first_build_gold'); U.firstGold = (U.firstGold || 0) + g; }   // first time ever building this level
+  const set = bsetId(), got = U.discBy[set] || (U.discBy[set] = new Set());   // the collection fills per equipped building set (10-18)
+  if (got.has(lv)) return;
+  got.add(lv); saveDiscBy(); TM.catalog('building', set === 'classic' ? 'lv' + lv : `${set}_lv${lv}`, reward ? 'build' : 'preset_board');
+  const first = !U.discovered.has(lv); if (first) { U.discovered.add(lv); store.set('discovered', [...U.discovered]); }
+  if (reward && first && lv >= 2) { const g = L.firstBuildGold(lv); addGold(g, 'first_build_gold'); U.firstGold = (U.firstGold || 0) + g; }   // first time ever building this level
   if (lv >= 4) U.celebQueue.push(lv);
 }
 export function addGold(n, why = 'other') {   // why = the ledger reason of the play log (13-1)
