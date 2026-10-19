@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.47';
-import { sbLocked } from './sandbox.js?v=0.7.47';
-import { SFX, vib } from './audio.js?v=0.7.47';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.47';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.47';
-import { updateBubbles } from './bubbles.js?v=0.7.47';
-import { updateFx } from './drawfx.js?v=0.7.47';
-import { badgePos, updateTilt } from './input.js?v=0.7.47';
-import { perfGuard } from './perfguard.js?v=0.7.47';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.48';
+import { sbLocked } from './sandbox.js?v=0.7.48';
+import { SFX, vib } from './audio.js?v=0.7.48';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.48';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.48';
+import { updateBubbles } from './bubbles.js?v=0.7.48';
+import { updateFx } from './drawfx.js?v=0.7.48';
+import { badgePos, updateTilt } from './input.js?v=0.7.48';
+import { perfGuard } from './perfguard.js?v=0.7.48';
 
 /* ======================================================================
    RENDERER (PixiJS v7)

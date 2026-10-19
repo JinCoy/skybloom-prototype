@@ -157,7 +157,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.47`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.48`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));

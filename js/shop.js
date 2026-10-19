@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.47';
-import { SFX, vib } from './audio.js?v=0.7.47';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.47';
-import { addGold } from './game.js?v=0.7.47';
-import { addFxXY } from './fx.js?v=0.7.47';
-import { spawnBubble } from './bubbles.js?v=0.7.47';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.47';
-import { R, tex } from './renderer.js?v=0.7.47';
-import { down } from './input.js?v=0.7.47';
-import * as TM from './telemetry.js?v=0.7.47';
+import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.48';
+import { SFX, vib } from './audio.js?v=0.7.48';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.48';
+import { addGold } from './game.js?v=0.7.48';
+import { addFxXY } from './fx.js?v=0.7.48';
+import { spawnBubble } from './bubbles.js?v=0.7.48';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.48';
+import { R, tex } from './renderer.js?v=0.7.48';
+import { down } from './input.js?v=0.7.48';
+import * as TM from './telemetry.js?v=0.7.48';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 export const SKINS = {
@@ -22,9 +22,11 @@ export const SKINS = {
           { id: 'fog', name: 'Fog Limestone', ko: '포그 라임스톤', gold: 300, tile: 'tile_fog', water: 0x83989c },
           { id: 'smoke', name: 'Smoke Glass', ko: '스모크 글라스', gold: 300, tile: 'tile_smoke', water: 0x90adb6 }],
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', gold: 1000, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
-  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy' },
-              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua' },
-              { id: 'poolhouse', name: 'Pastel Poolhouse', ko: '파스텔 풀하우스', gold: 1000, set: 'poolhouse', thumb: 16 }, { id: 'reverie', name: 'Reverie Village', ko: '몽상 마을', gold: 1000, set: 'reverie', thumb: 13 }],   // thumb = the level its shop card shows (default 12)
+  // thumb = the level its shop card shows. Card rule (Eco Campus look, measured): the whole picture, centred, contain-fit in the 230x150 art box;
+  // per set the Lv8-17 picture closest to Eco Lv12 in shape (1.26:1) and ink coverage (56% of the box): score |aspect-1.26|/1.26 + |cover-.56|/.56
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default', thumb: 9 }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy', thumb: 9 },
+              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco', thumb: 12 }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua', thumb: 17 },
+              { id: 'poolhouse', name: 'Pastel Poolhouse', ko: '파스텔 풀하우스', gold: 1000, set: 'poolhouse', thumb: 11 }, { id: 'reverie', name: 'Reverie Village', ko: '몽상 마을', gold: 1000, set: 'reverie', thumb: 10 }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 },
             // art = own bubble picture (empty bubbles only; item / treasure / gold bubbles keep the clear one so their colour still reads); pop = pop-ring colour; wob = squash amplitude (default .025); cycle = colour drifts slowly
             { id: 'lime', name: 'Lime Slime', gold: 300, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },
@@ -73,9 +75,9 @@ export function applySkins(sel = U.equip) {
 function skinArt(cat, k) {
   if (cat === 'board') return `<span class="art" style="background:#eef7ff"><img src="${av(`assets/${SKIN_FILES[k.tile] || 'tile'}.webp`)}" alt=""></span>`;
   if (cat === 'sky') return `<span class="art"><img src="${av(`assets/sky_${k.id}_${k.thumb ?? 0}.webp`)}" alt="" style="width:230px;height:150px;object-fit:cover;max-width:none;max-height:none"></span>`;
-  if (cat === 'building') return `<span class="art"><img class="bth" src="${av(`assets/${SET_PRE[k.set] || 'b'}${k.thumb || 12}.webp`)}" alt=""></span>`;
+  if (cat === 'building') return `<span class="art"><img src="${av(`assets/${SET_PRE[k.set] || 'b'}${String(k.thumb).padStart(2, '0')}.webp`)}" alt=""></span>`;
   if (k.art) return `<span class="art"><img src="${av(`assets/${SKIN_FILES[k.art]}.webp`)}" alt="" style="width:130px;position:relative"></span>`;
-  return `<span class="art"><span style="position:absolute;inset:18px;border-radius:50%;background:${k.tint ? hex(k.tint) : 'transparent'};opacity:.55"></span><img src="${av('assets/bubble.webp')}" alt="" style="width:130px;position:relative"></span>`;
+  return `<span class="art"><span style="position:relative;display:block;width:130px;height:130px">${k.tint ? `<span style="position:absolute;inset:14px;border-radius:50%;background:${hex(k.tint)};opacity:.55"></span>` : ''}<img src="${av('assets/bubble.webp')}" alt="" style="width:130px;position:relative"></span></span>`;   // the tint disc = the bubble's circle (bubble.webp: 27..228 of 256 -> 14px in at 130px)
 }
 function setShopDown(down, animate = true) {
   shopDown = down; const p = $('shop-panel'); p.style.transition = animate && !reduce() ? '' : 'none';   // Reduce Motion: change at once
