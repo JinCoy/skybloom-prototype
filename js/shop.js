@@ -1,37 +1,37 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.55';
-import { SFX, vib } from './audio.js?v=0.7.55';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.55';
-import { addGold } from './game.js?v=0.7.55';
-import { addFxXY } from './fx.js?v=0.7.55';
-import { spawnBubble } from './bubbles.js?v=0.7.55';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.55';
-import { R, tex } from './renderer.js?v=0.7.55';
-import { down } from './input.js?v=0.7.55';
-import * as TM from './telemetry.js?v=0.7.55';
+import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.56';
+import { SFX, vib } from './audio.js?v=0.7.56';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.56';
+import { addGold } from './game.js?v=0.7.56';
+import { addFxXY } from './fx.js?v=0.7.56';
+import { spawnBubble } from './bubbles.js?v=0.7.56';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.56';
+import { R, tex } from './renderer.js?v=0.7.56';
+import { down } from './input.js?v=0.7.56';
+import * as TM from './telemetry.js?v=0.7.56';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 export const SKINS = {
-  board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 300, tile: 'tile_petal', water: 0x6f6fe6 },
-          { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 },
-          { id: 'lime', name: 'Lime Jelly', gold: 300, tile: 'tile_lime', water: 0x6fd33a }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, tile: 'tile_tangerine', water: 0xff8f3a },
-          { id: 'grape', name: 'Grape Console', gold: 600, tile: 'tile_grape', water: 0x7a4fd0 }, { id: 'luna', name: 'Luna Blue', gold: 600, tile: 'tile_luna', water: 0x2f6fe0 },
-          { id: 'opal', name: 'Opal Mystic', gold: 900, tile: 'tile_opal', water: 0xb8a8ff },
+  board: [{ id: 'frost', name: 'Frosted Glass', sub: 'Default', tile: 'tile' }, { id: 'petal', name: 'Petal Tiles', gold: 150, tile: 'tile_petal', water: 0x6f6fe6 },
+          { id: 'star', name: 'Starlight Tiles', gold: 300, tile: 'tile_star', water: 0x4f5cd8 },
+          { id: 'lime', name: 'Lime Jelly', gold: 150, tile: 'tile_lime', water: 0x6fd33a }, { id: 'tangerine', name: 'Tangerine Gel', gold: 150, tile: 'tile_tangerine', water: 0xff8f3a },
+          { id: 'grape', name: 'Grape Console', gold: 300, tile: 'tile_grape', water: 0x7a4fd0 }, { id: 'luna', name: 'Luna Blue', gold: 300, tile: 'tile_luna', water: 0x2f6fe0 },
+          { id: 'opal', name: 'Opal Mystic', gold: 300, tile: 'tile_opal', water: 0xb8a8ff },
           // Dreamcore v1 (Codex tiles T01-T03): quiet neutrals under the Poolhouse / Reverie buildings; water = Codex's proposal; ko = Korean shop name
-          { id: 'oyster', name: 'Oyster Porcelain', ko: '오이스터 포슬린', gold: 300, tile: 'tile_oyster', water: 0x94a8ab },
-          { id: 'fog', name: 'Fog Limestone', ko: '포그 라임스톤', gold: 300, tile: 'tile_fog', water: 0x83989c },
-          { id: 'smoke', name: 'Smoke Glass', ko: '스모크 글라스', gold: 300, tile: 'tile_smoke', water: 0x90adb6 }],
-  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', gold: 1000, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
+          { id: 'oyster', name: 'Oyster Porcelain', ko: '오이스터 포슬린', gold: 150, tile: 'tile_oyster', water: 0x94a8ab },
+          { id: 'fog', name: 'Fog Limestone', ko: '포그 라임스톤', gold: 150, tile: 'tile_fog', water: 0x83989c },
+          { id: 'smoke', name: 'Smoke Glass', ko: '스모크 글라스', gold: 150, tile: 'tile_smoke', water: 0x90adb6 }],
+  sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 900 }, { id: 'aurora', name: 'Aurora Sky', gold: 1100, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
   // thumb = the level its shop card shows. Card rule (Eco Campus look, measured): the whole picture, centred, contain-fit in the 230x150 art box;
   // per set the Lv8-17 picture closest to Eco Lv12 in shape (1.26:1) and ink coverage (56% of the box): score |aspect-1.26|/1.26 + |cover-.56|/.56
-  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default', thumb: 9 }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy', thumb: 9 },
-              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco', thumb: 12 }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua', thumb: 17 },
-              { id: 'poolhouse', name: 'Pastel Poolhouse', ko: '파스텔 풀하우스', gold: 1000, set: 'poolhouse', thumb: 11 }, { id: 'reverie', name: 'Reverie Village', ko: '몽상 마을', gold: 1000, set: 'reverie', thumb: 10 }],
-  bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 },
+  building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default', thumb: 9 }, { id: 'candy', name: 'Candy Glass', gold: 2000, set: 'candy', thumb: 9 },
+              { id: 'eco', name: 'Eco Campus', gold: 2400, set: 'eco', thumb: 12 }, { id: 'aqua', name: 'Aqua Gadget', gold: 2900, set: 'aqua', thumb: 17 },
+              { id: 'poolhouse', name: 'Pastel Poolhouse', ko: '파스텔 풀하우스', gold: 3400, set: 'poolhouse', thumb: 11 }, { id: 'reverie', name: 'Reverie Village', ko: '몽상 마을', gold: 4000, set: 'reverie', thumb: 10 }],
+  bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 60, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 60, tint: 0xc6ffe4 },
             // art = own bubble picture (empty bubbles only; item / treasure / gold bubbles keep the clear one so their colour still reads); pop = pop-ring colour; wob = squash amplitude (default .025); cycle = colour drifts slowly
-            { id: 'lime', name: 'Lime Slime', gold: 300, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },
-            { id: 'grape', name: 'Grape Console', gold: 300, art: 'bubble_grape', pop: 0xa070e0, wob: .012 }, { id: 'luna', name: 'Luna Blue', gold: 300, art: 'bubble_luna', pop: 0x5a90f0 },
-            { id: 'opal', name: 'Opal Mystic', gold: 300, art: 'bubble_opal', pop: 0xe0c8ff, cycle: true }],
+            { id: 'lime', name: 'Lime Slime', gold: 100, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 100, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },
+            { id: 'grape', name: 'Grape Console', gold: 100, art: 'bubble_grape', pop: 0xa070e0, wob: .012 }, { id: 'luna', name: 'Luna Blue', gold: 100, art: 'bubble_luna', pop: 0x5a90f0 },
+            { id: 'opal', name: 'Opal Mystic', gold: 180, art: 'bubble_opal', pop: 0xe0c8ff, cycle: true }],
 };
 const SHOP_TABS = ['building', 'sky', 'board', 'bubble', 'garden'];   // 10-2 B2: gold buys skins only; items come from bubbles and ads
 U.owned = Object.assign({ board: ['frost'], sky: ['day'], building: ['classic'], bubble: ['rainbow'] }, store.get('owned', {}));

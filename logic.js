@@ -20,7 +20,7 @@
                newTreasureGold: { C: 10, R: 30, L: 100 },             // gold only for a FIRST find (by rarity); a duplicate gives nothing
                rarity: { C: 0.8, R: 0.1935, L: 0.0065 } },   // tuned so all 22 take ~50 Lv12 games on average (sim: median 44, 10%-90% = 19-88); legendary = 0.16% per treasure bubble each
     ads: { refillPerItem: 2, maxPerGame: 5 },              // v0.4 §4.3: rewarded ad when no item can help any more
-    gold: { endBase: 10, endPerLevel: 5, firstBuildPerLevel: 10 },
+    gold: { endBase: 0, endPerLevel: 15, endFrom: 5, firstBuildPerLevel: 10 },   // end gold = 15 x (best level - 5): nothing for a game quit at Lv5 or below (no fill-and-quit farming); Lv12 = 105
     // 11-2 speed mode: a building is placed automatically; interval = startSec x shrink^floor(time / shrinkEverySec), never below minSec. Any placement restarts the timer.
     speed: { startSec: 10, shrinkEverySec: 30, shrink: 0.85, minSec: 3 },
     combo: { bonusPerStep: 0.1, maxMult: 2.0, itemEvery: 5 },
@@ -229,7 +229,7 @@
     s.adsUsed++; record(s, { a: 'ad' });
     return { ok: true, each: CONFIG.ads.refillPerItem, left: CONFIG.ads.maxPerGame - s.adsUsed };
   }
-  const endGold = s => CONFIG.gold.endBase + s.top * CONFIG.gold.endPerLevel;
+  const endGold = s => CONFIG.gold.endBase + Math.max(0, s.top - CONFIG.gold.endFrom) * CONFIG.gold.endPerLevel;
   const firstBuildGold = lv => lv * CONFIG.gold.firstBuildPerLevel;
 
   const api = { CONFIG, N, MAXL, ITEM_KEYS, TREASURE_RARITY, rollBubble, isReward, bubbleCanItem, popBubble, bandOf,
