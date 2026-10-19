@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, trName, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.56';
-import { SFX, vib } from './audio.js?v=0.7.56';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.56';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.56';
-import { addFxXY, floatText } from './fx.js?v=0.7.56';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.56';
-import * as TM from './telemetry.js?v=0.7.56';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, trName, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.55';
+import { SFX, vib } from './audio.js?v=0.7.55';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.55';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.55';
+import { addFxXY, floatText } from './fx.js?v=0.7.55';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.55';
+import * as TM from './telemetry.js?v=0.7.55';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -102,7 +102,7 @@ export function popBubbleAt(b) {
   }
   if (U.tut === 3 && (U.tutBubbles || []).includes(b)) tutEnd(true);
   const dup = c.kind === 'treasure' ? gainTreasure(c.id) : false; stamp(); const e = L.popBubble(G, c, dup);
-  if (e.kind === 'treasure') { toast(dup ? tl('t.dup', { n: e.gold }) : tl('t.newTreasure', { name: trName(c.id), rarity: tl('rarity.' + c.rarity) }), 2400, accSrc(c.id)); if (dup) addGold(e.gold, 'dup_treasure_gold'); else SFX.gift(); }
+  if (e.kind === 'treasure') { toast(dup ? tl('t.dup') : tl('t.newTreasure', { name: trName(c.id), rarity: tl('rarity.' + c.rarity), n: e.gold }), 2400, accSrc(c.id)); if (e.gold) addGold(e.gold, dup ? 'dup_treasure_gold' : 'new_treasure_gold'); if (!dup) SFX.gift(); }
   else if (e.item) fly(itemXY(e.item), () => bumpBadge(e.item));                 // icon flies to its item button
   else if (e.kind === 'gold') { fly([936, 302], () => addGold(e.gold, 'bubble')); floatText(`+${e.gold}`, b.sx, b.y - 20, true); }
   hud();

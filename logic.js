@@ -16,8 +16,9 @@
                bands: [[5, 5], [8, 4], [12, 3], [15, 2], [17, 1]],   // [highest level in band, item quota] = 15 per game
                odds: { item: 0.6, treasure: 0.2, gold: 0.15 },        // while the band still has items (item odds x share left)
                oddsNoItem: { treasure: 0.25, gold: 0.2 },             // once the band's items are gone
-               goldAmount: [5, 15], menuGold: { everyMin: 60, amount: 10 }, goldCapPerGame: 100, dupTreasureGold: 10,
-               rarity: { C: 0.7, R: 0.25, L: 0.05 } },
+               goldAmount: [5, 15], menuGold: { everyMin: 60, amount: 10 }, goldCapPerGame: 100, dupTreasureGold: 0,
+               newTreasureGold: { C: 10, R: 30, L: 100 },             // gold only for a FIRST find (by rarity); a duplicate gives nothing
+               rarity: { C: 0.8, R: 0.1935, L: 0.0065 } },   // tuned so all 22 take ~50 Lv12 games on average (sim: median 44, 10%-90% = 19-88); legendary = 0.16% per treasure bubble each
     ads: { refillPerItem: 2, maxPerGame: 5 },              // v0.4 §4.3: rewarded ad when no item can help any more
     gold: { endBase: 10, endPerLevel: 5, firstBuildPerLevel: 10 },
     // 11-2 speed mode: a building is placed automatically; interval = startSec x shrink^floor(time / shrinkEverySec), never below minSec. Any placement restarts the timer.
@@ -206,7 +207,7 @@
   function popBubble(s, b, owned = false) {
     const B = CONFIG.bubbles; let item = null, gold = 0, kind = b.kind;
     if (kind === 'item') { const band = bandOf(s.top); if (s.bandLeft[band] > 0) { s.bandLeft[band]--; item = b.item; } else kind = 'empty'; }
-    else if (kind === 'treasure') gold = owned ? B.dupTreasureGold : 0;
+    else if (kind === 'treasure') gold = owned ? B.dupTreasureGold : B.newTreasureGold[TREASURE_RARITY[b.id - 1]] || 0;
     else if (kind === 'gold') { gold = Math.max(0, Math.min(b.amount, B.goldCapPerGame - s.goldBubbles)); s.goldBubbles += gold; if (!gold) kind = 'empty'; }
     if (item) { for (const t of [s, ...s.history]) t.items[item]++; s.bubbleItems++; }
     s.gold += gold;
