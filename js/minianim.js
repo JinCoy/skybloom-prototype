@@ -3,8 +3,8 @@
    All of them share ONE extra WebGL renderer (phones drop the oldest WebGL context when there are too many, and the oldest is the garden):
    each frame a mini building is drawn by the shared renderer and copied into its own 2D canvas. One loop, running only while one is on screen.
    If the shared renderer cannot be made, the plain picture stays (the <img> the host already holds). */
-import { $, bkey, reduce } from './core.js?v=0.7.40';
-import { makeInst, updateInst } from './renderer.js?v=0.7.40';
+import { $, bkey, reduce } from './core.js?v=0.7.41';
+import { makeInst, updateInst } from './renderer.js?v=0.7.41';
 
 const MAXW = 520, MAXH = 560;   // the largest mini (New Building! is 500 x 540)
 let SR = null, RES = 1, failed = false;
