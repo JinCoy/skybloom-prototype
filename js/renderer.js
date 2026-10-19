@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.54';
-import { sbLocked } from './sandbox.js?v=0.7.54';
-import { SFX, vib } from './audio.js?v=0.7.54';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.54';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.54';
-import { updateBubbles } from './bubbles.js?v=0.7.54';
-import { updateFx } from './drawfx.js?v=0.7.54';
-import { badgePos, updateTilt } from './input.js?v=0.7.54';
-import { perfGuard } from './perfguard.js?v=0.7.54';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.55';
+import { sbLocked } from './sandbox.js?v=0.7.55';
+import { SFX, vib } from './audio.js?v=0.7.55';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.55';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.55';
+import { updateBubbles } from './bubbles.js?v=0.7.55';
+import { updateFx } from './drawfx.js?v=0.7.55';
+import { badgePos, updateTilt } from './input.js?v=0.7.55';
+import { perfGuard } from './perfguard.js?v=0.7.55';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -99,7 +99,7 @@ export const BAKE = {};
    the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
 const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
 const motionFor = (lv, key = bkey(lv)) => {
-  const k = key[0]; if (k === 'p' || k === 'r') return [];   // Dreamcore sets: still pictures until they get maps of their own (no Classic overlay in the wrong place)
+  const k = key[0]; if (k === 'p' || k === 'r') return (k === 'p' ? MOTION_P : MOTION_R)[lv] || [];   // Dreamcore sets: only their own maps (a level without one stays still; never Classic's overlay)
   const own = k === 'e' ? MOTION_E[lv] : k === 'g' ? MOTION_A[lv] : null;
   if (own) return own.filter(p => !p.need || IMG[p.need]);   // Eco / Aqua: their own maps; a part that needs extra art (train, rotors, fish, cars) waits until that art is loaded   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
   return (MOTION[lv] || []).filter(p => k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type));
@@ -157,8 +157,9 @@ export function makeInst(lv, key = bkey(lv)) {   // key: the picture to use (def
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
   const B = BAKE[key] && BAKE[key].length === motionFor(lv, key).length ? BAKE[key] : bake(lv, key),   // re-cut when the part list changed (a part that waits for extra art, or the art itself, loaded since)
     L2 = (u, v) => [u - W / 2, v - H];
+  const ph0 = Math.random() * 6;   // one random phase per copy; a part with ph (radians) keeps that offset from it (sequential lights), the rest stay random
   const parts = motionFor(lv, key).map((p0, i) => {
-    const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
+    const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: p.ph != null ? ph0 + p.ph : Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
     const at = (nx, ny) => L2(nx * W, ny * H);
     if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
       P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g); P.b = b; P.bw = (b.x1 - b.x0) * .28;

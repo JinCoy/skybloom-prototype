@@ -163,11 +163,13 @@ const ASSETS = { logo: 'logo', bg: 'sky_day_0', bg1: 'sky_day_1', bg2: 'sky_day_
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= TREASURES.length; i++) loading.push(load('acc' + i, accSrc(i)));
-export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.54`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+export let MOTION = {}, MOTION_E = {}, MOTION_A = {}, MOTION_P = {}, MOTION_R = {};   // + Pastel Poolhouse / Reverie Village maps (00_Spec/Dreamcore_Motion_Plan_v1.md)   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.55`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));
+loading.push(fetch(av('motion_map_poolhouse.json')).then(r => r.json()).then(j => { MOTION_P = j.buildings || {}; }).catch(() => { /* no map: still pictures */ }));
+loading.push(fetch(av('motion_map_reverie.json')).then(r => r.json()).then(j => { MOTION_R = j.buildings || {}; }).catch(() => { /* no map: still pictures */ }));
 
 function trimCanvas(im) {   // crop transparent margins (windmill body is exported on its full canvas)
   const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
