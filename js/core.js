@@ -30,6 +30,7 @@ export const TREASURES = [   // spec §4.3, ids 1-22 (rarity lives in logic.js)
   ['Clear Flip Phone', 'A flip phone waiting for a message from the sky.'], ['Pocket Console', 'A game console with a tiny garden floating on its screen.'],
   ['Glass Music Box', 'Open the lid and the clouds go round and round.'], ['Aqua Bot', 'A little helper robot that looks after the garden.'],
   ['Bubble Computer', 'A computer that always shows a clear blue sky.'], ['Holo Garden Cube', 'A tiny sky island that floats above your palm.']];
+export const trName = id => { const k = 'trn.' + id, v = tl(k); return v === k ? TREASURES[id - 1][0] : v; };   // treasure name in the current language (i18n trn.<id>, English list as fallback)
 export const accSrc = id => av(`assets/acc${String(id).padStart(2, '0')}.webp`);
 /* Main-screen garden (10-3, style "Maximum" chosen): 13 buildings, a random showcase every visit. Slots are [row, col, minLv, maxLv]; the picks must be distinct,
    descend toward the front along each diagonal (tall buildings behind, small in front: nothing hides anything), and include at least 3 clearly moving buildings.
@@ -163,7 +164,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= TREASURES.length; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.52`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.53`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));
