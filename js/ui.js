@@ -1,8 +1,8 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.39';
-import { Mini } from './minianim.js?v=0.7.39';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.39';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.39';
+import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.40';
+import { Mini } from './minianim.js?v=0.7.40';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.40';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.40';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;
