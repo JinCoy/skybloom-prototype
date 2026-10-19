@@ -3,7 +3,7 @@
    Only the group is kept, on this device: 'u13' (under 13), 't13' (13-17), 'a18' (18+). An older build stored '13p' (13+): still read as 13+.
    Until it is answered, and for 'u13', the game runs in child mode: no play-log recording, no survey, no tester consent
    (telemetry.js checks age13()); the ad step reads bracket() to ask for child-directed ads (u13) and under-age-of-consent ads (t13). Imports only core.js. */
-import { $, store, tl } from './core.js?v=0.7.43';
+import { $, store, tl } from './core.js?v=0.7.44';
 
 const KEY = 'age', GATE_V = 'a2', GROUPS = ['u13', 't13', 'a18'];
 let mem = null;   // this page's answer too, so a browser that refuses storage still keeps it until reload

@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.43';
-import { SFX, vib } from './audio.js?v=0.7.43';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.43';
-import { addGold } from './game.js?v=0.7.43';
-import { addFxXY } from './fx.js?v=0.7.43';
-import { spawnBubble } from './bubbles.js?v=0.7.43';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.43';
-import { R, tex } from './renderer.js?v=0.7.43';
-import { down } from './input.js?v=0.7.43';
-import * as TM from './telemetry.js?v=0.7.43';
+import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.44';
+import { SFX, vib } from './audio.js?v=0.7.44';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.44';
+import { addGold } from './game.js?v=0.7.44';
+import { addFxXY } from './fx.js?v=0.7.44';
+import { spawnBubble } from './bubbles.js?v=0.7.44';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.44';
+import { R, tex } from './renderer.js?v=0.7.44';
+import { down } from './input.js?v=0.7.44';
+import * as TM from './telemetry.js?v=0.7.44';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 export const SKINS = {
@@ -16,7 +16,11 @@ export const SKINS = {
           { id: 'star', name: 'Starlight Tiles', gold: 600, tile: 'tile_star', water: 0x4f5cd8 },
           { id: 'lime', name: 'Lime Jelly', gold: 300, tile: 'tile_lime', water: 0x6fd33a }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, tile: 'tile_tangerine', water: 0xff8f3a },
           { id: 'grape', name: 'Grape Console', gold: 600, tile: 'tile_grape', water: 0x7a4fd0 }, { id: 'luna', name: 'Luna Blue', gold: 600, tile: 'tile_luna', water: 0x2f6fe0 },
-          { id: 'opal', name: 'Opal Mystic', gold: 900, tile: 'tile_opal', water: 0xb8a8ff }],
+          { id: 'opal', name: 'Opal Mystic', gold: 900, tile: 'tile_opal', water: 0xb8a8ff },
+          // Dreamcore v1 (Codex tiles T01-T03): quiet neutrals under the Poolhouse / Reverie buildings; water = Codex's proposal; ko = Korean shop name
+          { id: 'oyster', name: 'Oyster Porcelain', ko: '오이스터 포슬린', gold: 300, tile: 'tile_oyster', water: 0x94a8ab },
+          { id: 'fog', name: 'Fog Limestone', ko: '포그 라임스톤', gold: 300, tile: 'tile_fog', water: 0x83989c },
+          { id: 'smoke', name: 'Smoke Glass', ko: '스모크 글라스', gold: 300, tile: 'tile_smoke', water: 0x90adb6 }],
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', gold: 1000, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
   building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy' },
               { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua' }],
@@ -36,8 +40,9 @@ function cyclePhase(on) {   // Sky tab: the preview garden steps Day -> Sunset -
   U.shopPhase = 0; phaseTimer = setInterval(() => { U.shopPhase = (U.shopPhase + 1) % 3; }, 5000);
 }
 const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
+const nm = k => (lang() === 'ko' && k.ko) || k.name;   // a skin's own Korean name when it has one
 const hex = n => '#' + n.toString(16).padStart(6, '0');
-const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', tile_lime: 'tile_lime', tile_tangerine: 'tile_tangerine', tile_grape: 'tile_grape', tile_luna: 'tile_luna', tile_opal: 'tile_opal', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
+const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', tile_lime: 'tile_lime', tile_tangerine: 'tile_tangerine', tile_grape: 'tile_grape', tile_luna: 'tile_luna', tile_opal: 'tile_opal', tile_oyster: 'tile_oyster', tile_fog: 'tile_fog', tile_smoke: 'tile_smoke', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
 const skyKeys = id => [0, 1, 2].map(n => `sky_${id}_${n}`);
 /** [key, file] of every picture a building set needs (pictures + motion parts); Classic (no set) is always loaded. */
 export function setArt(set) {
@@ -99,7 +104,7 @@ export function openShop(tab = shopTab) {
   if (tab === 'garden') renderPalette($('shop-cards')); else { $('shop-cards').className = 'shop-cards'; $('shop-cards').innerHTML = SKINS[tab].map(k => {
     const own = U.owned[tab].includes(k.id), eq = U.equip[tab] === k.id, on = preview[tab] === k.id;
     const act = eq ? `<span class="act done">${tl('shop.equipped')}</span>` : own ? `<span class="act eq" data-equip>${tl('shop.equip')}</span>` : k.cash ? `<span class="act cash" data-cash>${k.cash}</span>` : `<span class="act buy" data-buy>${coin}${k.gold}</span>`;
-    return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${k.name}</span><span class="sub">${k.sub ? tl('shop.default') : k.cash ? tl('shop.premium') : ''}</span>${act}</button>`;
+    return `<button class="sk ${on ? 'on' : ''}" data-skin="${k.id}" aria-pressed="${on}">${skinArt(tab, k)}<span class="nm">${nm(k)}</span><span class="sub">${k.sub ? tl('shop.default') : k.cash ? tl('shop.premium') : ''}</span>${act}</button>`;
   }).join(''); }
   if (tab === 'garden') { clearInterval(phaseTimer); phaseTimer = 0; } else cyclePhase(tab === 'sky');   // Decorate: the phase chips set U.shopPhase by hand
   applySkins(preview); overlay('shop'); shopFx();
@@ -133,7 +138,7 @@ $('ov-shop').addEventListener('click', e => {
   if (U.sbOn && sbClick(e.target, { palette: () => renderPalette($('shop-cards')), toast, fold: d => setShopDown(d) })) return;
   const card = e.target.closest('[data-skin]'); if (!card) return;
   const k = skin(shopTab, card.dataset.skin);
-  if (e.target.closest('[data-cash]')) { sheet(tl('shop.cashTitle'), tl('shop.cashBody', { name: k.name, price: k.cash })); return; }
+  if (e.target.closest('[data-cash]')) { sheet(tl('shop.cashTitle'), tl('shop.cashBody', { name: nm(k), price: k.cash })); return; }
   if (e.target.closest('[data-buy]')) {
     if (U.gold < k.gold) { toast(tl('shop.noGold')); SFX.bad(); denyShop(card); return; }
     addGold(-k.gold); U.owned[shopTab].push(k.id); store.set('owned', U.owned); SFX.gift(); U.shopFx = { id: k.id, kind: 'bought' };

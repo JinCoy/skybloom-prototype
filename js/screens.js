@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.43';
-import { SKINS, setArt } from './shop.js?v=0.7.43';
-import { Mini } from './minianim.js?v=0.7.43';
-import { music } from './audio.js?v=0.7.43';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.43';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.43';
-import { app } from './renderer.js?v=0.7.43';
-import { enableSensor, sensorOn } from './input.js?v=0.7.43';
-import * as TM from './telemetry.js?v=0.7.43';
-import { age13 } from './age.js?v=0.7.43';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.44';
+import { SKINS, setArt } from './shop.js?v=0.7.44';
+import { Mini } from './minianim.js?v=0.7.44';
+import { music } from './audio.js?v=0.7.44';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.44';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.44';
+import { app } from './renderer.js?v=0.7.44';
+import { enableSensor, sensorOn } from './input.js?v=0.7.44';
+import * as TM from './telemetry.js?v=0.7.44';
+import { age13 } from './age.js?v=0.7.44';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
