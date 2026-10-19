@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.53';
-import { SKINS, setArt } from './shop.js?v=0.7.53';
-import { Mini } from './minianim.js?v=0.7.53';
-import { music } from './audio.js?v=0.7.53';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.53';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.53';
-import { app } from './renderer.js?v=0.7.53';
-import { enableSensor, sensorOn } from './input.js?v=0.7.53';
-import * as TM from './telemetry.js?v=0.7.53';
-import { age13 } from './age.js?v=0.7.53';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.54';
+import { SKINS, setArt } from './shop.js?v=0.7.54';
+import { Mini } from './minianim.js?v=0.7.54';
+import { music } from './audio.js?v=0.7.54';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.54';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.54';
+import { app } from './renderer.js?v=0.7.54';
+import { enableSensor, sensorOn } from './input.js?v=0.7.54';
+import * as TM from './telemetry.js?v=0.7.54';
+import { age13 } from './age.js?v=0.7.54';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
@@ -93,8 +93,8 @@ export function openCollection(tab = colTab) {
   } else {
     const n = Object.keys(U.treasures).length;
     $('col-count').textContent = `${n} / ${TREASURES.length}`; $('col-fill').style.width = (n / TREASURES.length * 100) + '%';
-    $('col-grid').innerHTML = '<div class="grid">' + TREASURES.map((_, i) => {
-      const id = i + 1, nm = trName(id), got = U.treasures[id], rar = L.TREASURE_RARITY[i];
+    $('col-grid').innerHTML = '<div class="grid">' + TREASURES.map((_, i) => i + 1).sort((a, b) => 'CRL'.indexOf(L.TREASURE_RARITY[a - 1]) - 'CRL'.indexOf(L.TREASURE_RARITY[b - 1]) || a - b).map(id => {   // grouped blue (C) -> purple (R) -> gold (L), by id within a tier
+      const nm = trName(id), got = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
       return `<button class="card tr ${rar} ${got ? '' : 'locked'}" data-tr="${id}" aria-label="${got ? nm : tl('col.lockedTreasure')}, ${tl('rarity.' + rar)}">${got ? `<span class="cnt">×${got.n}</span>` : ''}<img src="${accSrc(id)}" alt=""><div class="nm">${got ? nm : '???'}</div></button>`;
     }).join('') + '</div>';
   }
