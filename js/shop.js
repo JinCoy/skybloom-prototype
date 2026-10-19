@@ -39,15 +39,21 @@ const skin = (cat, id) => SKINS[cat].find(k => k.id === id) || SKINS[cat][0];
 const hex = n => '#' + n.toString(16).padStart(6, '0');
 const SKIN_FILES = { tile_petal: 'tile_petal', tile_star: 'tile_star', tile_lime: 'tile_lime', tile_tangerine: 'tile_tangerine', tile_grape: 'tile_grape', tile_luna: 'tile_luna', tile_opal: 'tile_opal', bubble_lime: 'bubble_lime', bubble_tangerine: 'bubble_tangerine', bubble_grape: 'bubble_grape', bubble_luna: 'bubble_luna', bubble_opal: 'bubble_opal' };
 const skyKeys = id => [0, 1, 2].map(n => `sky_${id}_${n}`);
+/** [key, file] of every picture a building set needs (pictures + motion parts); Classic (no set) is always loaded. */
+export function setArt(set) {
+  const sp = SET_PRE[set], need = []; if (!sp) return need;
+  for (let lv = 1; lv <= 17; lv++) if (!(sp === 'c' && lv === 6)) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);   // Candy Lv6 is built from its own body + sails (core.js loadSkinArt)
+  if (sp === 'c') need.push(['body_c', 'assets/windmill_body_c.webp'], ['sails_c', 'assets/windmill_sails_c.webp']);
+  if (sp === 'e') need.push(['e12_body', 'assets/e12_body.webp'], ['e13_body', 'assets/e13_body.webp'], ['e13_rotor', 'assets/e13_rotor.webp']);
+  if (sp === 'g') need.push(['g1_body', 'assets/g01_body.webp'], ['g14_body', 'assets/g14_body.webp'], ['g1_fish', 'assets/g01_fish.webp']);
+  return need;
+}
 export function applySkins(sel = U.equip) {
   if (!R) return;
   const b = skin('board', sel.board), sk = skin('sky', sel.sky), bu = skin('building', sel.building), bb = skin('bubble', sel.bubble);
   U.skyShown = sk.id;   // the sky on screen (a shop preview too): the sky objects in renderer.js follow it, not only the equipped skin
   const need = [b.tile, bb.art].filter(k => SKIN_FILES[k]).map(k => [k, `assets/${SKIN_FILES[k]}.webp`]).concat(skyKeys(sk.id).map(k => [k, `assets/${k}.webp`]));
-  const sp = SET_PRE[bu.set]; if (sp) for (let lv = 1; lv <= 17; lv++) if (!(sp === 'c' && lv === 6)) need.push([sp + lv, `assets/${sp}${String(lv).padStart(2, '0')}.webp`]);   // Candy Lv6 is built from its own body + sails (core.js loadSkinArt)
-  if (sp === 'c') need.push(['body_c', 'assets/windmill_body_c.webp'], ['sails_c', 'assets/windmill_sails_c.webp']);
-  if (sp === 'e') need.push(['e12_body', 'assets/e12_body.webp'], ['e13_body', 'assets/e13_body.webp'], ['e13_rotor', 'assets/e13_rotor.webp']);
-  if (sp === 'g') need.push(['g1_body', 'assets/g01_body.webp'], ['g14_body', 'assets/g14_body.webp'], ['g1_fish', 'assets/g01_fish.webp']);
+  need.push(...setArt(bu.set));
   const missing = need.filter(([k]) => !IMG[k]);
   if (missing.length) loadSkinArt(missing).then(() => applySkins(preview || U.equip));   // apply again once the art is here
   const tt = tex(IMG[b.tile] ? b.tile : 'tile'), tw = TW * .95;

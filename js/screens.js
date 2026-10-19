@@ -1,6 +1,6 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, bsetId, hasBuilt, lang, store, tl } from './core.js?v=0.7.41';
-import { SKINS } from './shop.js?v=0.7.41';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.41';
+import { SKINS, setArt } from './shop.js?v=0.7.41';
 import { Mini } from './minianim.js?v=0.7.41';
 import { music } from './audio.js?v=0.7.41';
 import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.41';
@@ -66,8 +66,12 @@ let _tm = null; const tdMini = () => _tm || (_tm = new Mini($('td-anim'), 420, 4
 let colTab = 'garden';
 const setOf = id => SKINS.building.find(k => k.id === id);
 const setNames = k => NAMES_BY[k.set] || NAMES_BASE;
+/* ponytail: TEST BUILD ONLY. Silhouettes button on the collection: off = every card counts as found (picture, name, moving detail). Not saved; remove the button and colAll before a public release. */
+let colAll = false;
+const found = (set, lv) => colAll || hasBuilt(set, lv);
+$('col-sil').onclick = () => { colAll = !colAll; $('col-sil').setAttribute('aria-pressed', !colAll); $('col-sil').textContent = tl(colAll ? 'col.silOff' : 'col.silOn'); const y = $('col-grid').scrollTop; openCollection(); $('col-grid').scrollTop = y; };
 export function openCollection(tab = colTab) {
-  colTab = tab; $('col-grid').scrollTop = 0;
+  colTab = tab; $('col-grid').scrollTop = 0; $('col-sil').hidden = tab !== 'garden';
   $('tab-garden').setAttribute('aria-selected', tab === 'garden'); $('tab-treasures').setAttribute('aria-selected', tab === 'treasures');
   $('tr-detail').hidden = true;
   if (tab === 'garden') {
@@ -76,7 +80,7 @@ export function openCollection(tab = colTab) {
     for (const k of SKINS.building) {
       const own = U.owned.building.includes(k.id), names = setNames(k); let m = 0, cards = '';
       for (let lv = 1; lv <= 17; lv++) {
-        const got = hasBuilt(k.id, lv); m += got;
+        const got = found(k.id, lv); m += got;
         cards += `<button class="card ${got ? '' : 'locked'}" data-bd="${lv}" data-set="${k.id}"><span class="badge">${lv}</span><img src="${artSrc(lv, k.set || null)}" alt="${got ? names[lv] : tl('col.locked')}" loading="lazy"><div class="nm">${got ? names[lv] : '???'}</div></button>`;
       }
       n += m;
@@ -99,9 +103,11 @@ $('tab-garden').onclick = () => openCollection('garden');
 $('tab-treasures').onclick = () => openCollection('treasures');
 $('col-grid').addEventListener('click', e => {
   const bd = e.target.closest('[data-bd]');   // building detail: English name, description in the player's language (v0.5 §3.2)
-  if (bd) { const lv = +bd.dataset.bd, k = setOf(bd.dataset.set); if (!k || !hasBuilt(k.id, lv)) return;
+  if (bd) { const lv = +bd.dataset.bd, k = setOf(bd.dataset.set); if (!k || !found(k.id, lv)) return;
     $('td-img').src = artSrc(lv, k.set || null); $('td-img').style.visibility = '';
-    if (k.id === bsetId()) tdMini().show(lv); else tdMini().hide();   // the moving copy draws the equipped set only; other sets show their still picture
+    const set = k.set || null, art = setArt(set).filter(([key]) => !IMG[key]);   // another set's pictures load on first use (Classic's stand in until then)
+    tdMini().show(lv, set);   // every set moves in the detail (its own motion map)
+    if (art.length) loadSkinArt(art).then(() => { const m = tdMini(); if (m.lv === lv && m.set === set) { m.lv = 0; m.show(lv, set); } });   // rebuild once all of it is in (motion parts like rotors wait for their own art)
     const key = 'bd.' + (SET_PRE[k.set] || '') + lv;   // a set without its own descriptions (Classic, Candy Glass) uses the base ones
     $('td-name').textContent = setNames(k)[lv]; $('td-desc').textContent = tl(tl(key) === key ? 'bd.' + lv : key);
     $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = k.name; $('tr-detail').hidden = false; return; }

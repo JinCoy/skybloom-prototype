@@ -44,12 +44,13 @@ export class Mini {
     const a = this.host.getBoundingClientRect(), b = this.clip.getBoundingClientRect(); return a.right > b.left && a.left < b.right;   // a card scrolled out of the palette is not drawn
   }
   destroy() { MINIS.delete(this); this.stage.destroy({ children: true }); this.I = null; this.cv?.remove(); }
-  /** Show building level lv (the picture of the equipped set); returns false when only the plain picture can be used. */
-  show(lv) {
+  /** Show building level lv of a building set (default: the equipped one; a SET_PRE key, null = Classic); returns false when only the plain picture can be used. */
+  show(lv, set) {
     if (!this.ok) return false;
-    if (lv === this.lv && this.I && this.I.key === bkey(lv)) { wake(); return true; }   // same building of the same set: keep it
+    this.set = set;
+    if (lv === this.lv && this.I && this.I.key === bkey(lv, set)) { wake(); return true; }   // same building of the same set: keep it
     this.stage.removeChildren().forEach(c => c.destroy({ children: true })); this.I = null;
-    try { this.I = makeInst(lv); } catch { this.I = null; }
+    try { this.I = makeInst(lv, bkey(lv, set)); } catch { this.I = null; }
     if (!this.I) { this.lv = 0; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); if (this.img) this.img.style.visibility = ''; return false; }
     const I = this.I; this.sc = Math.min(this.w / I.W, this.h / I.H) * .97; this.lv = lv;
     I.c.scale.set(this.sc); I.c.position.set(this.w / 2, this.h - 2); I.glow.visible = false; this.stage.addChild(I.c);
@@ -64,7 +65,7 @@ export class Mini {
     const c = this.ctx; c.clearRect(0, 0, this.cv.width, this.cv.height); c.drawImage(SR.view, 0, 0, this.cv.width, this.cv.height, 0, 0, this.cv.width, this.cv.height);
   }
   frame(dt) {
-    if (this.I.key !== bkey(this.lv)) { const lv = this.lv; this.lv = 0; this.show(lv); return; }   // the set's own picture finished loading (or the set changed): rebuild
+    if (this.I.key !== bkey(this.lv, this.set)) { const lv = this.lv; this.lv = 0; this.show(lv, this.set); return; }   // the set's own picture finished loading (or the set changed): rebuild
     this.acc += dt;
     if (this.acc < this.step) return;
     const d = this.acc / 1000; this.acc = 0; if (!reduce()) this.t += d; this.draw(d);

@@ -91,8 +91,8 @@ export const BAKE = {};
 /* Which motion parts a building set uses: Classic ('b') all of them; Candy ('c') shares Classic's silhouette so the same map fits (checked on an overlay sheet), except the windmill's spinning sails (no sails layer in
    the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
 const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
-const motionFor = lv => {
-  const k = bkey(lv)[0], own = k === 'e' ? MOTION_E[lv] : k === 'g' ? MOTION_A[lv] : null;
+const motionFor = (lv, key = bkey(lv)) => {
+  const k = key[0], own = k === 'e' ? MOTION_E[lv] : k === 'g' ? MOTION_A[lv] : null;
   if (own) return own.filter(p => !p.need || IMG[p.need]);   // Eco / Aqua: their own maps; a part that needs extra art (train, rotors, fish, cars) waits until that art is loaded   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
   return (MOTION[lv] || []).filter(p => k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type));
 };
@@ -125,10 +125,10 @@ function globeFrames(key, i, img, W, H, p, n = 16) {   // a flat picture of a gl
 const JELLY = { sway: 3, bob: 3, squish: .04 };
 const jelly = p => p.type === 'spin' ? { ...p, tex: 'sails_c', pt: [.484, .128], size: 1 }   // Candy windmill: its own sails, hub at the pink orb of the Candy body
   : p.type in JELLY ? { ...p, amp: (p.amp ?? JELLY[p.type]) * 1.3 } : p;   // Candy is jelly: a little more give
-function bake(lv) {
-  const k = bkey(lv), img = IMG[k]; if (!img) return (BAKE[k] = []);
+function bake(lv, k = bkey(lv)) {
+  const img = IMG[k]; if (!img) return (BAKE[k] = []);
   const W = img.width, H = img.height;
-  BAKE[k] = motionFor(lv).map(p => {
+  BAKE[k] = motionFor(lv, k).map(p => {
     if (!p.poly || p.poly.length < 3) return null;
     const pts = p.poly.map(([x, y]) => [x * W, y * H]), xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
     const x0 = Math.max(0, Math.floor(Math.min(...xs))), y0 = Math.max(0, Math.floor(Math.min(...ys)));
@@ -144,12 +144,12 @@ function bake(lv) {
   return BAKE[k];
 }
 /** One building on screen: base sprite + additive glow copy (Garden Pulse / night) + its motion parts. Local units = texture px, origin = bottom centre. */
-export function makeInst(lv) {
-  const key = bkey(lv), T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
+export function makeInst(lv, key = bkey(lv)) {   // key: the picture to use (default: the equipped set's)
+  const T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
-  const B = BAKE[key] && BAKE[key].length === motionFor(lv).length ? BAKE[key] : bake(lv),   // re-cut when the part list changed (a part that waits for extra art, or the art itself, loaded since)
+  const B = BAKE[key] && BAKE[key].length === motionFor(lv, key).length ? BAKE[key] : bake(lv, key),   // re-cut when the part list changed (a part that waits for extra art, or the art itself, loaded since)
     L2 = (u, v) => [u - W / 2, v - H];
-  const parts = motionFor(lv).map((p0, i) => {
+  const parts = motionFor(lv, key).map((p0, i) => {
     const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
     const at = (nx, ny) => L2(nx * W, ny * H);
     if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)

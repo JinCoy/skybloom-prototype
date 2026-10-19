@@ -62,7 +62,7 @@ export const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 export const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g' };   // building set -> image key / file prefix; Classic is 'b'
 export const artSrc = (lv, set = U.bset) => av(`assets/${SET_PRE[set] || 'b'}${String(lv).padStart(2, '0')}.webp`);   // set = SET_PRE key (null = Classic); default: the equipped set
 // building image key for the active set; the other sets fall back to Classic until its image has loaded
-export const bkey = lv => { const p = SET_PRE[U.bset]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };
+export const bkey = (lv, set = U.bset) => { const p = SET_PRE[set]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };   // set: another set's key (collection detail)
 // Lv13-17 content boxes on the 1024 generation canvas (export_assets.py): placed by the guide (diamond 640px, centre 512,820)
 export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [110, 119, 937, 945], b16: [87, 24, 938, 991], b17: [99, 73, 929, 977],
   c13: [223, 16, 829, 978], c14: [92, 29, 958, 991], c15: [81, 98, 945, 957], c16: [101, 25, 925, 962], c17: [111, 49, 913, 967],
