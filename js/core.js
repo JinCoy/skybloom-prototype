@@ -73,7 +73,7 @@ export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [1
   // Dreamcore (export_dreamcore.py): 1254px art scaled by 1024/1254, bottom centre at (512, 970)
   p13: [119, 2, 905, 970], p14: [82, 20, 942, 970], p15: [128, 28, 896, 970], p16: [100, 14, 924, 970], p17: [72, 32, 952, 970],
   r13: [101, 12, 923, 970], r14: [129, 28, 895, 970], r15: [212, 26, 812, 970], r16: [68, 17, 956, 970], r17: [119, 46, 905, 970] };
-// opaque share (alpha mean) of every Lv13-17 picture, for size rule v1.3 in renderer.js sprite(); recompute: python3 03_Sprites/_guides/building_size_table.py --fill
+// opaque share (alpha mean) of every Lv13-17 picture, for size rule v1.3 in renderer.js sprite(); recompute: python3 03_Sprites/_guides/building_size_table.py --fill (b/c/e/g only: the p/r rows are the solid body before the glass finish, printed by export_dreamcore.py)
 export const FILL = { b13: 0.479, b14: 0.516, b15: 0.602, b16: 0.509, b17: 0.637,
   c13: 0.466, c14: 0.51, c15: 0.624, c16: 0.516, c17: 0.633,
   e13: 0.475, e14: 0.451, e15: 0.392, e16: 0.488, e17: 0.54,
@@ -157,7 +157,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.48`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.49`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));
