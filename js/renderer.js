@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.56';
-import { sbLocked } from './sandbox.js?v=0.7.56';
-import { SFX, vib } from './audio.js?v=0.7.56';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.56';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.56';
-import { updateBubbles } from './bubbles.js?v=0.7.56';
-import { updateFx } from './drawfx.js?v=0.7.56';
-import { badgePos, updateTilt } from './input.js?v=0.7.56';
-import { perfGuard } from './perfguard.js?v=0.7.56';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.57';
+import { sbLocked } from './sandbox.js?v=0.7.57';
+import { SFX, vib } from './audio.js?v=0.7.57';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.57';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.57';
+import { updateBubbles } from './bubbles.js?v=0.7.57';
+import { updateFx } from './drawfx.js?v=0.7.57';
+import { badgePos, updateTilt } from './input.js?v=0.7.57';
+import { perfGuard } from './perfguard.js?v=0.7.57';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -99,7 +99,7 @@ export const BAKE = {};
    the Candy art); Eco / Aqua keep only the effects drawn on top of the picture until they get maps of their own. */
 const OVERLAY = ['sparkle', 'ripple', 'rise', 'petals'];
 const motionFor = (lv, key = bkey(lv)) => {
-  const k = key[0]; if (k === 'p' || k === 'r') return (k === 'p' ? MOTION_P : MOTION_R)[lv] || [];   // Dreamcore sets: only their own maps (a level without one stays still; never Classic's overlay)
+  const k = key[0]; if (k === 'p' || k === 'r') return ((k === 'p' ? MOTION_P : MOTION_R)[lv] || []).filter(p => !p.need || IMG[p.need]);   // Dreamcore sets: only their own maps (a level without one stays still; never Classic's overlay)
   const own = k === 'e' ? MOTION_E[lv] : k === 'g' ? MOTION_A[lv] : null;
   if (own) return own.filter(p => !p.need || IMG[p.need]);   // Eco / Aqua: their own maps; a part that needs extra art (train, rotors, fish, cars) waits until that art is loaded   // Eco: its own map; a part that needs extra art (the train, the rotors) waits until that art is loaded
   return (MOTION[lv] || []).filter(p => k === 'b' || (k === 'c' && (p.type !== 'spin' || IMG.sails_c)) || OVERLAY.includes(p.type));
@@ -130,6 +130,21 @@ function globeFrames(key, i, img, W, H, p, n = 16) {   // a flat picture of a gl
     x.putImageData(out, 0, 0); return PIXI.Texture.from(cvs);
   });
 }
+function bandFrames(key, i, cv, p, n = 16) {   // a band wrapped round a cylinder (carousel seats): columns move fastest in the middle; each piece rises and falls as it goes round
+  const id = `${key}:sb${i}`; if (FRAMES[id]) return FRAMES[id];
+  const W = cv.width, H = cv.height, R = W / 2, lift = (p.lift ?? .04) * H, sd = cv.getContext('2d').getImageData(0, 0, W, H).data;
+  return FRAMES[id] = Array.from({ length: n }, (_, k) => {
+    const o = document.createElement('canvas'); o.width = W; o.height = H; const x = o.getContext('2d'), out = x.createImageData(W, H), d = out.data, th = k * Math.PI / n;
+    for (let xx = 0; xx < W; xx++) {
+      let ph2 = Math.asin(Math.max(-1, Math.min(1, (xx + .5 - R) / R))) + th; ph2 = ((ph2 + Math.PI / 2) % Math.PI + Math.PI) % Math.PI - Math.PI / 2;
+      const su = Math.min(W - 1, Math.max(0, Math.round(R + Math.sin(ph2) * R - .5))), dy = Math.round(lift * Math.sin(ph2 * 3));
+      for (let y = 0; y < H; y++) { const sy = y + dy; if (sy < 0 || sy >= H) continue; const si = (sy * W + su) * 4, oi = (y * W + xx) * 4; d[oi] = sd[si]; d[oi + 1] = sd[si + 1]; d[oi + 2] = sd[si + 2]; d[oi + 3] = sd[si + 3]; }
+    }
+    x.putImageData(out, 0, 0); return PIXI.Texture.from(o);
+  });
+}
+/** Open amount of a door / lid over one cycle (q 0..1): shut most of the time, a quick open, a short hold, a quick close. */
+const cyc = q => { const e = v => v * v * (3 - 2 * v); return q < .62 ? 0 : q < .7 ? e((q - .62) / .08) : q < .88 ? 1 : q < .96 ? e(1 - (q - .88) / .08) : 0; };
 const JELLY = { sway: 3, bob: 3, squish: .04 };
 const jelly = p => p.type === 'spin' ? { ...p, tex: 'sails_c', pt: [.484, .128], size: 1 }   // Candy windmill: its own sails, hub at the pink orb of the Candy body
   : p.type in JELLY ? { ...p, amp: (p.amp ?? JELLY[p.type]) * 1.3 } : p;   // Candy is jelly: a little more give
@@ -153,7 +168,8 @@ function bake(lv, k = bkey(lv)) {
 }
 /** One building on screen: base sprite + additive glow copy (Garden Pulse / night) + its motion parts. Local units = texture px, origin = bottom centre. */
 export function makeInst(lv, key = bkey(lv)) {   // key: the picture to use (default: the equipped set's)
-  const T = genTextures(), base = tex(key), W = base.width, H = base.height, c = new PIXI.Container();
+  const under = motionFor(lv, key).find(p => p.under && IMG[p.under])?.under;   // a picture with its moving parts painted out (rNN_fill): the base, so a moving piece never shows twice; the pieces are cut from the full picture
+  const T = genTextures(), base = tex(under || key), W = base.width, H = base.height, c = new PIXI.Container();
   const sp = new PIXI.Sprite(base); sp.anchor.set(.5, 1); c.addChild(sp);
   const B = BAKE[key] && BAKE[key].length === motionFor(lv, key).length ? BAKE[key] : bake(lv, key),   // re-cut when the part list changed (a part that waits for extra art, or the art itself, loaded since)
     L2 = (u, v) => [u - W / 2, v - H];
@@ -161,7 +177,13 @@ export function makeInst(lv, key = bkey(lv)) {   // key: the picture to use (def
   const parts = motionFor(lv, key).map((p0, i) => {
     const b = B[i], candy = key[0] === 'c', p = candy ? jelly(p0) : p0, P = { p, ph: p.ph != null ? ph0 + p.ph : Math.random() * 6, fc: candy ? 0xc9a2ff : 0x6f9dff };   // Candy: jelly amplitudes, its own sails; fc: flowing water is lilac
     const at = (nx, ny) => L2(nx * W, ny * H);
-    if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
+    if (p.type === 'door' && b) {   // a door / lid folding toward its hinge; warm room light behind it
+      P.f = new PIXI.Graphics().beginFill(p.inside ?? 0xd8953e, 1).drawPolygon(b.pts.flatMap(([u, v]) => L2(u, v))).endFill(); P.f.alpha = 0; c.addChild(P.f);
+      const s = new PIXI.Sprite(b.tex), hx = p.hinge === 'right' ? b.x1 : b.x0; s.pivot.set(hx - b.x0, 0); s.position.set(...L2(hx, b.y0)); P.s = s; c.addChild(s);
+    } else if (p.type === 'spinband' && b && b.cv) {   // carousel: the band turns (pre-made frames)
+      P.fr = bandFrames(key, i, b.cv, p); P.s = new PIXI.Sprite(P.fr[0]); P.s.position.set(...L2(b.x0, b.y0)); c.addChild(P.s);
+    } else if (p.type === 'boing') { P.boing = true;   // the whole building stretches up and bounces back (renderer applies I.bx / I.by)
+    } else if (p.type === 'sweep' && b) {   // a band of the region texture, clipped to the region box (no stencil mask)
       P.g = new PIXI.Graphics(); P.g.blendMode = ADD(); c.addChild(P.g); P.b = b; P.bw = (b.x1 - b.x0) * .28;
       P.m = new PIXI.Matrix().translate(...L2(b.x0, b.y0));
     } else if (['sway', 'bob', 'squish', 'glow'].includes(p.type) && b) {
@@ -209,9 +231,14 @@ export function updateInst(I, t, dt, s, still) {
   const W = I.W, H = I.H, TAU = Math.PI * 2, L2 = (u, v) => [u - W / 2, v - H];
   for (const P of I.parts) {
     const p = P.p, ph = P.ph + I.ph, per = p.period || 3, wave = Math.sin(TAU * t / per + ph);
-    if (!P.s && !P.g && !P.dots && !P.stars && !P.hs) continue;   // a part whose picture region is missing draws nothing instead of failing the frame
+    if (!P.s && !P.g && !P.dots && !P.stars && !P.hs && !P.boing) continue;   // a part whose picture region is missing draws nothing instead of failing the frame
     switch (p.type) {
-      case 'sway': P.s.rotation = (p.amp || 3) * Math.PI / 180 * wave; break;
+      case 'sway': P.s.rotation = (p.amp || 3) * Math.PI / 180 * (p.cycle ? (still ? 0 : cyc((t / per + ph / TAU) % 1)) : wave); break;   // cycle: a lid that lifts and shuts instead of swinging
+      case 'door': { const o = still ? 0 : cyc((t / per + ph / TAU) % 1); P.s.scale.x = 1 - o * (1 - (p.open ?? .2)); P.f.alpha = Math.min(1, o * 1.6) * (p.insideAlpha ?? .9); break; }   // the room light shows only as the door opens
+      case 'spinband': if (!still) { const n = P.fr.length, k = Math.floor((t / per + ph / TAU) % 1 * n) % n; if (k !== P.k) { P.k = k; P.s.texture = P.fr[k]; } } break;
+      case 'boing': { const q = ((t / per + ph / TAU) % 1) * per, D = .6;
+        if (still || q > D) { I.bx = I.by = 1; } else { const x = q / D, k = Math.sin(x * Math.PI * 2.5) * (1 - x) ** 1.5, a = p.amp ?? .07; I.by = 1 + a * k; I.bx = 1 - a * .55 * k; }
+        break; }
       case 'bob': P.s.y = P.y0 + (p.amp || 3) / s * wave; break;
       case 'squish': { const k = (p.amp || .04) * wave; P.s.scale.set(1 - k * .5, 1 + k); break; }
       case 'glow': P.s.alpha = (p.alpha ?? .4) * (.5 + .5 * wave); if (p.hue) P.s.tint = hsl((t * 40 + ph * 50) % 360); break;
@@ -626,7 +653,7 @@ function updateBoard(dt, now, still) {
     }
     const s = sp.w / I.W;
     I.c.visible = true; I.c.alpha = alpha; I.c.zIndex = p.z ?? (p.r + p.c + (p.moving ? .5 : 0));
-    I.c.scale.set(s * k * kx, s * k * ky); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);
+    I.c.scale.set(s * k * kx * (I.bx || 1), s * k * ky * (I.by || 1)); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);   // I.bx / I.by: a boing part (stretch and bounce back), base fixed
     I.glow.alpha = gardenPulse(x, y - 60, !inGame) * .38 + (hintK > 0 && p.key !== 'mv' && p.key !== 'drag' && L.targets(board, p.r, p.c).length ? hintK * .3 : 0) + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
     const sil = !inGame && sbLocked(p.lv); if (!!I.sil !== sil) { I.sil = sil; I.c.filters = sil ? [silFilter()] : null; } if (sil) I.glow.visible = false;
     updateInst(I, TP, dt, s * k, still);
