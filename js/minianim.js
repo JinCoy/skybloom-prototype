@@ -25,6 +25,17 @@ function loop(now) {
 }
 const wake = () => { if (!raf) { last = 0; raf = requestAnimationFrame(loop); } };
 
+/** How far a building and its moving parts reach (local px, origin = bottom centre), over ~2.5 s of its motion. Cached per picture. */
+const REACH = {};
+export function reach(I) {
+  const id = I.key + ':' + I.parts.length; if (REACH[id]) return REACH[id];
+  let x0 = -I.W / 2, y0 = -I.H, x1 = I.W / 2, y1 = 0;
+  for (let k = 0; k < 24; k++) {
+    updateInst(I, k * .11, .11, 1, false);
+    const r = I.c.getLocalBounds(); x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.width); y1 = Math.max(y1, r.y + r.height);
+  }
+  return REACH[id] = { x0, y0, x1, y1 };
+}
 export class Mini {
   /** host: element holding the fallback <img>; w, h: size in stage px (at most MAXW x MAXH); fps: frame cap;
       clip: a scrolling box the host sits in (only drawn while it is scrolled into view). */
@@ -48,12 +59,14 @@ export class Mini {
   show(lv, set) {
     if (!this.ok) return false;
     this.set = set;
-    if (lv === this.lv && this.I && this.I.key === bkey(lv, set)) { wake(); return true; }   // same building of the same set: keep it
+    if (lv === this.lv && this.I && this.I.key === bkey(lv, set)) { if (this.img) this.img.style.visibility = 'hidden'; wake(); return true; }   // same building of the same set: keep it (the host may have shown its <img> again meanwhile, e.g. a second tap)
     this.stage.removeChildren().forEach(c => c.destroy({ children: true })); this.I = null;
     try { this.I = makeInst(lv, bkey(lv, set)); } catch { this.I = null; }
     if (!this.I) { this.lv = 0; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); if (this.img) this.img.style.visibility = ''; return false; }
-    const I = this.I; this.sc = Math.min(this.w / I.W, this.h / I.H) * .97; this.lv = lv;
-    I.c.scale.set(this.sc); I.c.position.set(this.w / 2, this.h - 2); I.glow.visible = false; this.stage.addChild(I.c);
+    const I = this.I; I.glow.visible = false; this.lv = lv;
+    const b = reach(I), half = Math.max(-b.x0, b.x1);   // fit everything that moves (sails, spray, sparkles), not only the picture; the building stays centred
+    this.sc = Math.min(this.w / (2 * half), this.h / (b.y1 - b.y0)) * .97;
+    I.c.scale.set(this.sc); I.c.position.set(this.w / 2, this.h - 2 - b.y1 * this.sc); this.stage.addChild(I.c);
     if (this.img) this.img.style.visibility = 'hidden';   // keeps the box size, the canvas draws over it
     this.draw(0); wake(); return true;
   }
