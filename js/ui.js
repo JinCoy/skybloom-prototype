@@ -1,8 +1,8 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.49';
-import { Mini } from './minianim.js?v=0.7.49';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.49';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.49';
+import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.50';
+import { Mini } from './minianim.js?v=0.7.50';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.50';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.50';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;
@@ -31,7 +31,8 @@ export function show(screen) {
   if (screen !== 'game' && U.tut) tutStep(0);
   if (screen !== 'game') for (const b of U.bubbles) { b.content = { kind: 'empty' }; b.content = rollFor(); setIcon(b); }   // no items or treasures outside a game
   $('main-best').textContent = U.best.toLocaleString('en-US'); fitText($('main-best'), 54);
-  $('main-speed-best').hidden = !U.bestSpeed; $('main-speed-best').textContent = tl('speed.best', { n: U.bestSpeed.toLocaleString('en-US') });
+  $('main-speed-best').hidden = true;   // speed mode parked (was: !U.bestSpeed)
+  $('main-speed-best').textContent = tl('speed.best', { n: U.bestSpeed.toLocaleString('en-US') });
 }
 export function overlay(name, on = true) {   // 10-2 E: switching tabs re-opens the same overlay: no second fade-in
   const el = $('ov-' + name), wasOpen = !el.hidden; el.hidden = !on; if (name === 'settings') $('set-home').hidden = U.screen !== 'game';

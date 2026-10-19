@@ -1,24 +1,25 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.49';
-import { SKINS, setArt } from './shop.js?v=0.7.49';
-import { Mini } from './minianim.js?v=0.7.49';
-import { music } from './audio.js?v=0.7.49';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.49';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.49';
-import { app } from './renderer.js?v=0.7.49';
-import { enableSensor, sensorOn } from './input.js?v=0.7.49';
-import * as TM from './telemetry.js?v=0.7.49';
-import { age13 } from './age.js?v=0.7.49';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.50';
+import { SKINS, setArt } from './shop.js?v=0.7.50';
+import { Mini } from './minianim.js?v=0.7.50';
+import { music } from './audio.js?v=0.7.50';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.50';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.50';
+import { app } from './renderer.js?v=0.7.50';
+import { enableSensor, sensorOn } from './input.js?v=0.7.50';
+import * as TM from './telemetry.js?v=0.7.50';
+import { age13 } from './age.js?v=0.7.50';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
-export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
-  $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-speed').setAttribute('aria-selected', tab === 'speed');
+export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
+export function openRanking(tab = 'normal') {   // two boards: Normal and Collection (Speed is parked; its board was here)
+  $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-col').setAttribute('aria-selected', tab === 'col');
   const u = SkyAuth.currentUser(); $('rk-who').textContent = u ? (u.provider === 'guest' ? tl('rank.guest') : u.provider) : tl('rank.guest');
-  $('rk-best').textContent = (tab === 'speed' ? U.bestSpeed : U.best).toLocaleString('en-US');
-  $('rk-note').textContent = tl('rank.note');
+  $('rk-best').textContent = (tab === 'col' ? colScore() : U.best).toLocaleString('en-US');
+  $('rk-note').textContent = tab === 'col' ? tl('rank.colNote', { n: SKINS.building.length * 17 + TREASURES.length }) : tl('rank.note');
   overlay('ranking'); fitText($('rk-best'), 54);   // after the window is shown: before that its width is 0 and the digits shrank to the minimum
 }
-$('rk-normal').onclick = () => openRanking('normal'); $('rk-speed').onclick = () => openRanking('speed');
+$('rk-normal').onclick = () => openRanking('normal'); $('rk-col').onclick = () => openRanking('col');
 
 /* ---------- result card (v0.4 §6.4): 1080x1350 image made when the result opens, so sharing starts straight from the tap ---------- */
 export let cardFile = null;

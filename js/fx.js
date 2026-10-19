@@ -1,7 +1,7 @@
 /* Skybloom module: fx (split from index.html in step 12; code unchanged) */
-import { CX, CY, G, U, center, reduce } from './core.js?v=0.7.49';
-import { SFX } from './audio.js?v=0.7.49';
-import { R, ghostOf, tex } from './renderer.js?v=0.7.49';
+import { CX, CY, G, U, center, reduce } from './core.js?v=0.7.50';
+import { SFX } from './audio.js?v=0.7.50';
+import { R, ghostOf, tex } from './renderer.js?v=0.7.50';
 
 /* ---------- effects data (spec §7). Each fx: { type, x, y, t0, life, tier, parts, spr } ---------- */
 export const MAX_PARTS = 300;   // spec §8 particle budget

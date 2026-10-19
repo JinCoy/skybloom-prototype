@@ -238,6 +238,8 @@
   "speed.secs": "{n}s",
   "rank.normal": "Normal",
   "rank.speed": "Speed",
+  "rank.col": "Collection",
+  "rank.colNote": "Buildings + treasures found (of {n})",
   "rank.note": "Your best score on this device",
   "tm.consent.title": "Join the test?",
   "tm.consent.body": "Skybloom is a small playtest. If you agree, the game records how you play so the developer can improve it:\n• your taps and moves (where on the game screen you touched, and what happened)\n• how long each screen is open, scores, items, bubbles and the ad mock-up\n• your browser, screen size and language. No name, e-mail, phone model or account ID.\nThe record stays on this device until you send the file yourself (Settings → Send Play Log). The developer keeps received files for 30 days. You can delete everything and stop at any time in Settings → Send Play Log.\nNothing is recorded until you agree.",
