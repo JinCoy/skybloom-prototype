@@ -1,8 +1,8 @@
 /* Skybloom module: drawfx (split from index.html in step 12; code unchanged) */
-import { CX, CY, U, reduce } from './core.js?v=0.7.42';
-import { SFX } from './audio.js?v=0.7.42';
-import { freeParts, parts } from './fx.js?v=0.7.42';
-import { ADD, R, ease, genTextures } from './renderer.js?v=0.7.42';
+import { CX, CY, U, reduce } from './core.js?v=0.7.43';
+import { SFX } from './audio.js?v=0.7.43';
+import { freeParts, parts } from './fx.js?v=0.7.43';
+import { ADD, R, ease, genTextures } from './renderer.js?v=0.7.43';
 
 /* ---------- effects drawing ---------- */
 const ring = (g, x, y, R0, w, col, a) => { if (a > .01 && R0 > 1) g.lineStyle(w, col, a).drawEllipse(x, y, R0, R0 * .5); };
