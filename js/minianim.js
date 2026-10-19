@@ -3,8 +3,8 @@
    All of them share ONE extra WebGL renderer (phones drop the oldest WebGL context when there are too many, and the oldest is the garden):
    each frame a mini building is drawn by the shared renderer and copied into its own 2D canvas. One loop, running only while one is on screen.
    If the shared renderer cannot be made, the plain picture stays (the <img> the host already holds). */
-import { $, bkey, reduce } from './core.js?v=0.7.45';
-import { makeInst, updateInst } from './renderer.js?v=0.7.45';
+import { $, bkey, reduce } from './core.js?v=0.7.46';
+import { makeInst, updateInst } from './renderer.js?v=0.7.46';
 
 const MAXW = 520, MAXH = 560;   // the largest mini (New Building! is 500 x 540)
 let SR = null, RES = 1, failed = false;
@@ -46,7 +46,8 @@ export class Mini {
     if (this.ok) {
       this.cv = document.createElement('canvas'); this.cv.width = Math.round(w * RES); this.cv.height = Math.round(h * RES);
       this.cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none'; this.ctx = this.cv.getContext('2d');
-      host.style.position = host.style.position || 'relative'; host.appendChild(this.cv); MINIS.add(this);
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';   // only a static host: an absolute one (Decorate card art) keeps its box
+      host.appendChild(this.cv); MINIS.add(this);
     }
   }
   live() {

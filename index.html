@@ -220,7 +220,7 @@ body {
 .sb-b { flex: none; width: 198px; height: 100%;   /* 4.5 cards in view: the half card shows there is more to scroll */
    border-radius: 26px; border: 4px solid var(--rim); background: rgba(255, 255, 255, .85); position: relative; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
 .sb-b img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.sb-art { position: absolute; inset: 8px; display: flex; align-items: center; justify-content: center; }   /* the card art: a still picture, or the moving building drawn over it */
+.sb-art { position: absolute; inset: 8px; display: flex; align-items: flex-end; justify-content: center; }   /* card rule: every card has the same 174x292 art box (sandbox.js Mini); the building, moving parts included, fits it whole without stretching, bottom-aligned and centred; a locked card's still picture follows the same rule */
 .sb-b.lock .sb-art img { filter: brightness(0) opacity(.45); }
 .sb-b b { position: absolute; left: 12px; top: 8px; font: 900 30px/1 var(--font); color: var(--leaf-ink); }
 .sb-b.on { background: linear-gradient(var(--leaf-2), var(--leaf-ink)); border-color: #fff; }
@@ -602,4 +602,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.45"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.46"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
