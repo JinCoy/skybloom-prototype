@@ -123,7 +123,8 @@ body {
 .card .cnt { position: absolute; right: 10px; top: 10px; font: 900 26px/1 var(--font); color: #fff; background: var(--blue); border-radius: 999px; padding: 6px 12px; }
 .locked img { filter: brightness(0) !important; opacity: .28; }
 /* collection (10-18): the Garden tab stacks one section of 17 per building set in a vertical scroll */
-.col-scroll { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 0 0 80px; scrollbar-width: none;
+.col-scroll { box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 0 0 240px;   /* bottom: the fade (~116px) + about the phone's home-indicator safe area (34pt ≈ 100 stage px), so the last row can rise clear of the edge */
+  scrollbar-width: none;
   -webkit-mask-image: linear-gradient(#000 92%, transparent); mask-image: linear-gradient(#000 92%, transparent); }
 .col-scroll::-webkit-scrollbar { display: none; }
 .col-set + .col-set { margin-top: 48px; }
