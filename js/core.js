@@ -8,7 +8,9 @@ export const EDITOR = location.search.includes('editor') || location.hash === '#
 export const NAMES_BASE = ['', 'Dew Drop', 'Sprout', 'Lily Bloom', 'Glass Planter', 'Bubble Fountain', 'Breeze Windmill', 'Glass Greenhouse', 'Aqua Pavilion',
   'Solar Dome', 'Waterfall Garden', 'Crystal Tower', 'Sky Dome', 'Rainbow Bridge', 'Cloud Harbor', 'Star Observatory', 'Aurora Palace', 'Skybloom Tree'];
 // each equipped building set names its own 17 buildings (Classic and Candy Glass keep the base names); applySkins() switches NAMES
-export const NAMES_BY = { eco: ['', 'Eco Pod', 'Solar Lamp', 'Topiary Planter', 'Rain Tank', 'Helix Turbine', 'Fountain Pool', 'Holo Kiosk', 'Pod House', 'Glass Pavilion', 'Hydro Garden', 'Atrium Hall', 'Monorail Station', 'Turbine Tower', 'Tube Plaza', 'Sky Lab', 'Aqua Arcology', 'Biosphere Hill'],
+export const NAMES_BY = { poolhouse: ['', 'Tile Lamp', 'Mushroom Shower', 'Wave Bench', 'Pink Payphone', 'Tide Jukebox', 'Cloud Stair', 'Poolside Booth', 'Arch Poolhouse', 'Mushroom Bathhouse', 'Water Diner', 'Pearl Shell Baths', 'Water Hourglass', 'Mobius Aqueduct', 'Jellyfish Sky Spa', 'Celestial Tide Observatory', 'Antigravity Bath Palace', 'Ocean Dream Sphere'],
+  reverie: ['', 'Dream Mailbox', 'Gabled Birdhouse', 'Porch Planter', 'Solitary Door', 'Bay Window Cottage', 'Twin Porch House', 'Balcony House', 'Cloud Carousel Station', 'Attic Stair House', 'House Bridge', 'Bay Window Tower', 'Courtyard Manor', 'Inverted Dream Library', 'Balcony Cluster', 'Endless Stair House', 'Lunar Arboretum', 'Folded Village'],
+  eco: ['', 'Eco Pod', 'Solar Lamp', 'Topiary Planter', 'Rain Tank', 'Helix Turbine', 'Fountain Pool', 'Holo Kiosk', 'Pod House', 'Glass Pavilion', 'Hydro Garden', 'Atrium Hall', 'Monorail Station', 'Turbine Tower', 'Tube Plaza', 'Sky Lab', 'Aqua Arcology', 'Biosphere Hill'],
   aqua: ['', 'Fish Bowl', 'Gacha Capsule', 'Lava Lamp', 'Jelly Tank', 'Clear Radio Hut', 'Disc Fountain', 'Pixel Pet House', 'Aquarium Cottage', 'Teardrop Dome', 'Reef Arcade', 'Dolphin Spire', 'Tube Slide Park', 'Glass Lift Tower', 'Ocean Drive Mall', 'Wave Station', 'Server Palace', 'Dream Globe'] };
 export let NAMES = NAMES_BASE;
 export const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.25, 2.3, 2.35, 2.4, 2.45];
@@ -59,7 +61,7 @@ export const center = (r, c) => [CX + (c - r) * TW / 2, CY + (c + r - 3) * TH / 
 // v0.4 §2.1: island, board, buildings, bubbles and effects are one "world" drawn 1.1x around the board centre; the HUD is not scaled
 export const WS = 1.1, toWorld = ([x, y]) => [CX + (x - CX) / WS, CY + (y - CY) / WS], toScreen = ([x, y]) => [CX + (x - CX) * WS, CY + (y - CY) * WS];
 export const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
-export const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g' };   // building set -> image key / file prefix; Classic is 'b'
+export const SET_PRE = { candy: 'c', eco: 'e', aqua: 'g', poolhouse: 'p', reverie: 'r' };   // building set -> image key / file prefix; Classic is 'b'
 export const artSrc = (lv, set = U.bset) => av(`assets/${SET_PRE[set] || 'b'}${String(lv).padStart(2, '0')}.webp`);   // set = SET_PRE key (null = Classic); default: the equipped set
 // building image key for the active set; the other sets fall back to Classic until its image has loaded
 export const bkey = (lv, set = U.bset) => { const p = SET_PRE[set]; return p && IMG[p + lv] ? p + lv : 'b' + lv; };   // set: another set's key (collection detail)
@@ -67,7 +69,10 @@ export const bkey = (lv, set = U.bset) => { const p = SET_PRE[set]; return p && 
 export const GUIDE = { b13: [220, 0, 828, 996], b14: [85, 28, 957, 992], b15: [110, 119, 937, 945], b16: [87, 24, 938, 991], b17: [99, 73, 929, 977],
   c13: [223, 16, 829, 978], c14: [92, 29, 958, 991], c15: [81, 98, 945, 957], c16: [101, 25, 925, 962], c17: [111, 49, 913, 967],
   e13: [244, 19, 792, 996], e14: [33, 69, 1001, 977], e15: [116, 55, 915, 958], e16: [202, 23, 836, 1006], e17: [62, 35, 962, 984],
-  g13: [241, 35, 783, 992], g14: [131, 92, 910, 989], g15: [111, 64, 915, 984], g16: [113, 122, 913, 947], g17: [67, 138, 962, 956] };
+  g13: [241, 35, 783, 992], g14: [131, 92, 910, 989], g15: [111, 64, 915, 984], g16: [113, 122, 913, 947], g17: [67, 138, 962, 956],
+  // Dreamcore (export_dreamcore.py): 1254px art scaled by 1024/1254, bottom centre at (512, 970)
+  p13: [147, 2, 877, 970], p14: [84, 20, 940, 970], p15: [141, 28, 883, 970], p16: [105, 14, 919, 970], p17: [72, 32, 952, 970],
+  r13: [101, 12, 923, 970], r14: [152, 28, 872, 970], r15: [219, 26, 805, 970], r16: [122, 17, 902, 970], r17: [132, 46, 892, 970] };
 // island silhouette in the backgrounds (flat top + rock underside): bubbles pass behind it and cannot be tapped there
 // all five skies are drawn on the exact board geometry (03_Sprites/_guides/guide_BG_island_v2.png: diamond 60..1020 x 760..1240), so no offset is needed
 // silhouette traced from the day sky (rim + rock underside incl. the waterfall mist), world units
@@ -145,7 +150,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.43`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.45`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));

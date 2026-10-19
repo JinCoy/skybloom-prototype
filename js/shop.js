@@ -1,14 +1,14 @@
 /* Skybloom module: shop (split from index.html in step 12; code unchanged) */
-import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.44';
-import { SFX, vib } from './audio.js?v=0.7.44';
-import { hud, overlay, sheet, toast } from './ui.js?v=0.7.44';
-import { addGold } from './game.js?v=0.7.44';
-import { addFxXY } from './fx.js?v=0.7.44';
-import { spawnBubble } from './bubbles.js?v=0.7.44';
-import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.44';
-import { R, tex } from './renderer.js?v=0.7.44';
-import { down } from './input.js?v=0.7.44';
-import * as TM from './telemetry.js?v=0.7.44';
+import { $, av, CX, CY, IMG, ITEMS, lang, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TW, U, loadSkinArt, reduce, set_NAMES, store, tl, toWorld } from './core.js?v=0.7.45';
+import { SFX, vib } from './audio.js?v=0.7.45';
+import { hud, overlay, sheet, toast } from './ui.js?v=0.7.45';
+import { addGold } from './game.js?v=0.7.45';
+import { addFxXY } from './fx.js?v=0.7.45';
+import { spawnBubble } from './bubbles.js?v=0.7.45';
+import { renderPalette, sbBegin, sbClick, sbDirty, sbOff, sbRefresh, sbRevert, sbSave, sbShotOff, sbTap } from './sandbox.js?v=0.7.45';
+import { R, tex } from './renderer.js?v=0.7.45';
+import { down } from './input.js?v=0.7.45';
+import * as TM from './telemetry.js?v=0.7.45';
 
 /* ---------- shop (v0.4 §5.2): gold purchases work, cash items are a mock-up; skin art made in phase 8 ---------- */
 export const SKINS = {
@@ -23,7 +23,8 @@ export const SKINS = {
           { id: 'smoke', name: 'Smoke Glass', ko: '스모크 글라스', gold: 300, tile: 'tile_smoke', water: 0x90adb6 }],
   sky: [{ id: 'day', name: 'Sky Island', sub: 'Default' }, { id: 'blossom', name: 'Blossom Island', gold: 800 }, { id: 'aurora', name: 'Aurora Sky', gold: 1000, thumb: 2 }],   // each sky skin has 3 paintings: assets/sky_<id>_0|1|2.webp = Day / Sunset / Night; thumb = which one the shop card shows (Aurora: the night one)
   building: [{ id: 'classic', name: 'Classic Glass', sub: 'Default' }, { id: 'candy', name: 'Candy Glass', gold: 1000, set: 'candy' },
-              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua' }],
+              { id: 'eco', name: 'Eco Campus', gold: 1000, set: 'eco' }, { id: 'aqua', name: 'Aqua Gadget', gold: 1000, set: 'aqua' },
+              { id: 'poolhouse', name: 'Pastel Poolhouse', ko: '파스텔 풀하우스', gold: 1000, set: 'poolhouse' }, { id: 'reverie', name: 'Reverie Village', ko: '몽상 마을', gold: 1000, set: 'reverie' }],
   bubble: [{ id: 'rainbow', name: 'Rainbow', sub: 'Default' }, { id: 'pearl', name: 'Pearl', gold: 200, tint: 0xfff0dc }, { id: 'mint', name: 'Mint', gold: 200, tint: 0xc6ffe4 },
             // art = own bubble picture (empty bubbles only; item / treasure / gold bubbles keep the clear one so their colour still reads); pop = pop-ring colour; wob = squash amplitude (default .025); cycle = colour drifts slowly
             { id: 'lime', name: 'Lime Slime', gold: 300, art: 'bubble_lime', pop: 0xa6e84a, wob: .07 }, { id: 'tangerine', name: 'Tangerine Gel', gold: 300, art: 'bubble_tangerine', pop: 0xffa040, wob: .03 },

@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.44';
-import { SKINS, setArt } from './shop.js?v=0.7.44';
-import { Mini } from './minianim.js?v=0.7.44';
-import { music } from './audio.js?v=0.7.44';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.44';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.44';
-import { app } from './renderer.js?v=0.7.44';
-import { enableSensor, sensorOn } from './input.js?v=0.7.44';
-import * as TM from './telemetry.js?v=0.7.44';
-import { age13 } from './age.js?v=0.7.44';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.45';
+import { SKINS, setArt } from './shop.js?v=0.7.45';
+import { Mini } from './minianim.js?v=0.7.45';
+import { music } from './audio.js?v=0.7.45';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.45';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.45';
+import { app } from './renderer.js?v=0.7.45';
+import { enableSensor, sensorOn } from './input.js?v=0.7.45';
+import * as TM from './telemetry.js?v=0.7.45';
+import { age13 } from './age.js?v=0.7.45';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export function openRanking(tab = 'normal') {   // two boards: Normal and Speed mode
@@ -84,7 +84,7 @@ export function openCollection(tab = colTab) {
         cards += `<button class="card ${got ? '' : 'locked'}" data-bd="${lv}" data-set="${k.id}"><span class="badge">${lv}</span><img src="${artSrc(lv, k.set || null)}" alt="${got ? names[lv] : tl('col.locked')}" loading="lazy"><div class="nm">${got ? names[lv] : '???'}</div></button>`;
       }
       n += m;
-      h += `<section class="col-set${own ? '' : ' unowned'}"><h3><span>${k.name}</span><b>${own || m ? `${m} / 17` : tl('col.inShop')}</b></h3><div class="grid">${cards}</div></section>`;
+      h += `<section class="col-set${own ? '' : ' unowned'}"><h3><span>${(lang() === 'ko' && k.ko) || k.name}</span><b>${own || m ? `${m} / 17` : tl('col.inShop')}</b></h3><div class="grid">${cards}</div></section>`;
     }
     const total = SKINS.building.length * 17;
     $('col-count').textContent = `${n} / ${total}`; $('col-fill').style.width = (n / total * 100) + '%';
@@ -110,7 +110,7 @@ $('col-grid').addEventListener('click', e => {
     if (art.length) loadSkinArt(art).then(() => { const m = tdMini(); if (m.lv === lv && m.set === set) { m.lv = 0; m.show(lv, set); } });   // rebuild once all of it is in (motion parts like rotors wait for their own art)
     const key = 'bd.' + (SET_PRE[k.set] || '') + lv;   // a set without its own descriptions (Classic, Candy Glass) uses the base ones
     $('td-name').textContent = setNames(k)[lv]; $('td-desc').textContent = tl(tl(key) === key ? 'bd.' + lv : key);
-    $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = k.name; $('tr-detail').hidden = false; return; }
+    $('td-rar').className = 'rar C'; $('td-rar').textContent = 'Lv ' + lv; $('td-meta').textContent = (lang() === 'ko' && k.ko) || k.name; $('tr-detail').hidden = false; return; }
   const b = e.target.closest('[data-tr]'); if (!b) return;
   const id = +b.dataset.tr, got = U.treasures[id], rar = L.TREASURE_RARITY[id - 1];
   if (!got) { toast(tl('col.findIt')); return; }
