@@ -30,8 +30,8 @@
   const N = CONFIG.board, MAXL = CONFIG.maxLevel;
   const ITEM_KEYS = ['rewind', 'pop', 'drop'];
   const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  // spec §4.3 treasure ids 1-12 -> rarity
-  const TREASURE_RARITY = ['C', 'C', 'C', 'C', 'C', 'C', 'R', 'R', 'R', 'R', 'L', 'L'];
+  // spec §4.3 treasure ids 1-22 -> rarity (13-22 added in the collection expansion: 4 C, 4 R, 2 L -> 10 / 8 / 4)
+  const TREASURE_RARITY = ['C', 'C', 'C', 'C', 'C', 'C', 'R', 'R', 'R', 'R', 'L', 'L', 'C', 'C', 'C', 'C', 'R', 'R', 'R', 'R', 'L', 'L'];
 
   const pts = lv => 100 * 2 ** lv;
   const empty = () => Array.from({ length: N }, () => Array(N).fill(0));

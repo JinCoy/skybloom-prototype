@@ -17,13 +17,19 @@ export const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2,
 export const CAL = [0, 1.35, 1.25, 1.15, 1.15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 export const TW = 240, TH = 120, CX = 540, CY = 1000;
 export const ITEMS = [['rewind', 'Rewind', av('assets/item1.webp')], ['pop', 'Bubble Pop', av('assets/item2.webp')], ['drop', 'Cloud Drop', av('assets/item3.webp')]];
-export const TREASURES = [   // spec §4.3, ids 1-12 (rarity lives in logic.js)
+export const TREASURES = [   // spec §4.3, ids 1-22 (rarity lives in logic.js)
   ['Glass Marble', 'A glass marble holding a little piece of sky.'], ['Paper Boat', 'A paper boat that drifted down the water paths.'],
   ['Dandelion Puff', 'A dandelion puff, ready for a wish.'], ['Seashell Charm', 'A tiny seashell charm from a faraway shore.'],
   ['Cloud Pillow', 'A palm-sized pillow made of cloud.'], ['Raindrop Pendant', 'A pendant shaped like a single raindrop.'],
   ['Glass Butterfly', 'A glass butterfly that catches the light.'], ['Sun Catcher', 'A sun catcher that scatters little rainbows.'],
   ['Bubble Wand', 'A rainbow wand for blowing bubbles.'], ['Mini Balloon', 'A tiny hot-air balloon.'],
-  ['Rainbow Feather', 'A feather painted in every colour of the rainbow.'], ['Crystal Koi', 'A crystal koi that swims through the sky.']];
+  ['Rainbow Feather', 'A feather painted in every colour of the rainbow.'], ['Crystal Koi', 'A crystal koi that swims through the sky.'],
+  // 13-22 (collection expansion: Y2K room / music / games / PC / future, same glass look)
+  ['Glass Duckie', 'A glass duck that floated from the bathtub up to the sky.'], ['Clear Cassette', 'A cassette with a favourite song still wound inside.'],
+  ['Lava Lamp', 'A little lamp where blobs drift slowly upward.'], ['Jelly Mouse', 'A clear mouse with water sloshing inside.'],
+  ['Clear Flip Phone', 'A flip phone waiting for a message from the sky.'], ['Pocket Console', 'A game console with a tiny garden floating on its screen.'],
+  ['Glass Music Box', 'Open the lid and the clouds go round and round.'], ['Aqua Bot', 'A little helper robot that looks after the garden.'],
+  ['Bubble Computer', 'A computer that always shows a clear blue sky.'], ['Holo Garden Cube', 'A tiny sky island that floats above your palm.']];
 export const accSrc = id => av(`assets/acc${String(id).padStart(2, '0')}.webp`);
 /* Main-screen garden (10-3, style "Maximum" chosen): 13 buildings, a random showcase every visit. Slots are [row, col, minLv, maxLv]; the picks must be distinct,
    descend toward the front along each diagonal (tall buildings behind, small in front: nothing hides anything), and include at least 3 clearly moving buildings.
@@ -155,9 +161,9 @@ const ASSETS = { logo: 'logo', bg: 'sky_day_0', bg1: 'sky_day_1', bg2: 'sky_day_
   caustic: 'water_caustic', flow: 'water_flow', bubble: 'bubble', bubbleRim: 'bubble_rim', body: 'windmill_body', sails: 'windmill_sails', item1: 'item1', item2: 'item2', item3: 'item3' };
 export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${f}.webp`));
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
-for (let i = 1; i <= 12; i++) loading.push(load('acc' + i, accSrc(i)));
+for (let i = 1; i <= TREASURES.length; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {};   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.51`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.52`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));

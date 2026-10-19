@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.51';
-import { SKINS, setArt } from './shop.js?v=0.7.51';
-import { Mini } from './minianim.js?v=0.7.51';
-import { music } from './audio.js?v=0.7.51';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.51';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.51';
-import { app } from './renderer.js?v=0.7.51';
-import { enableSensor, sensorOn } from './input.js?v=0.7.51';
-import * as TM from './telemetry.js?v=0.7.51';
-import { age13 } from './age.js?v=0.7.51';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl } from './core.js?v=0.7.52';
+import { SKINS, setArt } from './shop.js?v=0.7.52';
+import { Mini } from './minianim.js?v=0.7.52';
+import { music } from './audio.js?v=0.7.52';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.52';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.52';
+import { app } from './renderer.js?v=0.7.52';
+import { enableSensor, sensorOn } from './input.js?v=0.7.52';
+import * as TM from './telemetry.js?v=0.7.52';
+import { age13 } from './age.js?v=0.7.52';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
@@ -92,7 +92,7 @@ export function openCollection(tab = colTab) {
     $('col-grid').innerHTML = h;
   } else {
     const n = Object.keys(U.treasures).length;
-    $('col-count').textContent = `${n} / 12`; $('col-fill').style.width = (n / 12 * 100) + '%';
+    $('col-count').textContent = `${n} / ${TREASURES.length}`; $('col-fill').style.width = (n / TREASURES.length * 100) + '%';
     $('col-grid').innerHTML = '<div class="grid">' + TREASURES.map(([nm], i) => {
       const id = i + 1, got = U.treasures[id], rar = L.TREASURE_RARITY[i];
       return `<button class="card tr ${rar} ${got ? '' : 'locked'}" data-tr="${id}" aria-label="${got ? nm : tl('col.lockedTreasure')}, ${tl('rarity.' + rar)}">${got ? `<span class="cnt">×${got.n}</span>` : ''}<img src="${accSrc(id)}" alt=""><div class="nm">${got ? nm : '???'}</div></button>`;
