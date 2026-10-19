@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.41';
-import { SFX, vib } from './audio.js?v=0.7.41';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.41';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.41';
-import { addFxXY, floatText } from './fx.js?v=0.7.41';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.41';
-import * as TM from './telemetry.js?v=0.7.41';
+import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.42';
+import { SFX, vib } from './audio.js?v=0.7.42';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.42';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.42';
+import { addFxXY, floatText } from './fx.js?v=0.7.42';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.42';
+import * as TM from './telemetry.js?v=0.7.42';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
