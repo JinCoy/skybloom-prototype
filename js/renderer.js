@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.46';
-import { sbLocked } from './sandbox.js?v=0.7.46';
-import { SFX, vib } from './audio.js?v=0.7.46';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.46';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.46';
-import { updateBubbles } from './bubbles.js?v=0.7.46';
-import { updateFx } from './drawfx.js?v=0.7.46';
-import { badgePos, updateTilt } from './input.js?v=0.7.46';
-import { perfGuard } from './perfguard.js?v=0.7.46';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.47';
+import { sbLocked } from './sandbox.js?v=0.7.47';
+import { SFX, vib } from './audio.js?v=0.7.47';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.47';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.47';
+import { updateBubbles } from './bubbles.js?v=0.7.47';
+import { updateFx } from './drawfx.js?v=0.7.47';
+import { badgePos, updateTilt } from './input.js?v=0.7.47';
+import { perfGuard } from './perfguard.js?v=0.7.47';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -76,6 +76,8 @@ const GCAP = { w: 1.10, h: 320, gm: 300 };
 /* Lv13-17 (rule v1.3): sqrt(opaque area) <= MCAP[lv] px, opaque area = drawn w x h x FILL (core.js). Classic is the reference set: MCAP = Classic's own value,
    so a solid picture (Aqua, Dreamcore) carries no more bulk than the Classic building of that level. Applied last, after every box cap. */
 const MCAP = { 13: 176, 14: 199, 15: 205, 16: 201, 17: 220 };
+/* Documented exceptions (00_Spec/Building_Size_Rule_v1.md): pictures that still read too big under every cap (dark, full-width bases); one extra factor each, applied last. */
+const ADJ = { g15: .85, g16: .85 };
 function sprite(lv) {
   const k = bkey(lv), im = IMG[k]; if (!im) return null;
   const gb = GUIDE[k];
@@ -83,6 +85,7 @@ function sprite(lv) {
     if (WCAP[lv]) s = Math.min(s, WCAP[lv] * TW / (gb[2] - gb[0]));
     else if (lv >= 14) { const w0 = (gb[2] - gb[0]) * s, h0 = (gb[3] - gb[1]) * s; s *= Math.min(1, GCAP.w * TW / w0, GCAP.h / h0, GCAP.gm / Math.sqrt(w0 * h0)); }
     if (MCAP[lv] && FILL[k]) s *= Math.min(1, MCAP[lv] / (s * Math.sqrt(FILL[k] * (gb[2] - gb[0]) * (gb[3] - gb[1]))));
+    s *= ADJ[k] || 1;
     return { im, w: (gb[2] - gb[0]) * s, h: (gb[3] - gb[1]) * s, ox: ((gb[0] + gb[2]) / 2 - 512) * s, oy: (gb[3] - 820) * s - .4 * TH }; }
   const want = (HR[lv] * TH + .4 * TH) * CAL[lv];
   const s = Math.min(want / im.height, (WCAP[lv] || .92) * TW / im.width);
