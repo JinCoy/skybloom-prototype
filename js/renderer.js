@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.58';
-import { sbLocked } from './sandbox.js?v=0.7.58';
-import { SFX, vib } from './audio.js?v=0.7.58';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.58';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.58';
-import { updateBubbles } from './bubbles.js?v=0.7.58';
-import { updateFx } from './drawfx.js?v=0.7.58';
-import { badgePos, updateTilt } from './input.js?v=0.7.58';
-import { perfGuard } from './perfguard.js?v=0.7.58';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.59';
+import { sbLocked } from './sandbox.js?v=0.7.59';
+import { SFX, vib } from './audio.js?v=0.7.59';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.59';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.59';
+import { updateBubbles } from './bubbles.js?v=0.7.59';
+import { updateFx } from './drawfx.js?v=0.7.59';
+import { badgePos, updateTilt } from './input.js?v=0.7.59';
+import { perfGuard } from './perfguard.js?v=0.7.59';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -78,6 +78,13 @@ const GCAP = { w: 1.10, h: 320, gm: 300 };
 const MCAP = { 13: 176, 14: 199, 15: 205, 16: 201, 17: 220 };
 /* Documented exceptions (00_Spec/Building_Size_Rule_v1.md): pictures that still read too big under every cap (dark, full-width bases); one extra factor each, applied last. */
 const ADJ = { g15: .85, g16: .85 };
+/* 10-21 play size (A): in a game, Lv9+ nearly stops growing so the board stays easy on the eyes: height <= TH x (1.75 + .03 x (lv - 8)) (Lv8's height, +4 px a level),
+   width <= TW x (.77 + .015 x (lv - 8)); one factor for both, never stretched, about the ground point (the box bottom-centre stays put). The main-screen garden and Decorate keep sprite(). */
+export function playSprite(lv) {
+  const sp = sprite(lv); if (!sp || lv < 9) return sp;
+  const f = Math.min(1, TH * (1.75 + .03 * (lv - 8)) / sp.h, TW * (.77 + .015 * (lv - 8)) / sp.w);
+  return f >= 1 ? sp : { ...sp, w: sp.w * f, h: sp.h * f };
+}
 function sprite(lv) {
   const k = bkey(lv), im = IMG[k]; if (!im) return null;
   const gb = GUIDE[k];
@@ -227,20 +234,20 @@ export function makeInst(lv, key = bkey(lv)) {   // key: the picture to use (def
   return { lv, key, c, glow, parts, W, H, ph: Math.random() * 10 };
 }
 /** Animate one building's parts. t = motion clock (frozen under Reduce Motion), s = on-screen scale (px per texture px). */
-export function updateInst(I, t, dt, s, still) {
+export function updateInst(I, t, dt, s, still, m = 1) {   // m: motion amount (10-21: .5 on the game board) for swings, bobs, squash, swims, slides, spins and flowing water
   const W = I.W, H = I.H, TAU = Math.PI * 2, L2 = (u, v) => [u - W / 2, v - H];
   for (const P of I.parts) {
     const p = P.p, ph = P.ph + I.ph, per = p.period || 3, wave = Math.sin(TAU * t / per + ph);
     if (!P.s && !P.g && !P.dots && !P.stars && !P.hs && !P.boing) continue;   // a part whose picture region is missing draws nothing instead of failing the frame
     switch (p.type) {
-      case 'sway': P.s.rotation = (p.amp || 3) * Math.PI / 180 * (p.cycle ? (still ? 0 : cyc((t / per + ph / TAU) % 1)) : wave); break;   // cycle: a lid that lifts and shuts instead of swinging
+      case 'sway': P.s.rotation = m * (p.amp || 3) * Math.PI / 180 * (p.cycle ? (still ? 0 : cyc((t / per + ph / TAU) % 1)) : wave); break;   // cycle: a lid that lifts and shuts instead of swinging
       case 'door': { const o = still ? 0 : cyc((t / per + ph / TAU) % 1); P.s.scale.x = 1 - o * (1 - (p.open ?? .2)); P.f.alpha = Math.min(1, o * 1.6) * (p.insideAlpha ?? .9); break; }   // the room light shows only as the door opens
       case 'spinband': if (!still) { const n = P.fr.length, k = Math.floor((t / per + ph / TAU) % 1 * n) % n; if (k !== P.k) { P.k = k; P.s.texture = P.fr[k]; } } break;
       case 'boing': { const q = ((t / per + ph / TAU) % 1) * per, D = .6;
-        if (still || q > D) { I.bx = I.by = 1; } else { const x = q / D, k = Math.sin(x * Math.PI * 2.5) * (1 - x) ** 1.5, a = p.amp ?? .07; I.by = 1 + a * k; I.bx = 1 - a * .55 * k; }
+        if (still || q > D) { I.bx = I.by = 1; } else { const x = q / D, k = Math.sin(x * Math.PI * 2.5) * (1 - x) ** 1.5, a = (p.amp ?? .07) * m; I.by = 1 + a * k; I.bx = 1 - a * .55 * k; }
         break; }
-      case 'bob': P.s.y = P.y0 + (p.amp || 3) / s * wave; break;
-      case 'squish': { const k = (p.amp || .04) * wave; P.s.scale.set(1 - k * .5, 1 + k); break; }
+      case 'bob': P.s.y = P.y0 + m * (p.amp || 3) / s * wave; break;
+      case 'squish': { const k = m * (p.amp || .04) * wave; P.s.scale.set(1 - k * .5, 1 + k); break; }
       case 'glow': P.s.alpha = (p.alpha ?? .4) * (.5 + .5 * wave); if (p.hue) P.s.tint = hsl((t * 40 + ph * 50) % 360); break;
       case 'sweep': {
         const q = ((t + ph) % per) / per, b = P.b, g = P.g; g.clear();
@@ -251,7 +258,7 @@ export function updateInst(I, t, dt, s, still) {
         break;
       }
       case 'flow': {
-        if (!still) P.off += (p.speed || 60) / s * dt;
+        if (!still) P.off += (p.speed || 60) / s * dt * m;
         const ft = waterTex('flow'), da = (p.dir ?? 90) * Math.PI / 180;   // dir: angle the water runs along (90 = down, 0 = right)
         P.g.clear().beginTextureFill({ texture: ft, alpha: p.alpha ?? .45, color: P.fc, matrix: new PIXI.Matrix().scale(.32, .32).translate((Math.cos(da) * P.off) % (ft.width * .32), (Math.sin(da) * P.off) % (ft.height * .32)) }).drawPolygon(P.poly).endFill();
         break;
@@ -290,12 +297,12 @@ export function updateInst(I, t, dt, s, still) {
       case 'globe': if (P.s && !still) { const n = P.fr.length, k = Math.floor((t / (p.period || 8) + ph / TAU) % 1 * n) % n; if (k !== P.k) { P.k = k; P.s.texture = P.fr[k]; } } break;
       case 'swim': if (P.s) {   // swims to one side, turns, swims back; a gentle up-and-down on the way
         const q = (t / (p.period || 8) + ph / TAU) % 1, x = Math.sin(q * TAU), dir = Math.cos(q * TAU);
-        P.s.x = P.x0 + (p.dx || .2) * W * (still ? 0 : x); P.s.y = P.y0 + (still ? 0 : Math.sin(q * TAU * 3) * (p.dy || .015) * H);
+        P.s.x = P.x0 + m * (p.dx || .2) * W * (still ? 0 : x); P.s.y = P.y0 + (still ? 0 : m * Math.sin(q * TAU * 3) * (p.dy || .015) * H);
         P.s.scale.set(P.k * (still ? 1 : dir < 0 ? -1 : 1), P.k); P.s.rotation = still ? 0 : -.06 * Math.sin(q * TAU * 3);   // the picture faces left: flipped while it swims right
       } break;
       case 'drive': if (P.s) { const q = still ? .5 : (t / (p.period || 6) + ph / TAU) % 1; P.s.x = P.x0 + (p.dx || 0) * W * q; P.s.y = P.y0 + (p.dy || 0) * H * q; P.s.alpha = Math.min(1, Math.sin(q * Math.PI) * 3); } break;
-      case 'slide': if (P.s) { const m = still ? 0 : Math.sin(TAU * t / (p.period || 8) + ph); P.s.x = P.x0 + (p.dx || 0) * W * m; P.s.y = P.y0 + (p.dy || 0) * H * m; } break;
-      case 'spin': if (P.s && !still) P.s.rotation += (p.speed || .7) * dt; break;
+      case 'slide': if (P.s) { const sl = still ? 0 : m * Math.sin(TAU * t / (p.period || 8) + ph); P.s.x = P.x0 + (p.dx || 0) * W * sl; P.s.y = P.y0 + (p.dy || 0) * H * sl; } break;
+      case 'spin': if (P.s && !still) P.s.rotation += (p.speed || .7) * dt * m; break;
     }
   }
 }
@@ -578,7 +585,7 @@ function cloudFx(r, c) {   // Cloud Drop: puffs gather above the tile, then a li
   f.col = new PIXI.Sprite(genTextures().pillar); R.fxTop.addChildAt(f.col, 0); f.spr.push(f.col); SFX.cloud();
 }
 export function ghostOf(lv, r, c) {   // plain sprite copy of a building, placed like the board does
-  const sp = sprite(lv); if (!sp || !R) return null;
+  const sp = (U.screen === 'game' ? playSprite : sprite)(lv); if (!sp || !R) return null;
   const t = tex(bkey(lv)), g = new PIXI.Sprite(t), [x, y] = center(r, c); g.anchor.set(.5, 1); g.scale.set(sp.w / t.width); g.position.set(x + sp.ox, y + .4 * TH + sp.oy); return g;
 }
 function updateBoard(dt, now, still) {
@@ -625,12 +632,13 @@ function updateBoard(dt, now, still) {
   const SNAP = 160, snap = inGame && !draggingNow && !A && !still && U.snap && now - U.snap.t < SNAP && board[U.snap.from[0]][U.snap.from[1]] === U.snap.lv ? U.snap : null;   // a drag let go off a target glides back to its tile
   if (snap) { const e = 1 - (1 - (now - snap.t) / SNAP) ** 2, [cx, cy] = center(...snap.from), [px, py] = [snap.pt[0], snap.pt[1] + 20];
     pieces.push({ lv: snap.lv, x: px + (cx - px) * e, y: py + (cy - py) * e, k: 1.06 - .06 * e, alpha: .9 + .1 * e, key: 'drag', z: 99 }); }
-  const rectOf = p => { const sp = sprite(p.lv); if (!sp) return null; const [x, y] = center(p.r, p.c); return [x - sp.w / 2 + sp.ox, y + .4 * TH - sp.h + sp.oy, sp.w, sp.h]; };
+  const spr = inGame ? playSprite : sprite;   // 10-21: smaller Lv9+ in a game only
+  const rectOf = p => { const sp = spr(p.lv); if (!sp) return null; const [x, y] = center(p.r, p.c); return [x - sp.w / 2 + sp.ox, y + .4 * TH - sp.h + sp.oy, sp.w, sp.h]; };
   const focus = press || sel, selRect = focus ? rectOf({ lv: board[focus[0]][focus[1]], r: focus[0], c: focus[1] }) : null;
   const seen = new Set(); drawn = [];
   const hintK = hintStrength(inGame, A, still);
   for (const p of pieces) {
-    const sp = sprite(p.lv); if (!sp) continue;
+    const sp = spr(p.lv); if (!sp) continue;
     let I = R.inst.get(p.key);
     if (!I || I.lv !== p.lv || I.key !== bkey(p.lv)) { if (I) I.c.destroy({ children: true }); I = makeInst(p.lv); R.inst.set(p.key, I); R.pieces.addChild(I.c); }
     seen.add(p.key);
@@ -660,7 +668,9 @@ function updateBoard(dt, now, still) {
     I.c.scale.set(s * k * kx * (I.bx || 1), s * k * ky * (I.by || 1)); I.c.position.set(x + dx + sp.ox * k, y + .4 * TH + sp.oy * k + dy);   // I.bx / I.by: a boing part (stretch and bounce back), base fixed
     I.glow.alpha = gardenPulse(x, y - 60, !inGame) * .38 + (hintK > 0 && p.key !== 'mv' && p.key !== 'drag' && L.targets(board, p.r, p.c).length ? hintK * .3 : 0) + w[2] * .14; I.glow.visible = I.glow.alpha > .01; I.glow.tint = w[2] > .5 ? 0xffd890 : 0xffffff;
     const sil = !inGame && sbLocked(p.lv); if (!!I.sil !== sil) { I.sil = sil; I.c.filters = sil ? [silFilter()] : null; } if (sil) I.glow.visible = false;
-    updateInst(I, TP, dt, s * k, still);
+    const mt = !inGame || p.key === 'mv' || p.key === 'drag' || (sel && same([p.r, p.c], sel)) || (U.fresh && U.fresh.key === p.key && now - U.fresh.t < 3000) ? 1 : .5;   // 10-21 (C): half motion on the board; the selected and the new building move fully
+    I.mk = I.mk == null ? mt : I.mk + (mt - I.mk) * Math.min(1, dt * 6);   // eased, so selecting does not jerk
+    updateInst(I, TP, dt, s * k, still, I.mk);
     if (p.key !== 'mv' && p.key !== 'drag') drawn.push({ r: p.r, c: p.c, lv: p.lv, key: I.key, x: x + dx - sp.w * k / 2 + sp.ox * k, y: y + .4 * TH - sp.h * k + sp.oy * k + dy, w: sp.w * k, h: sp.h * k });
   }
   for (const [key, I] of R.inst) if (!seen.has(key)) { I.c.destroy({ children: true }); R.inst.delete(key); }

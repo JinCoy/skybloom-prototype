@@ -1,12 +1,12 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.58';
-import { SFX, vib } from './audio.js?v=0.7.58';
-import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.58';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.58';
-import { R, startDrop } from './renderer.js?v=0.7.58';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.58';
-import { buildCard } from './screens.js?v=0.7.58';
-import * as TM from './telemetry.js?v=0.7.58';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.59';
+import { SFX, vib } from './audio.js?v=0.7.59';
+import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.59';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.59';
+import { R, startDrop } from './renderer.js?v=0.7.59';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.59';
+import { buildCard } from './screens.js?v=0.7.59';
+import * as TM from './telemetry.js?v=0.7.59';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
@@ -101,7 +101,7 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
-import { Mini } from './minianim.js?v=0.7.58';
+import { Mini } from './minianim.js?v=0.7.59';
 let _cm = null, _rm = null;
 const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {
@@ -142,6 +142,7 @@ export function doMerge(from, to) {
 }
 export function finishMerge(e) {
   const [r, c] = e.to, now = performance.now(), tier = tierOf(e.lv);
+  U.fresh = { key: r + ',' + c, t: now };   // 10-21: the new building moves fully for 3 s (renderer.js)
   U.pops[r + ',' + c] = { t0: now, amp: [.25, .3, .45, .55][tier], dur: tier >= 2 ? 380 : 260 }; U.boardBounce = now;
   if (e.bloom) bloomFx(r, c); else mergeFx(r, c, tier);
   if (e.combo >= 2) { const [x, y] = center(r, c); floatText(tl('float.combo', { n: e.combo }), x, y - 120, e.combo >= 5); }
