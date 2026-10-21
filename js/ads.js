@@ -2,23 +2,25 @@
    Web / prototype: the labelled placeholder countdown (#ov-ad), never a real or imitation ad.
    App (Capacitor, step 3-5): Google AdMob through @capacitor-community/admob (native plugin, reached via the Capacitor bridge: no bundler here).
    Callers only see 'done' (give the reward) or 'cancel' (no reward: closed early, no fill or an error). */
-import { $, tl } from './core.js?v=0.7.61';
-import { overlay, toast } from './ui.js?v=0.7.61';
-import { AC } from './audio.js?v=0.7.61';
-import { age13, bracket } from './age.js?v=0.7.61';
+import { $, tl } from './core.js?v=0.7.62';
+import { overlay, toast } from './ui.js?v=0.7.62';
+import { AC } from './audio.js?v=0.7.62';
+import { age13, bracket } from './age.js?v=0.7.62';
 
 const cap = window.Capacitor, AdMob = cap?.isNativePlatform?.() ? (cap.Plugins?.AdMob || cap.registerPlugin?.('AdMob')) : null;
 /* Rewarded ad units. These are Google's public TEST units (always fill, never pay): replace with the real units from the AdMob console before release. */
 const REWARDED = { ios: 'ca-app-pub-3940256099942544/1712485313', android: 'ca-app-pub-3940256099942544/5224354917' };
 
 let started = null;
-function startAdMob() {   // once per launch: privacy consent (UMP) -> iOS tracking prompt (13+ only) -> SDK, tagged by the age gate
-  return started || (started = (async () => {
-    let c = await AdMob.requestConsentInfo();
-    if (c.isConsentFormAvailable && c.status === 'REQUIRED') c = await AdMob.showConsentForm();
-    if (!c.canRequestAds) return false;
-    const b = bracket(), kid = !age13();   // unanswered counts as a child
-    if (!kid && cap.getPlatform() === 'ios') try { await AdMob.requestTrackingAuthorization(); } catch {}
+function startAdMob() {   // once per launch. 18+: privacy consent (UMP) -> iOS tracking prompt -> SDK. Under 18 or unanswered: no consent / tracking message at all
+  return started || (started = (async () => {   // (UMP still showed its tracking explainer with tagForUnderAgeOfConsent on the iOS simulator), only child / under-age tagged, non-personalised requests
+    const b = bracket(), kid = !age13(), adult = b === 'a18';   // unanswered counts as a child
+    if (adult) {
+      let c = await AdMob.requestConsentInfo();
+      if (c.isConsentFormAvailable && c.status === 'REQUIRED') c = await AdMob.showConsentForm();
+      if (!c.canRequestAds) return false;
+      if (cap.getPlatform() === 'ios') try { await AdMob.requestTrackingAuthorization(); } catch {}
+    }
     await AdMob.initialize({ tagForChildDirectedTreatment: kid, tagForUnderAgeOfConsent: kid || b === 't13', maxAdContentRating: kid ? 'General' : b === 't13' ? 'ParentalGuidance' : 'Teen' });
     return true;
   })().catch(() => { started = null; return false; }));
