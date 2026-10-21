@@ -93,6 +93,8 @@ body {
 .item.blink { animation: itemblink .55s ease-in-out 3; }
 @keyframes itemblink { 0%, 100% { transform: scale(1); box-shadow: 0 10px 22px rgba(10, 70, 150, .28); } 50% { transform: scale(1.14); box-shadow: 0 0 0 10px rgba(255, 255, 255, .7), 0 0 36px 14px rgba(255, 232, 120, .9); } }
 .itemlbl { width: 220px; }
+#cel-ok { opacity: 0; pointer-events: none; transition: opacity .4s ease; }   /* fades in 0.9 s after the building shows (game.js runCelebrations) */
+#cel-ok.on { opacity: 1; pointer-events: auto; }
 #place { left: 80px; top: 1545px; width: 920px; height: 220px; border-radius: 80px; font-size: 100px; justify-content: flex-end; padding-right: 210px; }
 #nextbox { position: absolute; left: 24px; top: 20px; width: 186px; height: 172px; border-radius: 36px; border: 5px solid var(--gold-1);
   background: linear-gradient(#fff, #dff2ff); display: flex; flex-direction: column; align-items: center; padding-top: 14px; box-sizing: border-box; }
@@ -346,25 +348,24 @@ body {
     <div class="layer" id="ov-celebrate" hidden>
       <div class="dim"></div><div class="rays"></div>
       <button class="gel gold" style="left:190px;top:300px;width:700px;height:130px;font-size:66px;cursor:default" tabindex="-1" data-i18n="cel.title">New Building!</button>
-      <div class="abs" id="cel-anim" style="left:290px;top:520px;width:500px;height:540px"><img id="cel-img" alt="" style="width:100%;height:100%;object-fit:contain;object-position:bottom"></div>
-      <div class="glass panel" style="top:1110px;padding:40px 40px;gap:16px">
+      <div class="abs" id="cel-anim" style="left:290px;top:460px;width:500px;height:540px"><img id="cel-img" alt="" style="width:100%;height:100%;object-fit:contain;object-position:bottom"></div>
+      <div class="glass panel" style="top:1015px;padding:36px 40px;gap:14px">
         <h2 id="cel-name" style="font-size:66px">Name</h2>
         <div class="cap" id="cel-sub" style="letter-spacing:.02em;font-size:34px"></div>
       </div>
-      <button class="gel green" id="cel-ok" style="left:200px;top:1580px;width:680px;height:160px;font-size:70px" data-i18n="cel.ok">Continue</button>
+      <button class="gel green" id="cel-ok" style="left:200px;top:1270px;width:680px;height:140px;font-size:66px" data-i18n="cel.ok">Continue</button>   <!-- above Place (1545+), so a double tap cannot build -->
     </div>
 
     <div class="layer" id="ov-stuck" hidden>
       <div class="dim"></div>
       <div class="glass panel" style="top:520px">
         <h2 data-i18n="stuck.title">No Moves Left</h2>
-        <div class="cap" style="letter-spacing:.02em;font-size:36px;line-height:1.3" data-i18n="stuck.body">Use an item to keep your garden growing, or end this game.</div>
-        <div style="display:flex;gap:30px;margin-top:20px;flex-wrap:wrap;justify-content:center">
-          <button class="gel gold" id="stuck-ad" style="position:relative;width:710px;height:120px;font-size:42px" data-i18n="ad.button">▶ Watch an ad · +2 each</button>
-          <button class="gel aqua" id="stuck-use" style="position:relative;width:710px;height:120px;font-size:46px" data-i18n="item.use">Use an Item</button>
+        <div class="cap" style="letter-spacing:.02em;font-size:36px;line-height:1.3" data-i18n="stuck.body">You're out of items. Watch an ad for more, or end the game here.</div>
+        <div style="display:flex;gap:30px;margin-top:20px;flex-wrap:wrap;justify-content:center">   <!-- shown only with no item left (items left: a hint instead); texts set in game.js checkStuck -->
+          <button class="gel gold" id="stuck-ad" style="position:relative;width:710px;height:120px;font-size:40px">▶ Watch an ad</button>
+          <button class="gel aqua" id="stuck-end" style="position:relative;width:710px;height:120px;font-size:42px">End Here</button>
         </div>
       </div>
-      <button class="gel ghost" id="stuck-end" hidden style="left:300px;top:1600px;width:480px;height:110px;font-size:46px" data-i18n="stuck.end">End Game</button>   <!-- not shown: ending a stuck game goes through Settings > Quit to Home -->
     </div>
 
     <div class="layer" id="ov-ad" hidden>
@@ -603,4 +604,4 @@ body {
 <script src="logic.js?v=0.5.1"></script>
 <script src="statehash.js?v=0.6.6"></script>   <!-- play-log state hash (13-1); the same file runs in node -->
 <script src="auth.js?v=0.5.1"></script>   <!-- bump the version when logic.js changes so phones do not keep an old copy -->
-<script type="module" src="js/main.js?v=0.7.57"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->
+<script type="module" src="js/main.js?v=0.7.58"></script>   <!-- modules: bump the ?v= here and in every import (js/*.js) together -->

@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.57';
-import { sbLocked } from './sandbox.js?v=0.7.57';
-import { SFX, vib } from './audio.js?v=0.7.57';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.57';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.57';
-import { updateBubbles } from './bubbles.js?v=0.7.57';
-import { updateFx } from './drawfx.js?v=0.7.57';
-import { badgePos, updateTilt } from './input.js?v=0.7.57';
-import { perfGuard } from './perfguard.js?v=0.7.57';
+import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.58';
+import { sbLocked } from './sandbox.js?v=0.7.58';
+import { SFX, vib } from './audio.js?v=0.7.58';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.58';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.58';
+import { updateBubbles } from './bubbles.js?v=0.7.58';
+import { updateFx } from './drawfx.js?v=0.7.58';
+import { badgePos, updateTilt } from './input.js?v=0.7.58';
+import { perfGuard } from './perfguard.js?v=0.7.58';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -622,6 +622,9 @@ function updateBoard(dt, now, still) {
   } else for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c]) pieces.push({ lv: board[r][c], r, c, key: r + ',' + c });
   const draggingNow = inGame && U.drag && U.drag.active;
   if (draggingNow) { const [px, py] = U.drag.pt; pieces.push({ lv: board[U.drag.from[0]][U.drag.from[1]], x: px, y: py + 20, k: 1.06, alpha: .9, key: 'drag', z: 99 }); }
+  const SNAP = 160, snap = inGame && !draggingNow && !A && !still && U.snap && now - U.snap.t < SNAP && board[U.snap.from[0]][U.snap.from[1]] === U.snap.lv ? U.snap : null;   // a drag let go off a target glides back to its tile
+  if (snap) { const e = 1 - (1 - (now - snap.t) / SNAP) ** 2, [cx, cy] = center(...snap.from), [px, py] = [snap.pt[0], snap.pt[1] + 20];
+    pieces.push({ lv: snap.lv, x: px + (cx - px) * e, y: py + (cy - py) * e, k: 1.06 - .06 * e, alpha: .9 + .1 * e, key: 'drag', z: 99 }); }
   const rectOf = p => { const sp = sprite(p.lv); if (!sp) return null; const [x, y] = center(p.r, p.c); return [x - sp.w / 2 + sp.ox, y + .4 * TH - sp.h + sp.oy, sp.w, sp.h]; };
   const focus = press || sel, selRect = focus ? rectOf({ lv: board[focus[0]][focus[1]], r: focus[0], c: focus[1] }) : null;
   const seen = new Set(); drawn = [];
@@ -647,6 +650,7 @@ function updateBoard(dt, now, still) {
           if (t >= 1) endDrop(); else { const q = Math.sin(t * Math.PI) * (1 - t * .5); kx = 1 + .2 * q; ky = 1 - .22 * q; } }
       }
       if (U.nope && U.nope.r === p.r && U.nope.c === p.c) { const t = (now - U.nope.t0) / 300; if (t >= 1) U.nope = null; else if (!still) dx = Math.sin(t * 30) * 7 * (1 - t); }
+      if (snap && same([p.r, p.c], snap.from)) { I.c.visible = false; continue; }
       if (sel && same([p.r, p.c], sel)) { if (draggingNow) { I.c.visible = false; continue; } dy -= 8 + 3 * Math.sin(now / 220); }
       if (sel && tg.some(t => same(t, [p.r, p.c])) && U.settings.hints) dy -= 3 * (.5 + .5 * Math.sin(now / 140));
       if (selRect && (p.r + p.c) > (focus[0] + focus[1]) && overlap(rectOf(p), selRect)) alpha = Math.min(alpha, .35);
@@ -672,7 +676,7 @@ function updateBoard(dt, now, still) {
   }
   let bi = 0;
   if (inGame && !A) for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c]) {
-    if (draggingNow && same([r, c], U.drag.from)) continue;
+    if ((draggingNow && same([r, c], U.drag.from)) || (snap && same([r, c], snap.from))) continue;
     if (D && !D.landed && D.r === r && D.c === c) continue;   // badge appears when the building lands
     const b = R.badgePool[bi++]; b.texture = genTextures().badge[board[r][c]]; b.position.set(...badgePos(r, c, board[r][c])); b.visible = true;
   }

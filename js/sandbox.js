@@ -1,9 +1,9 @@
 /* Skybloom module: sandbox (shop > Decorate tab): place any building on the showcase garden (SHOW) to check sizes, skins and light. Never touches the game board G.board.
    Edits are a draft: only the Save button (or "Save" when leaving) writes the garden; leaving without saving restores the last saved one. */
-import { $, MASK, SHOW, TH, TW, U, artSrc, center, hasBuilt, store, tl } from './core.js?v=0.7.57';
-import { addFxXY } from './fx.js?v=0.7.57';
-import { drawn } from './renderer.js?v=0.7.57';
-import { Mini } from './minianim.js?v=0.7.57';
+import { $, MASK, SHOW, TH, TW, U, artSrc, center, hasBuilt, store, tl } from './core.js?v=0.7.58';
+import { addFxXY } from './fx.js?v=0.7.58';
+import { drawn } from './renderer.js?v=0.7.58';
+import { Mini } from './minianim.js?v=0.7.58';
 
 /* ponytail: TEST BUILD ONLY. All 17 buildings can be placed; the Silhouette button previews the real rule (locked levels cannot be placed). Set false before a public release. */
 const TEST_ALL = true;

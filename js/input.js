@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.57';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.57';
-import { blinkItems, hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.57';
-import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.57';
-import { drawn } from './renderer.js?v=0.7.57';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.57';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.57';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.57';
-import * as TM from './telemetry.js?v=0.7.57';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.58';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.58';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.58';
+import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.58';
+import { drawn } from './renderer.js?v=0.7.58';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.58';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.58';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.58';
+import * as TM from './telemetry.js?v=0.7.58';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -125,9 +125,9 @@ cv.addEventListener('pointerup', e => {
     hud(); return;
   }
   if (U.drag && U.drag.active) {
-    const t = tileAt(...worldPoint(e)), from = U.drag.from; U.drag = null;
+    const t = tileAt(...worldPoint(e)), from = U.drag.from, pt = U.drag.pt; U.drag = null;
     if (t && L.targets(G.board, from[0], from[1]).some(x => same(x, t))) doMerge(from, t);
-    else U.sel = from;
+    else { U.sel = null; U.snap = { from, pt, lv: G.board[from[0]][from[1]], t: performance.now() }; }   // 10-21: no merge -> the selection is let go and the building glides back (renderer.js)
   } else { U.drag = null; onTap(down.cands); }
   down = null; hud();
 });
@@ -157,9 +157,8 @@ $('ov-sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet
 $('btn-play').onclick = () => startOrAsk('normal');
 $('btn-speed').onclick = () => startOrAsk('speed');
 $('place').onclick = () => doPlace();
-$('cel-ok').onclick = () => { overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
+$('cel-ok').onclick = () => { U.placeLock = performance.now() + 400; overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
 $('stuck-ad').onclick = openAd; $('ad-refill').onclick = openAd; $('ad-cancel').onclick = cancelAd;
-$('stuck-use').onclick = () => { if ($('stuck-use').classList.contains('dis')) return; overlay('stuck', false); blinkItems(); };   // close the window; the item box blinks so the player picks Bubble Pop or Rewind there
 $('stuck-end').onclick = () => gameOver('player_finish');
 $('res-retry').onclick = () => TM.leaveResult(() => transition('pass', () => newGame(false, U.mode)));   // the first finished test run asks for feedback here (13-1)
 $('res-home').onclick = () => TM.leaveResult(() => transition('cloud', () => { overlay('result', false); show('main'); }));
