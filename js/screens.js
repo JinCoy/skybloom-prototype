@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.60';
-import { SKINS, setArt } from './shop.js?v=0.7.60';
-import { Mini } from './minianim.js?v=0.7.60';
-import { music } from './audio.js?v=0.7.60';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.60';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.60';
-import { app } from './renderer.js?v=0.7.60';
-import { enableSensor, sensorOn } from './input.js?v=0.7.60';
-import * as TM from './telemetry.js?v=0.7.60';
-import { age13 } from './age.js?v=0.7.60';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.61';
+import { SKINS, setArt } from './shop.js?v=0.7.61';
+import { Mini } from './minianim.js?v=0.7.61';
+import { music } from './audio.js?v=0.7.61';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.61';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.61';
+import { app } from './renderer.js?v=0.7.61';
+import { enableSensor, sensorOn } from './input.js?v=0.7.61';
+import * as TM from './telemetry.js?v=0.7.61';
+import { age13 } from './age.js?v=0.7.61';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures

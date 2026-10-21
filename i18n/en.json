@@ -32,6 +32,7 @@
   "ad.done": "Reward: +2 of each item",
   "ad.cancel": "Close (no reward)",
   "ad.granted": "+{n} of each item",
+  "ad.unavailable": "Couldn't load an ad. Please try again in a moment",
   "res.double": "▶ Watch an ad · double gold (+{n})",
   "ad.doneDouble": "Reward: +{n} gold",
   "ad.doubled": "Gold doubled! +{n}",

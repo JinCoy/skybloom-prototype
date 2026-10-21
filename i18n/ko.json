@@ -32,6 +32,7 @@
   "ad.done": "보상: 아이템 각 +2",
   "ad.cancel": "닫기 (보상 없음)",
   "ad.granted": "아이템 각 +{n}",
+  "ad.unavailable": "광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "res.double": "▶ 광고 보고 골드 2배 (+{n})",
   "ad.doneDouble": "보상: 골드 +{n}",
   "ad.doubled": "골드 2배! +{n}",

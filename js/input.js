@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.60';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.60';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.60';
-import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.60';
-import { drawn } from './renderer.js?v=0.7.60';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.60';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.60';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.60';
-import * as TM from './telemetry.js?v=0.7.60';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.61';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.61';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.61';
+import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.61';
+import { drawn } from './renderer.js?v=0.7.61';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.61';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.61';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.61';
+import * as TM from './telemetry.js?v=0.7.61';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
