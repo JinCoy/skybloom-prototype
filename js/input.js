@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.59';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.59';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.59';
-import { busy, cancelAd, checkStuck, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.59';
-import { drawn } from './renderer.js?v=0.7.59';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.59';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.59';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.59';
-import * as TM from './telemetry.js?v=0.7.59';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.60';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.60';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.60';
+import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.60';
+import { drawn } from './renderer.js?v=0.7.60';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.60';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.60';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.60';
+import * as TM from './telemetry.js?v=0.7.60';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -158,7 +158,7 @@ $('btn-play').onclick = () => startOrAsk('normal');
 $('btn-speed').onclick = () => startOrAsk('speed');
 $('place').onclick = () => doPlace();
 $('cel-ok').onclick = () => { U.placeLock = performance.now() + 400; overlay('celebrate', false); if (U.afterCel) { toast(U.afterCel, 2400); U.afterCel = null; } checkStuck(); };
-$('stuck-ad').onclick = openAd; $('ad-refill').onclick = openAd; $('ad-cancel').onclick = cancelAd;
+$('stuck-ad').onclick = openAd; $('ad-refill').onclick = openAd; $('res-double').onclick = doubleGold;
 $('stuck-end').onclick = () => gameOver('player_finish');
 $('res-retry').onclick = () => TM.leaveResult(() => transition('pass', () => newGame(false, U.mode)));   // the first finished test run asks for feedback here (13-1)
 $('res-home').onclick = () => TM.leaveResult(() => transition('cloud', () => { overlay('result', false); show('main'); }));

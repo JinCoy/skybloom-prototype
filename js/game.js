@@ -1,12 +1,13 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.59';
-import { SFX, vib } from './audio.js?v=0.7.59';
-import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.59';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.59';
-import { R, startDrop } from './renderer.js?v=0.7.59';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.59';
-import { buildCard } from './screens.js?v=0.7.59';
-import * as TM from './telemetry.js?v=0.7.59';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.60';
+import { SFX, vib } from './audio.js?v=0.7.60';
+import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.60';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.60';
+import { R, startDrop } from './renderer.js?v=0.7.60';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.60';
+import { buildCard } from './screens.js?v=0.7.60';
+import * as TM from './telemetry.js?v=0.7.60';
+import { showRewarded } from './ads.js?v=0.7.60';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
@@ -101,7 +102,7 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
-import { Mini } from './minianim.js?v=0.7.59';
+import { Mini } from './minianim.js?v=0.7.60';
 let _cm = null, _rm = null;
 const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {
@@ -189,7 +190,8 @@ export function gameOver(why = 'game_over') {   // why: 'game_over' (no option l
   $('res-img').src = artSrc(G.top); resMini().show(G.top);   // the final building moves too
   $('res-name').textContent = `${NAMES[G.top]} · Lv ${G.top}`;
   const endG = L.endGold(G); addGold(endG, 'run_end_gold'); saveGame('stuck', endG); TM.runEnd(why, endG);   // v0.4 §5.1: 10 + best level x 5, plus what bubbles gave this game
-  $('res-gold').querySelector('span').textContent = tl('res.gold', { n: (endG + G.gold).toLocaleString('en-US') });
+  U.runGold = endG + G.gold; $('res-gold').querySelector('span').textContent = tl('res.gold', { n: U.runGold.toLocaleString('en-US') });
+  $('res-double').hidden = !U.runGold; $('res-double').textContent = tl('res.double', { n: U.runGold.toLocaleString('en-US') });   // planned 2x reward (ads.js)
   buildCard();   // capture the final garden before the result overlay hides it
   overlay('result');
 }
@@ -207,25 +209,25 @@ export function useItem(k) {
 export const busy = () => !!U.anim || performance.now() < (U.placeLock || 0) ||   // placeLock: 0.4 s after Continue, so a double tap neither builds, uses an item nor selects
   ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'].some(k => !$('ov-' + k).hidden);
 
-/* ---------- rewarded-ad mock-up (v0.4 §4.3): a clearly labelled placeholder, no real or imitation ads ---------- */
-let adTimer = 0;
-export function openAd() {
+/* ---------- rewarded ads (v0.4 §4.3): ads.js plays them (placeholder on the web, AdMob in the app) ---------- */
+export function openAd() {   // stuck with no item: +2 of each item
   if (!L.canAdRefill(G)) return;
-  overlay('stuck', false); $('ad-refill').hidden = true; overlay('ad'); TM.adStart();
-  let n = 5; $('ad-count').textContent = n; $('ad-done').hidden = true;
-  clearInterval(adTimer);
-  adTimer = setInterval(() => {
-    n--; $('ad-count').textContent = Math.max(0, n);
-    if (n > 0) return;
-    clearInterval(adTimer); $('ad-done').hidden = false;
-    setTimeout(() => {   // reward only after the "ad" finished
-      overlay('ad', false); stamp(); const e = L.adRefill(G);
-      if (e.ok) { ITEMS.forEach(([k]) => bumpBadge(k)); SFX.gift(); toast(tl('ad.granted', { n: e.each }), 2400); }
-      hud(); checkStuck();
-    }, 700);
-  }, 1000);
+  overlay('stuck', false); TM.adStart();
+  showRewarded('stuck_window', tl('ad.done')).then(r => {
+    if (r === 'cancel') { TM.adCancel(); hud(); checkStuck(); return; }
+    stamp(); const e = L.adRefill(G);
+    if (e.ok) { ITEMS.forEach(([k]) => bumpBadge(k)); SFX.gift(); toast(tl('ad.granted', { n: e.each }), 2400); U.stuckHinted = true; }   // the reward line stays; the items blink instead of a second hint
+    hud(); checkStuck(); if (e.ok) blinkItems();
+  });
 }
-export function cancelAd() { TM.adCancel(); clearInterval(adTimer); overlay('ad', false); hud(); checkStuck(); }
+export function doubleGold() {   // result screen, once per game: watch an ad, get this game's gold (bubbles + end) again
+  const n = U.runGold || 0; if (!n || G.meta.doubled) return;
+  showRewarded('result_double', tl('ad.doneDouble', { n })).then(r => {
+    if (r !== 'done' || G.meta.doubled) return;
+    G.meta.doubled = true; addGold(n, 'ad_double_gold'); SFX.gift(); $('res-double').hidden = true;
+    $('res-gold').querySelector('span').textContent = tl('res.gold', { n: (2 * n).toLocaleString('en-US') }); toast(tl('ad.doubled', { n }), 2400);
+  });
+}
 
 /* ---------- selection / taps ---------- */
 export function select(rc) {
