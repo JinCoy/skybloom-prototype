@@ -1,7 +1,7 @@
-import { $, U, ambient, store, tl } from './core.js?v=0.7.66';
-import { toast } from './ui.js?v=0.7.66';
-import * as TM from './telemetry.js?v=0.7.66';
-import { createDecider } from './perfdecide.js?v=0.7.66';
+import { $, U, ambient, store, tl } from './core.js?v=0.7.67';
+import { toast } from './ui.js?v=0.7.67';
+import * as TM from './telemetry.js?v=0.7.67';
+import { createDecider } from './perfdecide.js?v=0.7.67';
 
 /* ======================================================================
    PERF GUARD: background motion is the first thing to go on a slow phone. When perfdecide says the game is too slow,

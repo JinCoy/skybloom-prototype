@@ -1,25 +1,64 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.66';
-import { SKINS, setArt } from './shop.js?v=0.7.66';
-import { Mini } from './minianim.js?v=0.7.66';
-import { music } from './audio.js?v=0.7.66';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.66';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.66';
-import { app } from './renderer.js?v=0.7.66';
-import { enableSensor, sensorOn } from './input.js?v=0.7.66';
-import * as TM from './telemetry.js?v=0.7.66';
-import { adult } from './age.js?v=0.7.66';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.67';
+import { SKINS, setArt } from './shop.js?v=0.7.67';
+import { Mini } from './minianim.js?v=0.7.67';
+import { music } from './audio.js?v=0.7.67';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.67';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.67';
+import { app } from './renderer.js?v=0.7.67';
+import { enableSensor, sensorOn } from './input.js?v=0.7.67';
+import * as TM from './telemetry.js?v=0.7.67';
+import { adult } from './age.js?v=0.7.67';
+import * as rank from './rank.js?v=0.7.67';
 
-/* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
+/* ---------- ranking (B4): verified boards from the server (js/rank.js); device-only mode shows this device's best ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
-export function openRanking(tab = 'normal') {   // two boards: Normal and Collection (Speed is parked; its board was here)
+let rkTab = 'normal', rkPer = 'week', rkReq = 0;
+const rkRow = (r, rank, me) => {   // built with textContent: a ranking name is never read as HTML
+  const d = document.createElement('div'); d.className = 'rk-row' + (me ? ' me' : ''); d.setAttribute('role', 'listitem');
+  for (const [cls, txt] of [['r' + (rank <= 3 ? ' top' : ''), tl('rank.pos', { n: rank })], ['n', r.nickname || tl('rank.anon')], ['s', r.score.toLocaleString('en-US')]]) { const e = document.createElement('span'); e.className = cls; e.textContent = txt; d.append(e); }
+  return d;
+};
+export async function openRanking(tab = rkTab, per = rkPer) {   // two boards: Normal (this week / all time) and Collection
+  rkTab = tab; rkPer = per; const req = ++rkReq, u = SkyAuth.currentUser();
   $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-col').setAttribute('aria-selected', tab === 'col');
-  const u = SkyAuth.currentUser(); $('rk-who').textContent = u ? (u.provider === 'guest' ? tl('rank.guest') : u.provider) : tl('rank.guest');
-  $('rk-best').textContent = (tab === 'col' ? colScore() : U.best).toLocaleString('en-US');
-  $('rk-note').textContent = tab === 'col' ? tl('rank.colNote', { n: SKINS.building.length * 17 + TREASURES.length }) : tl('rank.note');
-  overlay('ranking'); fitText($('rk-best'), 54);   // after the window is shown: before that its width is 0 and the digits shrank to the minimum
+  $('rk-seg').hidden = tab !== 'normal'; $('rk-week').setAttribute('aria-selected', per === 'week'); $('rk-all').setAttribute('aria-selected', per === 'all');
+  const local = tab === 'col' ? colScore() : U.best, max = SKINS.building.length * 17 + TREASURES.length;
+  $('rk-who').textContent = u ? (u.provider === 'guest' ? tl('rank.guest') : u.provider === 'apple' ? 'Apple' : 'Google') : tl('rank.guest');
+  $('rk-best').textContent = local.toLocaleString('en-US'); $('rk-list').textContent = '';
+  overlay('ranking');
+  if (!rank.online()) {   // device-only: honest empty state + this device's best
+    $('rk-list').hidden = true; $('rk-empty').hidden = false; $('rk-msg').textContent = tl('rank.offline');
+    $('rk-note').textContent = tab === 'col' ? tl('rank.colNote', { n: max }) : tl('rank.noteLocal'); fitText($('rk-best'), 54); return;
+  }
+  $('rk-list').hidden = false; $('rk-empty').hidden = true; $('rk-note').textContent = tl('rank.loading');
+  try {
+    const [{ rows, mine }, nick] = await Promise.all([rank.board(tab === 'col' ? 'col' : per === 'all' ? 'all' : rank.weekId()), rank.nickname()]);
+    if (req !== rkReq) return;   // the player switched tabs meanwhile
+    $('rk-list').append(...rows.map((r, i) => rkRow(r, rows.findIndex(x => x.score === r.score) + 1, r.uid === u.id)));   // ties share a rank
+    if (!rows.length) { $('rk-list').hidden = true; $('rk-empty').hidden = false; $('rk-msg').textContent = tl('rank.empty'); }
+    $('rk-who').textContent = nick || tl('rank.anon');
+    $('rk-best').textContent = mine ? `${tl('rank.pos', { n: mine.rank })} · ${mine.score.toLocaleString('en-US')}` : '–';
+    $('rk-note').textContent = (tab === 'col' ? tl('rank.noteCol', { n: max }) : tl(per === 'all' ? 'rank.noteAll' : 'rank.noteWeek')) + ' · ' + tl('rank.tapName');
+    if (!nick && !store.get('nickAsked', false)) { store.set('nickAsked', true); askNick(''); }   // first visit: pick a ranking name (or stay anonymous)
+  } catch (e) {
+    if (req !== rkReq) return; console.warn('[rank]', e?.code || e?.message || e);
+    $('rk-list').hidden = true; $('rk-empty').hidden = false; $('rk-msg').textContent = tl('rank.failed'); $('rk-note').textContent = tl('rank.noteLocal');
+  }
+  fitText($('rk-best'), 54);
 }
 $('rk-normal').onclick = () => openRanking('normal'); $('rk-col').onclick = () => openRanking('col');
+$('rk-week').onclick = () => openRanking('normal', 'week'); $('rk-all').onclick = () => openRanking('normal', 'all');
+$('rk-me').onclick = () => { if (rank.online()) rank.nickname().then(n => askNick(n || '')).catch(() => askNick('')); };
+function askNick(cur) { $('nick-in').value = cur; $('nick-err').textContent = ''; overlay('nick'); }
+$('nick-anon').onclick = () => overlay('nick', false);
+$('nick-ok').onclick = async () => {
+  const v = $('nick-in').value.trim(); if (!v) { $('nick-err').textContent = tl('nick.len'); return; }
+  $('nick-ok').disabled = true;
+  try { await rank.setNickname(v); overlay('nick', false); openRanking(); }
+  catch (e) { const m = String(e?.message || ''); $('nick-err').textContent = tl(m.startsWith('word') ? 'nick.bad' : m.startsWith('length') ? 'nick.len' : 'nick.fail'); }   // the message may carry a status suffix ('word [400]')
+  finally { $('nick-ok').disabled = false; }
+};
 
 /* ---------- result card (v0.4 §6.4): 1080x1350 image made when the result opens, so sharing starts straight from the tap ---------- */
 export let cardFile = null;

@@ -1,17 +1,18 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.66';
-import { SFX, vib } from './audio.js?v=0.7.66';
-import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.66';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.66';
-import { R, startDrop } from './renderer.js?v=0.7.66';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.66';
-import { buildCard } from './screens.js?v=0.7.66';
-import * as TM from './telemetry.js?v=0.7.66';
-import { showRewarded } from './ads.js?v=0.7.66';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.67';
+import { SFX, vib } from './audio.js?v=0.7.67';
+import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.67';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.67';
+import { R, startDrop } from './renderer.js?v=0.7.67';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.67';
+import { buildCard } from './screens.js?v=0.7.67';
+import * as TM from './telemetry.js?v=0.7.67';
+import { submitGame } from './rank.js?v=0.7.67';
+import { showRewarded } from './ads.js?v=0.7.67';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
-const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'stuck', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'];
+const PAUSE_OV = ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'nick', 'sheet', 'confirm', 'export', 'stuck', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'];
 export const paused = () => PAUSE_OV.some(k => !$('ov-' + k).hidden);
 export const bestNow = () => U.mode === 'speed' ? U.bestSpeed : U.best;
 export function stamp() { tickSpeed(); G.t = Math.max(G.t, Math.round(U.playMs)); }   // action log time = play time
@@ -102,7 +103,7 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
-import { Mini } from './minianim.js?v=0.7.66';
+import { Mini } from './minianim.js?v=0.7.67';
 let _cm = null, _rm = null;
 const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {
@@ -177,6 +178,7 @@ export function saveGame(endedBy, endGold = 0) {
   const rec = { gameId: G.meta.gameId, seed: G.seed, appVersion: APP_V, config: 'fnv:' + fnv(JSON.stringify(L.CONFIG)), startedAt: G.meta.startedAt, durationMs: G.t,
     mode: G.mode === 'speed' ? 'speed' : undefined, tutorial: G.meta.tutorial || undefined, board0: G.meta.board0 || undefined, endedBy, actions: G.log, final: { score: G.score, top: G.top, gold: G.gold + endGold } };
   store.set('games', [...store.get('games', []), rec].slice(-20));
+  submitGame(rec);   // B4: the server replays it; only a verified score is ranked
 }
 export function gameOver(why = 'game_over') {   // why: 'game_over' (no option left) or 'player_finish' (End Game in the stuck window)
   overlay('stuck', false); clearSave(U.mode);
@@ -207,7 +209,7 @@ export function useItem(k) {
   U.sel = null; U.target = U.target === k ? null : k; overlay('stuck', false); hud();
 }
 export const busy = () => !!U.anim || performance.now() < (U.placeLock || 0) ||   // placeLock: 0.4 s after Continue, so a double tap neither builds, uses an item nor selects
-  ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'].some(k => !$('ov-' + k).hidden);
+  ['celebrate', 'result', 'collection', 'settings', 'ad', 'shop', 'ranking', 'nick', 'sheet', 'confirm', 'export', 'age', 'consent', 'feedback', 'quit', 'resume', 'sbsave'].some(k => !$('ov-' + k).hidden);
 
 /* ---------- rewarded ads (v0.4 §4.3): ads.js plays them (placeholder on the web, AdMob in the app) ---------- */
 export function openAd() {   // stuck with no item: +2 of each item
