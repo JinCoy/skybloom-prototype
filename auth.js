@@ -51,12 +51,12 @@
     if (!cred || !await api.ask('merge')) throw fail('cancelled');
     return fromUser((await A.signInWithCredential(auth, cred)).user);
   }
-  async function social(provider) {
+  async function social(provider, fresh) {   // fresh: always a new sign-in (never link to a guest): delete-account.html
     if (!server || (provider === 'apple' && !CFG.apple)) throw fail('not-configured', `${provider} sign-in is not available here`);
     const { A, auth } = fbv || await fb(), cur = auth.currentUser;   // normally already loaded (preloaded below): no wait between the tap and the popup
-    if (cur && !cur.isAnonymous && fromUser(cur).provider === provider) return put(fromUser(cur));   // already signed in with it
+    if (!fresh && cur && !cur.isAnonymous && fromUser(cur).provider === provider) return put(fromUser(cur));   // already signed in with it
     const prov = provider === 'google' ? new A.GoogleAuthProvider() : new A.OAuthProvider('apple.com');
-    const link = cur && cur.isAnonymous;   // a guest keeps its uid (and its progress) by linking
+    const link = !fresh && cur && cur.isAnonymous;   // a guest keeps its uid (and its progress) by linking
     try { return put(fromUser((link ? await A.linkWithPopup(cur, prov) : await A.signInWithPopup(auth, prov)).user)); }
     catch (e) {
       if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-environment') throw fail('popup-blocked');
@@ -69,13 +69,13 @@
     providers: ['google', 'apple', 'guest'],
     get serverConnected() { return server; },
     /** @returns {Promise<{id:string, provider:string}>} */
-    signIn(provider) {
+    signIn(provider, { fresh = false } = {}) {
       if (provider === 'guest') {
         if (!server) return Promise.resolve(localGuest());
         return fb().then(({ A, auth }) => auth.currentUser ? put(fromUser(auth.currentUser)) : A.signInAnonymously(auth).then(r => put(fromUser(r.user))))
           .catch(() => localGuest());   // offline or blocked: play on this device, as before
       }
-      if (provider === 'google' || provider === 'apple') return social(provider);
+      if (provider === 'google' || provider === 'apple') return social(provider, fresh);
       return Promise.reject(fail('unknown-provider'));
     },
     signOut() {   // this device's progress stays in localStorage either way
@@ -83,6 +83,33 @@
       return server && fbp ? fbp.then(({ A, auth }) => A.signOut(auth)).then(done, done) : Promise.resolve(done());
     },
     currentUser() { return session; },
+    /** B7: delete the account and every copy of its data (Backend_Design §5.2; Spark plan, so the client does it).
+        1. a signed-in Google / Apple user signs in again (proves it is the owner; cancelling stops here, nothing deleted)
+        2. sync stops  3. users/{uid}/state/progress and users/{uid} are deleted (the only server data today)
+        4. Apple: the token is revoked  5. the Firebase Auth account is deleted  6. this device: every skybloom.* key and the play-log database.
+        Guests (anonymous) skip 1. Device-only players get 6. Rejects { code: 'cancelled' } when re-sign-in is dismissed. */
+    async deleteAccount({ fresh = false } = {}) {   // fresh: the user signed in moments ago on this page (delete-account.html), so step 1 is skipped
+      if (server && session && !isLocal(session)) {
+        const { A, auth, app } = await fb(), u = auth.currentUser;
+        if (u) {
+          let token = null;
+          if (!u.isAnonymous && !fresh) {
+            const pv = fromUser(u).provider, prov = pv === 'apple' ? new A.OAuthProvider('apple.com') : new A.GoogleAuthProvider();
+            try { const r = await A.reauthenticateWithPopup(u, prov); token = pv === 'apple' ? (A.OAuthProvider.credentialFromResult(r) || {}).accessToken : null; }
+            catch (e) { throw e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/user-mismatch' ? fail('cancelled') : e.code === 'auth/popup-blocked' ? fail('popup-blocked') : e; }
+          }
+          put(null);   // sync.js stops before the data goes (no late push can bring the document back)
+          const F = await import(CDN + 'firebase-firestore.js'), db = F.getFirestore(app);
+          if (emu && !db._skyEmu) { F.connectFirestoreEmulator(db, '127.0.0.1', 8080); db._skyEmu = true; }
+          for (const p of [`users/${u.uid}/state/progress`, `users/${u.uid}`]) await F.deleteDoc(F.doc(db, p));
+          if (token) await A.revokeAccessToken(auth, token).catch(() => {});   // Apple requires it on account deletion
+          await A.deleteUser(u).catch(e => { if (!(u.isAnonymous && e.code === 'auth/requires-recent-login')) throw e; });   // a guest cannot sign in again: its data is gone, the empty account waits for the inactive-account clean-up
+        }
+      }
+      put(null);
+      try { for (const k of Object.keys(localStorage)) if (k.startsWith('skybloom.')) localStorage.removeItem(k); } catch { /* storage blocked: nothing kept */ }
+      await new Promise(res => { try { const r = indexedDB.deleteDatabase('skybloom-telemetry'); r.onsuccess = r.onerror = r.onblocked = () => res(); } catch { res(); } });
+    },
     onChange(fn) { subs.push(fn); },
     fb,
     /** The game replaces this with its own dialog; kind: 'merge'. */

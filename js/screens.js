@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.64';
-import { SKINS, setArt } from './shop.js?v=0.7.64';
-import { Mini } from './minianim.js?v=0.7.64';
-import { music } from './audio.js?v=0.7.64';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.64';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.64';
-import { app } from './renderer.js?v=0.7.64';
-import { enableSensor, sensorOn } from './input.js?v=0.7.64';
-import * as TM from './telemetry.js?v=0.7.64';
-import { adult } from './age.js?v=0.7.64';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.65';
+import { SKINS, setArt } from './shop.js?v=0.7.65';
+import { Mini } from './minianim.js?v=0.7.65';
+import { music } from './audio.js?v=0.7.65';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.65';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.65';
+import { app } from './renderer.js?v=0.7.65';
+import { enableSensor, sensorOn } from './input.js?v=0.7.65';
+import * as TM from './telemetry.js?v=0.7.65';
+import { adult } from './age.js?v=0.7.65';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
@@ -142,10 +142,16 @@ export function confirmBox(title, body, yes, no = tl('banner.cancel')) {
 if (window.SkyAuth) SkyAuth.ask = kind => kind === 'merge' ? confirmBox(tl('auth.mergeQ'), tl('auth.mergeBody'), tl('auth.merge')) : Promise.resolve(false);
 export function openSettings() {
   for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); ambientTog(); verNote();
-  $('acct-who').textContent = acctLabel(); $('set-logout').hidden = U.screen === 'game';   // no log-out mid-game: the board would be lost
+  $('acct-who').textContent = acctLabel(); $('set-logout').hidden = $('set-del-row').hidden = U.screen === 'game';   // no log-out mid-game: the board would be lost
   overlay('settings');
 }
 $('set-logout').onclick = () => confirmBox(tl('set.logoutQ'), tl('set.logoutBody'), tl('set.logout')).then(ok => ok && SkyAuth.signOut().then(() => { overlay('settings', false); transition('cloud', () => show('login')); }));
+$('set-delete').onclick = async () => {   // B7: account + every copy of the data (auth.js deleteAccount); a Google / Apple user signs in once more to confirm
+  const u = SkyAuth.currentUser(), social = u && (u.provider === 'google' || u.provider === 'apple');
+  if (!await confirmBox(tl('del.q'), tl('del.body') + (social ? ' ' + tl('del.reauth', { p: u.provider === 'apple' ? 'Apple' : 'Google' }) : ''), tl('del.yes'))) return;
+  try { await SkyAuth.deleteAccount(); } catch (e) { if (e?.code !== 'cancelled') toast(tl(e?.code === 'popup-blocked' ? 'signin.popup' : 'del.failed'), 3600); return; }
+  overlay('settings', false); toast(tl('del.done'), 2400); setTimeout(() => location.reload(), 1600);   // a fresh start: age, login and an empty garden
+};
 $('cf-no').onclick = () => cfDone?.(false);
 $('cf-yes').onclick = () => cfDone?.(true);
 for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
