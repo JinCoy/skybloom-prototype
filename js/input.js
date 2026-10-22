@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.63';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.63';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.63';
-import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.63';
-import { drawn } from './renderer.js?v=0.7.63';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.63';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.63';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.63';
-import * as TM from './telemetry.js?v=0.7.63';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.64';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.64';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.64';
+import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.64';
+import { drawn } from './renderer.js?v=0.7.64';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.64';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.64';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.64';
+import * as TM from './telemetry.js?v=0.7.64';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -153,6 +153,7 @@ document.addEventListener('click', e => {
 $('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cloud', () => show('main')));
 for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).then(() => transition('cloud', () => show('main')), e => {
   if (e && e.code === 'cancelled') return;
+  if (e && e.code === 'popup-blocked') return toast(tl('signin.popup'), 3600);
   if (e && e.code === 'not-configured') sheet(tl('signin.title', { p: pv === 'google' ? 'Google' : 'Apple' }), tl(SkyAuth.serverConnected ? 'signin.bodySoon' : 'signin.body'));
   else toast(tl('signin.failed'), 2600);
 });

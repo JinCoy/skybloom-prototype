@@ -4,7 +4,9 @@
    Server mode (firebase-config.js present, an authorised domain, not the app build): Firebase Auth from the pinned CDN SDK.
      guest = anonymous sign-in; Google (and later Apple) is LINKED to the guest's uid, so the account keeps the same id and data.
      A Google account that already belongs to another uid asks "merge?" (SkyAuth.ask, set by the game UI) and then signs in to it.
-     Popups first; when the browser blocks them it falls back to a redirect, finished on the next page load.
+     Popups only: the SDK is loaded as soon as the page opens, so the popup opens inside the tap (a popup opened after a download is blocked,
+     Safari first). No redirect fallback: signInWithRedirect breaks on browsers that partition storage, because the sign-in helper is on
+     firebaseapp.com, not our domain ("missing initial state"). A blocked popup rejects { code: 'popup-blocked' } and the game asks to allow it.
    Device mode (anywhere else, or offline): a random guest id kept on this device; Google / Apple reject with { code: 'not-configured' }.
    Extra hooks for the game: onChange(fn) (session changes), fb() (the loaded Firebase app, for sync.js), ask(title, body, yes) (UI). */
 (function (root) {
@@ -27,7 +29,7 @@
   const localGuest = () => put({ id: guestId(), provider: 'guest', local: true, since: new Date().toISOString() });
 
   /* ---------- Firebase (server mode only) ---------- */
-  let fbp = null;
+  let fbp = null, fbv = null;   // fbv: the loaded SDK, so a tap can open the popup without waiting
   const fromUser = u => u && { id: u.uid, provider: u.isAnonymous ? 'guest' : ((u.providerData[0] || {}).providerId === 'apple.com' ? 'apple' : 'google'),
     name: u.displayName || null, email: u.email || null, since: (session && session.id === u.uid && session.since) || new Date().toISOString() };
   function fb() {
@@ -36,8 +38,10 @@
       const app = F.initializeApp(CFG.config), auth = A.getAuth(app);
       if (emu) A.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
       A.onAuthStateChanged(auth, u => { if (u) put(fromUser(u)); else if (session && !isLocal(session)) put(null); });
-      A.getRedirectResult(auth).catch(e => linkClash(A, auth, e).catch(() => {}));   // a redirect sign-in / link finishing on this page load
-      return { F, A, app, auth, CDN, emu };
+      try { auth._popupRedirectResolver?._initialize?.(auth)?.catch?.(() => {}); } catch { /* SDK internals changed: the popup still works, just loads its helper on the tap */ }
+      // ^ load the popup helper (apis.google.com + the auth frame) now. Firebase does this itself only on phones and Safari; elsewhere it waited for the
+      //   tap, and on a slow network the popup then opened too late and was blocked (checked with a 6 s network delay in headless Chrome).
+      return fbv = { F, A, app, auth, CDN, emu };
     }).catch(e => { fbp = null; throw e; }));
   }
   /** Google (or Apple) already belongs to another account: ask, then switch to that account (sync.js offers to bring this device's progress). */
@@ -49,15 +53,13 @@
   }
   async function social(provider) {
     if (!server || (provider === 'apple' && !CFG.apple)) throw fail('not-configured', `${provider} sign-in is not available here`);
-    const { A, auth } = await fb(), cur = auth.currentUser;
+    const { A, auth } = fbv || await fb(), cur = auth.currentUser;   // normally already loaded (preloaded below): no wait between the tap and the popup
     if (cur && !cur.isAnonymous && fromUser(cur).provider === provider) return put(fromUser(cur));   // already signed in with it
     const prov = provider === 'google' ? new A.GoogleAuthProvider() : new A.OAuthProvider('apple.com');
     const link = cur && cur.isAnonymous;   // a guest keeps its uid (and its progress) by linking
     try { return put(fromUser((link ? await A.linkWithPopup(cur, prov) : await A.signInWithPopup(auth, prov)).user)); }
     catch (e) {
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-environment') {   // e.g. iPhone Safari blocking the popup
-        link ? A.linkWithRedirect(cur, prov) : A.signInWithRedirect(auth, prov); return new Promise(() => {});   // the page leaves; it finishes on the next load
-      }
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-environment') throw fail('popup-blocked');
       if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') throw fail('cancelled');
       return put(await linkClash(A, auth, e));
     }
@@ -87,5 +89,5 @@
     ask: () => Promise.resolve(false),
   };
   root.SkyAuth = api;
-  if (server && session && !isLocal(session)) fb().catch(() => {});   // restore the signed-in user early, so sync can start
+  if (server) fb().catch(() => {});   // load the SDK now: restores a signed-in user for sync, and lets a Google tap open its popup at once
 })(this);

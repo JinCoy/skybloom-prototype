@@ -4,8 +4,8 @@
    every country: Korea / Quebec 14, India 18). Older answers: 'u13' -> 'u14'; 't13' / '13p' may be 13, so they are asked once more.
    Until it is answered, and for 'u14', the game runs in child mode. Under 18 there is no play-log recording, survey or tester consent
    (telemetry.js and screens.js check adult()), and ads.js asks only for under-age-of-consent ads (child-directed too for children). */
-import { $, store, tl } from './core.js?v=0.7.63';
-import { GROUPS, isAdult, isChild, normalize } from './agegroup.js?v=0.7.63';
+import { $, store, tl } from './core.js?v=0.7.64';
+import { GROUPS, isAdult, isChild, normalize } from './agegroup.js?v=0.7.64';
 
 const KEY = 'age', GATE_V = 'a3';
 let mem = null;   // this page's answer too, so a browser that refuses storage still keeps it until reload

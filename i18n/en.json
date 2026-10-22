@@ -9,6 +9,7 @@
   "signin.body": "Sign-in arrives when the game server is connected. Start as a guest for now: your garden, gold and treasures stay on this device.",
   "signin.bodySoon": "This sign-in isn't ready yet. Start as a guest or with Google for now.",
   "signin.failed": "Couldn't sign in. Please try again in a moment.",
+  "signin.popup": "The sign-in popup was blocked. Allow popups for this site, then tap again.",
   "auth.mergeQ": "This account is already in use",
   "auth.mergeBody": "This Google account already has its own progress. Switch to it? You can bring this device's collection on the next screen.",
   "auth.merge": "Switch",
