@@ -44,8 +44,8 @@
   <p id="msg" role="status"></p>
   <p class="sub"><span data-t="help"></span> <a href="mailto:privacy@dreamhum.com">privacy@dreamhum.com</a></p>
 </main>
-<script src="firebase-config.js?v=0.7.65"></script>
-<script src="auth.js?v=0.7.65"></script>
+<script src="firebase-config.js?v=0.7.66"></script>
+<script src="auth.js?v=0.7.66"></script>
 <script>
   const T = {
     ko: { title: 'Skybloom 계정·데이터 삭제', lead: 'Google(또는 Apple) 계정으로 로그인한 Skybloom 계정과 데이터를 여기서 삭제할 수 있어요. 게임 안에서는 설정 → 계정·데이터 삭제에서 할 수 있어요.',
@@ -66,15 +66,14 @@
   const $ = id => document.getElementById(id), msg = s => { $('msg').textContent = s; };
   if (!SkyAuth.serverConnected) { $('step1').hidden = true; msg(t('unavailable')); }
   if (window.SKY_FIREBASE && SKY_FIREBASE.apple) $('apple').hidden = false;
-  let fresh = false;
   const signIn = pv => SkyAuth.signIn(pv, { fresh: true }).then(u => {   // a fresh sign-in, opened right in the tap (the SDK is preloaded); never linked to a guest of the game on this browser
-    fresh = true; $('who').textContent = u.email || u.name || u.provider; $('step1').hidden = true; $('step2').hidden = false; msg('');
+    $('who').textContent = u.email || u.name || u.provider; $('step1').hidden = true; $('step2').hidden = false; msg('');
   }, e => msg(e && e.code === 'cancelled' ? t('cancelled') : e && e.code === 'popup-blocked' ? t('popup') : t('failed')));
   $('google').onclick = () => signIn('google'); $('apple').onclick = () => signIn('apple');
   $('sure').onchange = () => { $('del').disabled = !$('sure').checked; };
   $('del').onclick = async () => {
     $('del').disabled = true; msg(t('working'));
-    try { await SkyAuth.deleteAccount({ fresh }); $('step2').hidden = true; msg(t('done')); }
+    try { await SkyAuth.deleteAccount(); $('step2').hidden = true; msg(t('done')); }
     catch (e) { $('del').disabled = false; msg(e && e.code === 'cancelled' ? t('cancelled') : e && e.code === 'popup-blocked' ? t('popup') : t('failed')); }
   };
 </script>

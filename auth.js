@@ -83,27 +83,19 @@
       return server && fbp ? fbp.then(({ A, auth }) => A.signOut(auth)).then(done, done) : Promise.resolve(done());
     },
     currentUser() { return session; },
-    /** B7: delete the account and every copy of its data (Backend_Design §5.2; Spark plan, so the client does it).
-        1. a signed-in Google / Apple user signs in again (proves it is the owner; cancelling stops here, nothing deleted)
-        2. sync stops  3. users/{uid}/state/progress and users/{uid} are deleted (the only server data today)
-        4. Apple: the token is revoked  5. the Firebase Auth account is deleted  6. this device: every skybloom.* key and the play-log database.
-        Guests (anonymous) skip 1. Device-only players get 6. Rejects { code: 'cancelled' } when re-sign-in is dismissed. */
-    async deleteAccount({ fresh = false } = {}) {   // fresh: the user signed in moments ago on this page (delete-account.html), so step 1 is skipped
+    /** B7: delete the account and every copy of its data (Backend_Design §5.2). The server function deleteAccount (Blaze plan, firebase/functions)
+        deletes users/{uid} with every subcollection and the Auth account with admin rights, so there is no Google re-sign-in: one "Delete?" is enough.
+        Order: sync stops -> the server deletes -> this device forgets the user, every skybloom.* key and the play-log database.
+        Device-only players (no server account) get the device part. Apple sign-in, when turned on, also needs its token revoked on the server (Apple key). */
+    async deleteAccount() {
       if (server && session && !isLocal(session)) {
-        const { A, auth, app } = await fb(), u = auth.currentUser;
-        if (u) {
-          let token = null;
-          if (!u.isAnonymous && !fresh) {
-            const pv = fromUser(u).provider, prov = pv === 'apple' ? new A.OAuthProvider('apple.com') : new A.GoogleAuthProvider();
-            try { const r = await A.reauthenticateWithPopup(u, prov); token = pv === 'apple' ? (A.OAuthProvider.credentialFromResult(r) || {}).accessToken : null; }
-            catch (e) { throw e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/user-mismatch' ? fail('cancelled') : e.code === 'auth/popup-blocked' ? fail('popup-blocked') : e; }
-          }
-          put(null);   // sync.js stops before the data goes (no late push can bring the document back)
-          const F = await import(CDN + 'firebase-firestore.js'), db = F.getFirestore(app);
-          if (emu && !db._skyEmu) { F.connectFirestoreEmulator(db, '127.0.0.1', 8080); db._skyEmu = true; }
-          for (const p of [`users/${u.uid}/state/progress`, `users/${u.uid}`]) await F.deleteDoc(F.doc(db, p));
-          if (token) await A.revokeAccessToken(auth, token).catch(() => {});   // Apple requires it on account deletion
-          await A.deleteUser(u).catch(e => { if (!(u.isAnonymous && e.code === 'auth/requires-recent-login')) throw e; });   // a guest cannot sign in again: its data is gone, the empty account waits for the inactive-account clean-up
+        const { A, auth, app } = await fb();
+        if (auth.currentUser) {
+          const Fn = await import(CDN + 'firebase-functions.js'), fns = Fn.getFunctions(app, 'asia-northeast3');
+          if (emu && !fns._skyEmu) { Fn.connectFunctionsEmulator(fns, '127.0.0.1', 5001); fns._skyEmu = true; }
+          put(null);   // sync.js stops first, so no late push brings the document back
+          await Fn.httpsCallable(fns, 'deleteAccount')();   // fails (offline, server error) -> rejects; the game says "couldn't delete", nothing on the device is wiped
+          await A.signOut(auth).catch(() => {});   // the account no longer exists; drop its cached session
         }
       }
       put(null);
