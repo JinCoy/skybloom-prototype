@@ -1,13 +1,13 @@
 /* Skybloom module: game (split from index.html in step 12; code unchanged) */
-import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.62';
-import { SFX, vib } from './audio.js?v=0.7.62';
-import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.62';
-import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.62';
-import { R, startDrop } from './renderer.js?v=0.7.62';
-import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.62';
-import { buildCard } from './screens.js?v=0.7.62';
-import * as TM from './telemetry.js?v=0.7.62';
-import { showRewarded } from './ads.js?v=0.7.62';
+import { $, APP_V, DEMO, G, ITEMS, L, NAMES, U, artSrc, bsetId, center, itemName, reduce, same, saveDiscBy, set_G, store, tl, toWorld } from './core.js?v=0.7.63';
+import { SFX, vib } from './audio.js?v=0.7.63';
+import { blinkItems, bumpBadge, hud, overlay, placeState, show, toast } from './ui.js?v=0.7.63';
+import { bloomFx, floatText, mergeFx, rewindFx, tierOf, wrapFx } from './fx.js?v=0.7.63';
+import { R, startDrop } from './renderer.js?v=0.7.63';
+import { rollFor, setIcon, spawnBubble } from './bubbles.js?v=0.7.63';
+import { buildCard } from './screens.js?v=0.7.63';
+import * as TM from './telemetry.js?v=0.7.63';
+import { showRewarded } from './ads.js?v=0.7.63';
 
 /* ---------- game flow ---------- */
 /* play time (ms) only runs while the game is on screen and nothing is open over it; speed mode's timer and the action log use it */
@@ -102,7 +102,7 @@ export function addGold(n, why = 'other') {   // why = the ledger reason of the 
   if (!n) return; U.gold += n; store.set('gold', U.gold); TM.gold(n, why);
   const el = $('gold'); el.textContent = U.gold.toLocaleString('en-US'); const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
 }
-import { Mini } from './minianim.js?v=0.7.62';
+import { Mini } from './minianim.js?v=0.7.63';
 let _cm = null, _rm = null;
 const celMini = () => _cm || (_cm = new Mini($('cel-anim'), 500, 540)), resMini = () => _rm || (_rm = new Mini($('res-anim'), 400, 250));
 function runCelebrations() {
@@ -269,3 +269,9 @@ export function gainTreasure(id) {
 }
 
 
+
+/* auto-save: iOS / Android may close the app (or the player swipes it away) while it is in the background, so a running game is kept
+   like "Save and quit" whenever the page is hidden; Play then offers to continue it. Back in front, the game on screen is the live one again. */
+const autoSave = () => { if (U.screen === 'game') saveForLater(); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoSave(); else if (U.screen === 'game' && G.meta && !G.meta.over && !U.tut) clearSave(U.mode); });
+addEventListener('pagehide', autoSave);

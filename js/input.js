@@ -1,13 +1,13 @@
 /* Skybloom module: input (split from index.html in step 12; code unchanged) */
-import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.62';
-import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.62';
-import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.62';
-import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.62';
-import { drawn } from './renderer.js?v=0.7.62';
-import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.62';
-import { openShop, requestCloseShop } from './shop.js?v=0.7.62';
-import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.62';
-import * as TM from './telemetry.js?v=0.7.62';
+import { $, EDITOR, G, L, MASK, TH, TW, U, artSrc, center, reduce, same, tl, toWorld } from './core.js?v=0.7.63';
+import { SFX, ac, music, musicNodes, vib } from './audio.js?v=0.7.63';
+import { hud, overlay, scale, sheet, show, toast, transition } from './ui.js?v=0.7.63';
+import { busy, checkStuck, doubleGold, clearSave, doMerge, doPlace, gameOver, isTarget, newGame, onTap, openAd, resumeGame, saveForLater, saveGame, savedGame, select, tutBlock, useItem } from './game.js?v=0.7.63';
+import { drawn } from './renderer.js?v=0.7.63';
+import { bubbleAt, popBubbleAt } from './bubbles.js?v=0.7.63';
+import { openShop, requestCloseShop } from './shop.js?v=0.7.63';
+import { openCollection, openRanking, openSettings, saveCard, shareCard } from './screens.js?v=0.7.63';
+import * as TM from './telemetry.js?v=0.7.63';
 
 /* ---------- tilt (spec §6.6) ---------- */
 export function updateTilt(dt) {
@@ -149,10 +149,13 @@ document.addEventListener('click', e => {
   if (b.dataset.open === 'ranking') openRanking();
   if (b.hasAttribute('data-close')) { if (!$('ov-shop').hidden) requestCloseShop(); for (const k of ['collection', 'settings', 'ranking']) overlay(k, false); }
 });
-// sign-in (v0.4 §6.1): only the guest path works until the server exists; no pretend Google / Apple sessions
+// sign-in (v0.4 §6.1, step 12): guest = Firebase anonymous (or this device only, offline / elsewhere); Google links to the guest's account; Apple waits for its setup
 $('btn-guest').onclick = () => SkyAuth.signIn('guest').then(() => transition('cloud', () => show('main')));
-for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).catch(() =>
-  sheet(tl('signin.title', { p: pv === 'google' ? 'Google' : 'Apple' }), tl('signin.body')));
+for (const pv of ['google', 'apple']) $('btn-' + pv).onclick = () => SkyAuth.signIn(pv).then(() => transition('cloud', () => show('main')), e => {
+  if (e && e.code === 'cancelled') return;
+  if (e && e.code === 'not-configured') sheet(tl('signin.title', { p: pv === 'google' ? 'Google' : 'Apple' }), tl(SkyAuth.serverConnected ? 'signin.bodySoon' : 'signin.body'));
+  else toast(tl('signin.failed'), 2600);
+});
 $('ov-sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) overlay('sheet', false); });
 $('btn-play').onclick = () => startOrAsk('normal');
 $('btn-speed').onclick = () => startOrAsk('speed');
@@ -175,6 +178,7 @@ function startOrAsk(mode) {   // a saved game of this mode: ask once; otherwise 
   U.resumeMode = mode; $('resume-info').textContent = tl('resume.info', { score: (sv.G.score || 0).toLocaleString('en-US'), lv: sv.G.top || 1 }); overlay('resume');
 }
 $('resume-x').onclick = () => overlay('resume', false);
+$('ov-ranking').querySelector('.dim').addEventListener('click', () => $('ov-ranking').querySelector('[data-close]').click());   // tap outside = X (same close path and play-log event)
 $('resume-cont').onclick = () => { const m = U.resumeMode; overlay('resume', false); transition('bubble', () => resumeGame(m), MODE_POS[m]); };
 $('resume-new').onclick = () => { const m = U.resumeMode; overlay('resume', false); transition('bubble', () => newGame(false, m), MODE_POS[m]); };
 $('res-save').onclick = saveCard; $('res-share').onclick = shareCard;

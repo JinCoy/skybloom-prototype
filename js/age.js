@@ -1,17 +1,20 @@
 /* Skybloom module: age (checklist 2-5 / 2-6) — the neutral age-group screen and the "child mode" switch.
    Asked once, before anything else (before the play-test consent). Three groups, none preselected; no birth date is asked or stored.
-   Only the group is kept, on this device: 'u13' (under 13), 't13' (13-17), 'a18' (18+). An older build stored '13p' (13+): still read as 13+.
-   Until it is answered, and for 'u13', the game runs in child mode: no play-log recording, no survey, no tester consent
-   (telemetry.js checks age13()); the ad step reads bracket() to ask for child-directed ads (u13) and under-age-of-consent ads (t13). Imports only core.js. */
-import { $, store, tl } from './core.js?v=0.7.62';
+   Only the group is kept, on this device: 'u14' (under 14), 'm14' (14-17), 'a18' (18+); the rules are in agegroup.js (one strictest rule for
+   every country: Korea / Quebec 14, India 18). Older answers: 'u13' -> 'u14'; 't13' / '13p' may be 13, so they are asked once more.
+   Until it is answered, and for 'u14', the game runs in child mode. Under 18 there is no play-log recording, survey or tester consent
+   (telemetry.js and screens.js check adult()), and ads.js asks only for under-age-of-consent ads (child-directed too for children). */
+import { $, store, tl } from './core.js?v=0.7.63';
+import { GROUPS, isAdult, isChild, normalize } from './agegroup.js?v=0.7.63';
 
-const KEY = 'age', GATE_V = 'a2', GROUPS = ['u13', 't13', 'a18'];
+const KEY = 'age', GATE_V = 'a3';
 let mem = null;   // this page's answer too, so a browser that refuses storage still keeps it until reload
-if (location.search.includes('debug')) { const m = /[?&]age=(u13|t13|a18|13p)/.exec(location.search); if (m) mem = m[1]; }   // local QA only
+if (location.search.includes('debug')) { const m = /[?&]age=(u14|m14|a18|u13|t13|13p)/.exec(location.search); if (m) mem = m[1]; }   // local QA only
 
-export const bracket = () => { const v = mem ?? store.get(KEY, null)?.v; return v === '13p' ? 't13' : GROUPS.includes(v) ? v : null; };   // legacy '13p' is treated as the 13-17 group (the stricter 13+ one)
+export const bracket = () => normalize(mem ?? store.get(KEY, null)?.v);   // null: not answered (or an older 13-17 answer: asked again)
 export const asked = () => bracket() != null;
-export const age13 = () => { const b = bracket(); return b === 't13' || b === 'a18'; };   // 13 or older; unknown counts as under 13
+export const child = () => isChild(bracket());   // under 14, or not answered yet
+export const adult = () => isAdult(bracket());   // 18 or older: play log, survey, consent and tracking prompts
 
 export function ask(done) {
   if (asked()) { done(); return; }

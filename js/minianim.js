@@ -3,8 +3,8 @@
    All of them share ONE extra WebGL renderer (phones drop the oldest WebGL context when there are too many, and the oldest is the garden):
    each frame a mini building is drawn by the shared renderer and copied into its own 2D canvas. One loop, running only while one is on screen.
    If the shared renderer cannot be made, the plain picture stays (the <img> the host already holds). */
-import { $, bkey, reduce } from './core.js?v=0.7.62';
-import { makeInst, updateInst } from './renderer.js?v=0.7.62';
+import { $, POWER, bkey, reduce } from './core.js?v=0.7.63';
+import { makeInst, updateInst } from './renderer.js?v=0.7.63';
 
 const MAXW = 520, MAXH = 560;   // the largest mini (New Building! is 500 x 540)
 let SR = null, RES = 1, failed = false;
@@ -24,6 +24,7 @@ function loop(now) {
   if (any) raf = requestAnimationFrame(loop); else last = 0;
 }
 const wake = () => { if (!raf) { last = 0; raf = requestAnimationFrame(loop); } };
+if (POWER.low) addEventListener('pointerdown', wake, { capture: true, passive: true });   // a touch restarts calm previews (live() checks POWER.hot next frame)
 
 /** How far a building and its moving parts reach (local px, origin = bottom centre), over ~2.5 s of its motion. Cached per picture. */
 const REACH = {};
@@ -52,6 +53,7 @@ export class Mini {
   }
   live() {
     if (!this.ok || !this.I || this.host.offsetParent === null) return false;
+    if (this.calm && POWER.low && performance.now() - POWER.hot > 3000) return false;   // app, idle: keep the last frame (heat)
     if (!this.clip) return true;
     const a = this.host.getBoundingClientRect(), b = this.clip.getBoundingClientRect(); return a.right > b.left && a.left < b.right;   // a card scrolled out of the palette is not drawn
   }

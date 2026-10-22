@@ -2,10 +2,11 @@
    Web / prototype: the labelled placeholder countdown (#ov-ad), never a real or imitation ad.
    App (Capacitor, step 3-5): Google AdMob through @capacitor-community/admob (native plugin, reached via the Capacitor bridge: no bundler here).
    Callers only see 'done' (give the reward) or 'cancel' (no reward: closed early, no fill or an error). */
-import { $, tl } from './core.js?v=0.7.62';
-import { overlay, toast } from './ui.js?v=0.7.62';
-import { AC } from './audio.js?v=0.7.62';
-import { age13, bracket } from './age.js?v=0.7.62';
+import { $, tl } from './core.js?v=0.7.63';
+import { overlay, toast } from './ui.js?v=0.7.63';
+import { AC } from './audio.js?v=0.7.63';
+import { adult, bracket } from './age.js?v=0.7.63';
+import { adTags } from './agegroup.js?v=0.7.63';
 
 const cap = window.Capacitor, AdMob = cap?.isNativePlatform?.() ? (cap.Plugins?.AdMob || cap.registerPlugin?.('AdMob')) : null;
 /* Rewarded ad units. These are Google's public TEST units (always fill, never pay): replace with the real units from the AdMob console before release. */
@@ -14,14 +15,14 @@ const REWARDED = { ios: 'ca-app-pub-3940256099942544/1712485313', android: 'ca-a
 let started = null;
 function startAdMob() {   // once per launch. 18+: privacy consent (UMP) -> iOS tracking prompt -> SDK. Under 18 or unanswered: no consent / tracking message at all
   return started || (started = (async () => {   // (UMP still showed its tracking explainer with tagForUnderAgeOfConsent on the iOS simulator), only child / under-age tagged, non-personalised requests
-    const b = bracket(), kid = !age13(), adult = b === 'a18';   // unanswered counts as a child
-    if (adult) {
+    const b = bracket();   // unanswered counts as a child (agegroup.js)
+    if (adult()) {
       let c = await AdMob.requestConsentInfo();
       if (c.isConsentFormAvailable && c.status === 'REQUIRED') c = await AdMob.showConsentForm();
       if (!c.canRequestAds) return false;
       if (cap.getPlatform() === 'ios') try { await AdMob.requestTrackingAuthorization(); } catch {}
     }
-    await AdMob.initialize({ tagForChildDirectedTreatment: kid, tagForUnderAgeOfConsent: kid || b === 't13', maxAdContentRating: kid ? 'General' : b === 't13' ? 'ParentalGuidance' : 'Teen' });
+    await AdMob.initialize(adTags(b));   // under 14: child-directed + General; 14-17: under age of consent + ParentalGuidance; 18+: Teen
     return true;
   })().catch(() => { started = null; return false; }));
 }

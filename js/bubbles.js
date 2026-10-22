@@ -1,11 +1,11 @@
 /* Skybloom module: bubbles (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, TREASURES, U, WS, accSrc, trName, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.62';
-import { SFX, vib } from './audio.js?v=0.7.62';
-import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.62';
-import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.62';
-import { addFxXY, floatText } from './fx.js?v=0.7.62';
-import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.62';
-import * as TM from './telemetry.js?v=0.7.62';
+import { $, BLEED, G, ITEMS, L, TREASURES, U, WS, accSrc, trName, islandAt, store, tl, toScreen, toWorld } from './core.js?v=0.7.63';
+import { SFX, vib } from './audio.js?v=0.7.63';
+import { bumpBadge, hud, itemXY, toast } from './ui.js?v=0.7.63';
+import { addGold, gainTreasure, stamp, tutBubble, tutEnd } from './game.js?v=0.7.63';
+import { addFxXY, floatText } from './fx.js?v=0.7.63';
+import { ADD, R, genTextures, hsl, lerpColor, mix3, tex } from './renderer.js?v=0.7.63';
+import * as TM from './telemetry.js?v=0.7.63';
 
 /* ---------- bubbles (spec §4) ---------- */
 const BC = L.CONFIG.bubbles;
@@ -19,7 +19,7 @@ export const rollFor = () => {
 const BUBBLE_TINT = { item: 0x5fe08a, treasure: 0xffa3d6, gold: 0xffe07a };   // green / pink / yellow, clear = empty
 export function spawnBubble(content = null, at = null) {
   const side = Math.random(), r = 58 + Math.random() * 10, b = { r, ph: Math.random() * 6, amp: 20 + Math.random() * 20, vy: -(40 + Math.random() * 30), t: 0 };
-  const [x0, y0] = toWorld([0, 0]), [x1, y1] = toWorld([1080, 1920]);   // screen edges in world units
+  const [x0, y0] = toWorld([0, -BLEED.t]), [x1, y1] = toWorld([1080, 1920 + BLEED.b]);   // screen edges in world units (bleed: the sky past the stage)
   if (side < .35) Object.assign(b, { x: x0 - r, y: 1000 + Math.random() * (y1 - 1000), vx: 30 + Math.random() * 30 });
   else if (side < .7) Object.assign(b, { x: x1 + r, y: 1000 + Math.random() * (y1 - 1000), vx: -(30 + Math.random() * 30) });
   else Object.assign(b, { x: x0 + 70 + Math.random() * (x1 - x0 - 140), y: y1 + r, vx: (Math.random() - .5) * 20 });
@@ -74,7 +74,7 @@ export function updateBubbles(dt, now, still) {
     b.shell.tint = b.color ? lerpColor(b.color, tint, .25) : U.skinBubble ? lerpColor(U.skinBubble, tint, .25) : tint;
     b.glow.scale.set(b.r * 2 / b.glow.texture.width);
     b.glow.tint = b.color || 0xffffff; b.glow.alpha = Math.max(w[2] * .5, b.color ? (aura ? .2 : .3) : 0);   // coloured bubbles glow a little so the colour reads
-    if (b.y < toWorld([0, 0])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
+    if (b.y < toWorld([0, -BLEED.t])[1] - 160 || b.sx < -260 || b.sx > 1340) removeBubble(b);
   }
 }
 function removeBubble(b) { U.bubbles = U.bubbles.filter(x => x !== b); b.c.destroy({ children: true }); }

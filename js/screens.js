@@ -1,14 +1,14 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.62';
-import { SKINS, setArt } from './shop.js?v=0.7.62';
-import { Mini } from './minianim.js?v=0.7.62';
-import { music } from './audio.js?v=0.7.62';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.62';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.62';
-import { app } from './renderer.js?v=0.7.62';
-import { enableSensor, sensorOn } from './input.js?v=0.7.62';
-import * as TM from './telemetry.js?v=0.7.62';
-import { age13 } from './age.js?v=0.7.62';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.63';
+import { SKINS, setArt } from './shop.js?v=0.7.63';
+import { Mini } from './minianim.js?v=0.7.63';
+import { music } from './audio.js?v=0.7.63';
+import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.63';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.63';
+import { app } from './renderer.js?v=0.7.63';
+import { enableSensor, sensorOn } from './input.js?v=0.7.63';
+import * as TM from './telemetry.js?v=0.7.63';
+import { adult } from './age.js?v=0.7.63';
 
 /* ---------- ranking (v0.4 §6.3): no server yet, so only this device's best and an honest empty state ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
@@ -129,17 +129,25 @@ function ambientTog() {   // Reduce Motion forces Background Motion off: show th
 }
 function verNote() { $('app-ver').textContent = 'v' + VER; }   // the module version, small at the bottom left of the main screen: taken from the ?v= the game was loaded with, so it follows every release by itself
 verNote();
-function acctLabel() {   // 10-2 C1: "Guest · …a1b2" (last 4 of the guest id); Google / Apple show up with the server in step 12+
-  const u = SkyAuth.currentUser(); return !u || u.provider === 'guest' ? tl('rank.guest') + (u ? ' · …' + u.id.slice(-4) : '') : u.provider;
+function acctLabel() {   // 10-2 C1: "Guest · …a1b2" (last 4 of the id); a linked account shows Google / Apple and its e-mail
+  const u = SkyAuth.currentUser(); return !u || u.provider === 'guest' ? tl('rank.guest') + (u ? ' · …' + u.id.slice(-4) : '') : (u.provider === 'apple' ? 'Apple' : 'Google') + (u.email ? ' · ' + u.email : '');
 }
+/** The shared yes / no window (#ov-confirm). Resolves true for yes; Cancel or closing resolves false. */
+let cfDone = null;
+export function confirmBox(title, body, yes, no = tl('banner.cancel')) {
+  cfDone?.(false);
+  $('cf-title').textContent = title; $('cf-body').textContent = body; $('cf-yes').textContent = yes; $('cf-no').textContent = no; overlay('confirm');
+  return new Promise(res => { cfDone = v => { cfDone = null; overlay('confirm', false); res(v); }; });
+}
+if (window.SkyAuth) SkyAuth.ask = kind => kind === 'merge' ? confirmBox(tl('auth.mergeQ'), tl('auth.mergeBody'), tl('auth.merge')) : Promise.resolve(false);
 export function openSettings() {
   for (const k in TOGS) $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); ambientTog(); verNote();
   $('acct-who').textContent = acctLabel(); $('set-logout').hidden = U.screen === 'game';   // no log-out mid-game: the board would be lost
   overlay('settings');
 }
-$('set-logout').onclick = () => overlay('confirm');
-$('cf-no').onclick = () => overlay('confirm', false);
-$('cf-yes').onclick = () => SkyAuth.signOut().then(() => { overlay('confirm', false); overlay('settings', false); transition('cloud', () => show('login')); });
+$('set-logout').onclick = () => confirmBox(tl('set.logoutQ'), tl('set.logoutBody'), tl('set.logout')).then(ok => ok && SkyAuth.signOut().then(() => { overlay('settings', false); transition('cloud', () => show('login')); }));
+$('cf-no').onclick = () => cfDone?.(false);
+$('cf-yes').onclick = () => cfDone?.(true);
 for (const k in TOGS) $(TOGS[k]).addEventListener('click', () => {
   const was = U.settings[k]; U.settings[k] = !was; $(TOGS[k]).setAttribute('aria-checked', U.settings[k]); store.set('settings', U.settings); TM.setting(k, was, U.settings[k]);
   if (k === 'music') music(U.settings.music);
@@ -154,7 +162,7 @@ $('set-lang').onclick = () => {   // English <-> 한국어; redraw whatever is o
 let withdrawAsk = 0;
 function renderLog() {
   const on = TM.active(), s = TM.summary(), n = store.get('games', []).length;
-  if (!age13()) {   // child mode: no recording, no survey, no file to send
+  if (!adult()) {   // under 18: no recording, no survey, no file to send
     $('log-text').textContent = tl('age.child.log'); $('log-send').classList.add('dis'); $('log-issue').hidden = $('log-withdraw').hidden = $('log-join').hidden = true; withdrawAsk = 0; return;
   }
   $('log-text').textContent = on ? tl(s.events ? 'tm.log.body' : 'tm.log.none', { n: s.runs, e: s.events.toLocaleString('en-US') }) : tl(n ? 'log.body' : 'log.none', { n }) + '\n\n' + tl('tm.log.off');
@@ -164,7 +172,7 @@ function renderLog() {
 }
 function openLog() { overlay('settings', false); renderLog(); overlay('export'); }
 async function sendLog() {
-  if (!age13()) return;
+  if (!adult()) return;
   let file;
   if (TM.active()) { const b = await TM.buildBundle(); if (!b || !b.events) return; file = b.file; }
   else { const games = store.get('games', []); if (!games.length) return;

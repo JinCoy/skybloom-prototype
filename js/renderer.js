@@ -1,13 +1,13 @@
 /* Skybloom module: renderer (split from index.html in step 12; code unchanged) */
-import { $, CAL, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.62';
-import { sbLocked } from './sandbox.js?v=0.7.62';
-import { SFX, vib } from './audio.js?v=0.7.62';
-import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.62';
-import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.62';
-import { updateBubbles } from './bubbles.js?v=0.7.62';
-import { updateFx } from './drawfx.js?v=0.7.62';
-import { badgePos, updateTilt } from './input.js?v=0.7.62';
-import { perfGuard } from './perfguard.js?v=0.7.62';
+import { $, BLEED, CAL, POWER, CX, CY, FALLS, FILL, G, GUIDE, HR, IMG, ISLAND, L, MOTION, MOTION_A, MOTION_E, MOTION_P, MOTION_R, SHOW, TH, TW, U, WS, ambient, bkey, center, reduce, same } from './core.js?v=0.7.63';
+import { sbLocked } from './sandbox.js?v=0.7.63';
+import { SFX, vib } from './audio.js?v=0.7.63';
+import { busy, finishMerge, paused, speedRing, tickSpeed } from './game.js?v=0.7.63';
+import { addFxXY, floatText, parts, set_floatText } from './fx.js?v=0.7.63';
+import { updateBubbles } from './bubbles.js?v=0.7.63';
+import { updateFx } from './drawfx.js?v=0.7.63';
+import { badgePos, updateTilt } from './input.js?v=0.7.63';
+import { perfGuard } from './perfguard.js?v=0.7.63';
 
 /* ======================================================================
    RENDERER (PixiJS v7)
@@ -342,12 +342,15 @@ function drawWater(g, k, sc, ox, oy, color, hi) {
 
 export let app = null, R = null;
 export function initRenderer() {
-  app = new PIXI.Application({ view: $('cv'), width: 1080, height: 1920, backgroundAlpha: 0, antialias: true, resolution: 1 });
+  // app build (<html class="app">): heat. The canvas is drawn at 75% and scaled up (soft sky art hides it) without MSAA: ~44% fewer pixels per frame
+  app = new PIXI.Application({ view: $('cv'), width: 1080, height: 1920, backgroundAlpha: 0, antialias: !LOWPOW, resolution: LOWPOW ? .75 : 1 });
   if (app.renderer.events) app.renderer.events.autoPreventDefault = false;
   const T = genTextures(), S = app.stage;
   const world = new PIXI.Container(); world.pivot.set(CX, CY); world.position.set(CX, CY); world.scale.set(WS); S.addChild(world);
   // sky: three time-of-day backgrounds cross-fade
   const bgs = ['bg', 'bg1', 'bg2'].map(k => { const s = new PIXI.Sprite(tex(k)); s.width = 1080; s.height = 1920; world.addChild(s); return s; });   // every sky is drawn on the board geometry (core.js ISLAND note)
+  // bleed: each sky mirrored above and below itself (a mirror meets its source edge row for row, so no seam), seen only past the stage edges
+  const bgm = bgs.flatMap((s, i) => [0, 3840].map(y => { const m = new PIXI.Sprite(s.texture); m.width = 1080; m.height = 1920; m.scale.y *= -1; m.y = y; world.addChildAt(m, world.getChildIndex(s) + 1); return [m, s]; }));
   const lights = [[980, 40, 0xfff6d0, 520], [1010, 760, 0xffb070, 620], [960, 160, 0xcfe0ff, 360]].map(([x, y, tint, size]) => {
     const s = new PIXI.Sprite(T.glow); s.anchor.set(.5); s.position.set(x, y); s.width = s.height = size; s.tint = tint; s.blendMode = ADD(); world.addChild(s); return s; });
   // ambient sky objects (frozen by the 'Background Motion' setting): sun rays, aurora (two additive layers), stars; the clouds are below
@@ -406,7 +409,7 @@ export function initRenderer() {
   const fxG = new PIXI.Graphics(), fxTop = new PIXI.Container(); world.addChild(fxG, fxTop);
   const edge = new PIXI.Sprite(T.edge); edge.width = 1080; edge.height = 1920; edge.blendMode = ADD(); edge.alpha = 0;
   const flash = new PIXI.Graphics(); flash.beginFill(0xffffff).drawRect(0, 0, 1080, 1920).endFill(); flash.alpha = 0; S.addChild(edge, flash);
-  R = { world, bgs, lights, rays, auroras, stars, petals, pw: 0, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
+  R = { bt: 0, bb: 0, world, bgs, bgm, lights, rays, auroras, stars, petals, pw: 0, aw: 0, clouds, skyClouds, spawnCloud, bubbleLayer, falls, fallStrips, mist, boardF, water, waterHi, tiles, floorG, pieces, cm, arrows, badgePool, fireflies, fxG, fxTop, edge, flash, spill, inst: new Map(), waterOff: [0, 0, 0, 0] };
   set_floatText((text, x, y, gold) => {
     const t = new PIXI.Text(text, { fontFamily: 'Nunito, Jua, ui-rounded, system-ui, sans-serif', fontWeight: '900', fontSize: 60, fill: gold ? '#ffe878' : '#ffffff', stroke: gold ? '#b8640a' : '#165aa6', strokeThickness: 12 });
     t.anchor.set(.5); t.position.set(x, y); fxTop.addChild(t); U.floats.push({ t, x, y, t0: performance.now() });
@@ -432,6 +435,11 @@ const PHASE_M = [   // colour grading per time of day (ColorMatrix, offsets in 0
 const FPS = (location.search.includes('fps') || location.hash.includes('fps')) ? { el: Object.assign(document.createElement('div'), { id: 'fps' }), ms: [], t: 0 } : null;   // ?fps: phone frame meter
 if (FPS) document.body.append(FPS.el);
 let LASTF = performance.now(), ERRN = 0;
+/* heat (app build): a still garden is drawn at ~30 fps; a touch, a running animation (U.anim), an open overlay's entrance or a screen
+   transition removes the cap for HOT_MS. No cap at all while hot: any cap near 60 drops a frame whenever the refresh interval jitters
+   (ProMotion screens vary it), which reads as stutter in every move. The idle cap is 32, not 30, for the same reason. */
+const LOWPOW = POWER.low, HOT_MS = 3000;
+if (LOWPOW) for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, () => { POWER.hot = performance.now(); }, { capture: true, passive: true });
 function safeFrame() {
   LASTF = performance.now();
   try { frame(); } catch (e) { if (ERRN++ < 5) { console.error('frame', e); dispatchEvent(new ErrorEvent('error', { message: 'frame: ' + (e && e.message), error: e })); } }   // reported once in the play log (telemetry listens to 'error'), then quiet
@@ -441,7 +449,13 @@ function frame() {
   if (FPS) { FPS.ms.push(app.ticker.deltaMS); if (now - FPS.t > 500) { const a = FPS.ms.slice().sort((x, y) => x - y), avg = a.reduce((x, y) => x + y, 0) / a.length;
     FPS.el.textContent = `${(1000 / avg).toFixed(0)} fps · p95 ${a[Math.floor(a.length * .95)].toFixed(1)} ms`; FPS.ms = []; FPS.t = now; } }
   TM += dt; if (!still) TP += dt; if (ambient()) AT += dt;
-  perfGuard(app.ticker.deltaMS);
+  let ms = app.ticker.deltaMS;
+  if (LOWPOW) {
+    const hot = now - POWER.hot < HOT_MS || !!U.anim || !$('trans').hidden;
+    app.ticker.maxFPS = hot ? 0 : 32;
+    if (!hot) ms /= 2;   // perf guard judges speed against a 60 fps frame; a capped 30 fps frame is not 'slow'
+  }
+  perfGuard(ms);
   if (U.screen === 'game' && G.meta && !G.meta.over && !paused()) { U.playMs += dt * 1000; tickSpeed(); }
   speedRing();
   updatePhase(dt); updateTilt(dt);
@@ -460,6 +474,12 @@ function updatePhase(dt) {
 function updateSky(dt, still) {
   const w = U.phaseW, T = U.tilt, calm = !ambient(), skin = U.skyShown ?? U.equip?.sky, aur = skin === 'aurora';
   R.bgs[0].alpha = 1; R.bgs[1].alpha = w[1] + w[2]; R.bgs[2].alpha = w[2] / Math.max(1e-6, w[1] + w[2]);
+  for (const [m, s] of R.bgm) { if (m.texture !== s.texture) m.texture = s.texture; m.alpha = s.alpha; }   // mirrors follow time of day and sky skins
+  if (R.bt !== BLEED.t || R.bb !== BLEED.b) {   // bleed changed (fit): canvas = stage + bleed; stage y 0 stays the stage's top edge
+    R.bt = BLEED.t; R.bb = BLEED.b; const H = 1920 + R.bt + R.bb;
+    app.renderer.resize(1080, H); app.stage.y = R.bt;
+    R.edge.y = R.flash.y = -R.bt; R.edge.height = H; R.flash.scale.y = H / 1920;
+  }
   const breathe = calm ? .8 : .8 + .2 * Math.sin(TM * Math.PI * 2 / 7);   // sun breathes, 7 s
   R.lights[0].tint = skin === 'blossom' ? 0xffd0e6 : aur ? 0x9fe8ff : 0xfff6d0;   // the sun glow follows the sky skin: pink for Blossom, a faint cool glow for Aurora
   R.lights[0].alpha = .55 * (aur ? .18 : 1) * w[0] * breathe; R.lights[1].alpha = .5 * w[1] * breathe; R.lights[2].alpha = .35 * w[2] * breathe;

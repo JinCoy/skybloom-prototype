@@ -16,6 +16,8 @@ export let NAMES = NAMES_BASE;
 export const HR = [0, .3, .45, .55, .7, .85, 1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.25, 2.3, 2.35, 2.4, 2.45];
 export const CAL = [0, 1.35, 1.25, 1.15, 1.15, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 export const TW = 240, TH = 120, CX = 540, CY = 1000;
+export const POWER = { low: document.documentElement.classList.contains('app'), hot: 0 };   // app build: idle frames are capped (renderer.js); hot = last touch (performance.now)
+export const BLEED = { t: 0, b: 0 };   // <html class="bleed"> (the app build): stage px of sky drawn above / below the 1080x1920 stage to reach the screen edges; set by ui.js fit()
 export const ITEMS = [['rewind', 'Rewind', av('assets/item1.webp')], ['pop', 'Bubble Pop', av('assets/item2.webp')], ['drop', 'Cloud Drop', av('assets/item3.webp')]];
 export const TREASURES = [   // spec §4.3, ids 1-22 (rarity lives in logic.js)
   ['Glass Marble', 'A glass marble holding a little piece of sky.'], ['Paper Boat', 'A paper boat that drifted down the water paths.'],
@@ -111,7 +113,8 @@ export const FALLS = [[152, 1060], [284, 1120], [420, 1180], [660, 1180], [804, 
 /* ---------- storage (optional) ---------- */
 export const store = {
   get(k, d) { try { const v = localStorage.getItem('skybloom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('skybloom.' + k, JSON.stringify(v)); } catch {} }
+  set(k, v) { try { localStorage.setItem('skybloom.' + k, JSON.stringify(v)); } catch {} store.onSet?.(k); },   // onSet: sync.js listens for progress changes
+  onSet: null,
 };
 
 /* ---------- state: G = rules (logic.js), U = view-only ---------- */
@@ -164,7 +167,7 @@ export const loading = Object.entries(ASSETS).map(([k, f]) => load(k, `assets/${
 for (let lv = 1; lv <= 17; lv++) loading.push(load('b' + lv, artSrc(lv)));
 for (let i = 1; i <= TREASURES.length; i++) loading.push(load('acc' + i, accSrc(i)));
 export let MOTION = {}, MOTION_E = {}, MOTION_A = {}, MOTION_P = {}, MOTION_R = {};   // + Pastel Poolhouse / Reverie Village maps (00_Spec/Dreamcore_Motion_Plan_v1.md)   // Classic / Candy map, and the Eco Campus map (its art has other shapes, so it has its own coordinates)
-for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.62`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
+for (const lg of ['en', 'ko']) loading.push(fetch(`i18n/${lg}.json?v=0.7.63`).then(r => r.json()).then(j => { I18N[lg] = j; }).catch(() => {}));
 loading.push(fetch('motion_map.json').then(r => r.json()).then(j => { MOTION = j.buildings || {}; window.__motionDoc = j; }).catch(() => { /* no building motion */ }));
 loading.push(fetch(av('motion_map_eco.json')).then(r => r.json()).then(j => { MOTION_E = j.buildings || {}; }).catch(() => { /* Eco keeps only its overlay effects */ }));
 loading.push(fetch(av('motion_map_aqua.json')).then(r => r.json()).then(j => { MOTION_A = j.buildings || {}; }).catch(() => { /* Aqua keeps only its overlay effects */ }));

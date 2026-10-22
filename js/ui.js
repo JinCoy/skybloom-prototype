@@ -1,15 +1,23 @@
 /* Skybloom module: ui (split from index.html in step 12; code unchanged) */
-import { $, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.62';
-import { Mini } from './minianim.js?v=0.7.62';
-import { bestNow, busy, tutStep } from './game.js?v=0.7.62';
-import { rollFor, setIcon } from './bubbles.js?v=0.7.62';
+import { $, BLEED, G, ITEMS, L, U, artSrc, reduce, tl } from './core.js?v=0.7.63';
+import { Mini } from './minianim.js?v=0.7.63';
+import { bestNow, busy, tutStep } from './game.js?v=0.7.63';
+import { rollFor, setIcon } from './bubbles.js?v=0.7.63';
 
 /* ---------- layout fit ---------- */
 export let scale = 1;
 export function fit() {
-  const w = $('wrap').clientWidth, h = $('wrap').clientHeight;
-  scale = Math.min(w / 1080, h / 1920);
-  $('stage').style.transform = `translate(-50%, -50%) scale(${scale})`;
+  const w = $('wrap').clientWidth, h = $('wrap').clientHeight, st = $('stage');
+  if (!document.documentElement.classList.contains('bleed')) { scale = Math.min(w / 1080, h / 1920); st.style.transform = `translate(-50%, -50%) scale(${scale})`; return; }
+  // bleed (app): the 1080x1920 stage fits between the notch and the home bar; the sky and dims run on to the screen edges (BLEED)
+  let probe = $('safe-probe');
+  if (!probe) { probe = Object.assign(document.createElement('div'), { id: 'safe-probe' }); probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)'; document.body.append(probe); }
+  const cs = getComputedStyle(probe), sa = parseFloat(cs.paddingTop) || 0, sb = parseFloat(cs.paddingBottom) || 0, avail = h - sa - sb;
+  scale = Math.min(w / 1080, avail / 1920);
+  const top = sa + (avail - 1920 * scale) / 2;   // stage top edge, CSS px
+  BLEED.t = Math.ceil(top / scale); BLEED.b = Math.ceil((h - top) / scale - 1920);   // ceil: a pixel too much is clipped by the screen, a pixel too little shows a seam
+  st.style.top = `${top + 960 * scale}px`; st.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  st.style.setProperty('--bt', BLEED.t + 'px'); st.style.setProperty('--bb', BLEED.b + 'px');
 }
 addEventListener('resize', fit);
 
@@ -81,7 +89,7 @@ export function hud() {
   const ad = L.canAdRefill(G) && !busy(); $('ad-refill').hidden = !ad;   // rewarded-ad refill (v0.4 §4.3)
   if (ad) $('ad-left').textContent = tl('ad.left', { n: L.CONFIG.ads.maxPerGame - G.adsUsed });
   $('best').textContent = Math.max(bestNow(), G.score).toLocaleString('en-US'); fitText($('best'));
-  $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next; (nextMini || (nextMini = new Mini($('next-anim'), 130, 96, 24))).show(G.next);   // NEXT moves (24 fps)
+  $('next-img').src = artSrc(G.next); $('next-lv').textContent = G.next; (nextMini || (nextMini = Object.assign(new Mini($('next-anim'), 130, 96, 24), { calm: true }))).show(G.next);   // NEXT moves (24 fps)
   for (const [k] of ITEMS) {
     $('cnt-' + k).textContent = G.items[k];
     const usable = G.items[k] > 0 && (k !== 'rewind' || G.history.length > 0) && (k !== 'drop' || L.empties(G.board).length > 0), btn = document.querySelector(`[data-item="${k}"]`);
