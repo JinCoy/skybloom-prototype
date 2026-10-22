@@ -2,7 +2,7 @@
    verified scores; the boards are read straight from Firestore (leaderboards/{all|wYYYY-WW|col}/entries, signed-in players may read).
    Games wait in a small queue (localStorage rankQueue, newest 10) when offline and are sent on the next sign-in or game.
    Device-only mode (no server) does nothing here: the ranking window shows this device's best, as before. */
-import { store } from './core.js?v=0.7.67';
+import { store } from './core.js?v=0.7.68';
 
 const A = window.SkyAuth || { serverConnected: false, currentUser: () => null, onChange() {} }, Q = 'rankQueue';
 let S = null;

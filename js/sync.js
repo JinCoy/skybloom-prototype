@@ -3,9 +3,9 @@
    Never synced: gold, best scores, owned skins (the server cannot check them; a skin equipped elsewhere but not owned here is ignored).
    localStorage stays the truth on the device: offline, device-only mode or any server error leaves the game exactly as before.
    Collections only grow, so every exchange is a union (two devices never lose each other's finds); equip / garden / settings follow the newer side. */
-import { $, U, applyI18n, store, tl } from './core.js?v=0.7.67';
-import { applySkins } from './shop.js?v=0.7.67';
-import { confirmBox } from './screens.js?v=0.7.67';
+import { $, U, applyI18n, store, tl } from './core.js?v=0.7.68';
+import { applySkins } from './shop.js?v=0.7.68';
+import { confirmBox } from './screens.js?v=0.7.68';
 
 const KEYS = ['discovered', 'discoveredBy', 'treasures', 'equip', 'garden', 'settings'], PREFS = ['equip', 'garden', 'settings'];
 const A = window.SkyAuth || { serverConnected: false, currentUser: () => null, onChange() {} };   // auth.js missing: device-only

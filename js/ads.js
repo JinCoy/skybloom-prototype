@@ -2,11 +2,11 @@
    Web / prototype: the labelled placeholder countdown (#ov-ad), never a real or imitation ad.
    App (Capacitor, step 3-5): Google AdMob through @capacitor-community/admob (native plugin, reached via the Capacitor bridge: no bundler here).
    Callers only see 'done' (give the reward) or 'cancel' (no reward: closed early, no fill or an error). */
-import { $, tl } from './core.js?v=0.7.67';
-import { overlay, toast } from './ui.js?v=0.7.67';
-import { AC } from './audio.js?v=0.7.67';
-import { adult, bracket } from './age.js?v=0.7.67';
-import { adTags } from './agegroup.js?v=0.7.67';
+import { $, tl } from './core.js?v=0.7.68';
+import { overlay, toast } from './ui.js?v=0.7.68';
+import { AC } from './audio.js?v=0.7.68';
+import { adult, bracket } from './age.js?v=0.7.68';
+import { adTags } from './agegroup.js?v=0.7.68';
 
 const cap = window.Capacitor, AdMob = cap?.isNativePlatform?.() ? (cap.Plugins?.AdMob || cap.registerPlugin?.('AdMob')) : null;
 /* Rewarded ad units. These are Google's public TEST units (always fill, never pay): replace with the real units from the AdMob console before release. */

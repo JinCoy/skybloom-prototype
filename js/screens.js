@@ -1,15 +1,15 @@
 /* Skybloom module: screens (split from index.html in step 12; code unchanged) */
-import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.67';
-import { SKINS, setArt } from './shop.js?v=0.7.67';
-import { Mini } from './minianim.js?v=0.7.67';
-import { music } from './audio.js?v=0.7.67';
-import { fitText, hud, overlay, show, toast, transition } from './ui.js?v=0.7.67';
-import { localDate, newGame, tutStep } from './game.js?v=0.7.67';
-import { app } from './renderer.js?v=0.7.67';
-import { enableSensor, sensorOn } from './input.js?v=0.7.67';
-import * as TM from './telemetry.js?v=0.7.67';
-import { adult } from './age.js?v=0.7.67';
-import * as rank from './rank.js?v=0.7.67';
+import { $, APP_V, VER, G, IMG, L, NAMES, NAMES_BASE, NAMES_BY, SET_PRE, TREASURES, U, accSrc, applyI18n, artSrc, bkey, hasBuilt, lang, loadSkinArt, store, tl, trName } from './core.js?v=0.7.68';
+import { SKINS, setArt } from './shop.js?v=0.7.68';
+import { Mini } from './minianim.js?v=0.7.68';
+import { music } from './audio.js?v=0.7.68';
+import { fitText, hud, overlay, sheet, show, toast, transition } from './ui.js?v=0.7.68';
+import { localDate, newGame, tutStep } from './game.js?v=0.7.68';
+import { app } from './renderer.js?v=0.7.68';
+import { enableSensor, sensorOn } from './input.js?v=0.7.68';
+import * as TM from './telemetry.js?v=0.7.68';
+import { adult } from './age.js?v=0.7.68';
+import * as rank from './rank.js?v=0.7.68';
 
 /* ---------- ranking (B4): verified boards from the server (js/rank.js); device-only mode shows this device's best ---------- */
 export const colScore = () => Object.values(U.discBy).reduce((n, s) => n + s.size, 0) + Object.keys(U.treasures).length;   // collection rank score: buildings found in every set + treasures
@@ -20,7 +20,7 @@ const rkRow = (r, rank, me) => {   // built with textContent: a ranking name is 
   return d;
 };
 export async function openRanking(tab = rkTab, per = rkPer) {   // two boards: Normal (this week / all time) and Collection
-  rkTab = tab; rkPer = per; const req = ++rkReq, u = SkyAuth.currentUser();
+  rkTab = tab; rkPer = per; const req = ++rkReq, u = SkyAuth.currentUser(), guest = !u || u.provider === 'guest';   // guests never have a public name (the server refuses it)
   $('rk-normal').setAttribute('aria-selected', tab === 'normal'); $('rk-col').setAttribute('aria-selected', tab === 'col');
   $('rk-seg').hidden = tab !== 'normal'; $('rk-week').setAttribute('aria-selected', per === 'week'); $('rk-all').setAttribute('aria-selected', per === 'all');
   const local = tab === 'col' ? colScore() : U.best, max = SKINS.building.length * 17 + TREASURES.length;
@@ -33,14 +33,14 @@ export async function openRanking(tab = rkTab, per = rkPer) {   // two boards: N
   }
   $('rk-list').hidden = false; $('rk-empty').hidden = true; $('rk-note').textContent = tl('rank.loading');
   try {
-    const [{ rows, mine }, nick] = await Promise.all([rank.board(tab === 'col' ? 'col' : per === 'all' ? 'all' : rank.weekId()), rank.nickname()]);
+    const [{ rows, mine }, nick] = await Promise.all([rank.board(tab === 'col' ? 'col' : per === 'all' ? 'all' : rank.weekId()), guest ? null : rank.nickname()]);
     if (req !== rkReq) return;   // the player switched tabs meanwhile
     $('rk-list').append(...rows.map((r, i) => rkRow(r, rows.findIndex(x => x.score === r.score) + 1, r.uid === u.id)));   // ties share a rank
     if (!rows.length) { $('rk-list').hidden = true; $('rk-empty').hidden = false; $('rk-msg').textContent = tl('rank.empty'); }
     $('rk-who').textContent = nick || tl('rank.anon');
     $('rk-best').textContent = mine ? `${tl('rank.pos', { n: mine.rank })} · ${mine.score.toLocaleString('en-US')}` : '–';
-    $('rk-note').textContent = (tab === 'col' ? tl('rank.noteCol', { n: max }) : tl(per === 'all' ? 'rank.noteAll' : 'rank.noteWeek')) + ' · ' + tl('rank.tapName');
-    if (!nick && !store.get('nickAsked', false)) { store.set('nickAsked', true); askNick(''); }   // first visit: pick a ranking name (or stay anonymous)
+    $('rk-note').textContent = (tab === 'col' ? tl('rank.noteCol', { n: max }) : tl(per === 'all' ? 'rank.noteAll' : 'rank.noteWeek')) + ' · ' + tl(guest ? 'rank.guestName' : 'rank.tapName');
+    if (!guest && !nick && !store.get('nickAsked', false)) { store.set('nickAsked', true); askNick(''); }   // first visit of a signed-in player: pick a ranking name (or stay anonymous)
   } catch (e) {
     if (req !== rkReq) return; console.warn('[rank]', e?.code || e?.message || e);
     $('rk-list').hidden = true; $('rk-empty').hidden = false; $('rk-msg').textContent = tl('rank.failed'); $('rk-note').textContent = tl('rank.noteLocal');
@@ -49,14 +49,18 @@ export async function openRanking(tab = rkTab, per = rkPer) {   // two boards: N
 }
 $('rk-normal').onclick = () => openRanking('normal'); $('rk-col').onclick = () => openRanking('col');
 $('rk-week').onclick = () => openRanking('normal', 'week'); $('rk-all').onclick = () => openRanking('normal', 'all');
-$('rk-me').onclick = () => { if (rank.online()) rank.nickname().then(n => askNick(n || '')).catch(() => askNick('')); };
+$('rk-me').onclick = () => {
+  if (!rank.online()) return;
+  const u = SkyAuth.currentUser(); if (!u || u.provider === 'guest') return sheet(tl('nick.guestTitle'), tl('nick.guestBody'));   // guests: sign in with Google to choose a name
+  rank.nickname().then(n => askNick(n || '')).catch(() => askNick(''));
+};
 function askNick(cur) { $('nick-in').value = cur; $('nick-err').textContent = ''; overlay('nick'); }
 $('nick-anon').onclick = () => overlay('nick', false);
 $('nick-ok').onclick = async () => {
   const v = $('nick-in').value.trim(); if (!v) { $('nick-err').textContent = tl('nick.len'); return; }
   $('nick-ok').disabled = true;
   try { await rank.setNickname(v); overlay('nick', false); openRanking(); }
-  catch (e) { const m = String(e?.message || ''); $('nick-err').textContent = tl(m.startsWith('word') ? 'nick.bad' : m.startsWith('length') ? 'nick.len' : 'nick.fail'); }   // the message may carry a status suffix ('word [400]')
+  catch (e) { const m = String(e?.message || ''); $('nick-err').textContent = tl(m.startsWith('word') ? 'nick.bad' : m.startsWith('length') ? 'nick.len' : m.startsWith('guest') ? 'nick.guestBody' : 'nick.fail'); }   // the message may carry a status suffix ('word [400]')
   finally { $('nick-ok').disabled = false; }
 };
 
